@@ -1,0 +1,8127 @@
+/* =========================================================
+   CONTROLGAS
+   ESTILOS GENERALES
+========================================================= */
+
+:root {
+
+  /* COLORES GENERALES */
+
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --surface-hover: #f1f5f9;
+
+  --ink: #0f172a;
+  --ink-soft: #334155;
+  --muted: #64748b;
+
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
+
+
+  /* PRINCIPALES */
+
+  --primary: #0f172a;
+  --primary-soft: #e2e8f0;
+
+  --blue: #2563eb;
+  --blue-soft: #eff6ff;
+
+  --green: #15803d;
+  --green-soft: #dcfce7;
+
+  --orange: #c2410c;
+  --orange-soft: #ffedd5;
+
+  --red: #b91c1c;
+  --red-soft: #fee2e2;
+
+
+  /* DURAGAS */
+
+  --duragas: #eab308;
+  --duragas-dark: #854d0e;
+  --duragas-soft: #fef9c3;
+
+
+  /* KING GAS */
+
+  --kinggas: #ec4899;
+  --kinggas-dark: #be185d;
+  --kinggas-soft: #fce7f3;
+
+
+  /* BORDES */
+
+  --radius-small: 10px;
+  --radius: 16px;
+  --radius-large: 22px;
+
+
+  /* SOMBRAS */
+
+  --shadow-small:
+    0 4px 14px rgba(15, 23, 42, .05);
+
+  --shadow:
+    0 12px 32px rgba(15, 23, 42, .07);
+
+  --shadow-strong:
+    0 20px 55px rgba(15, 23, 42, .15);
+
+}
+
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+
+html {
+  scroll-behavior: smooth;
+}
+
+
+body {
+
+  margin: 0;
+
+  min-height: 100vh;
+
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  background:
+    var(--bg);
+
+  color:
+    var(--ink);
+
+  line-height: 1.45;
+
+}
+
+
+button,
+input,
+select,
+textarea {
+
+  font: inherit;
+
+}
+
+
+button {
+
+  cursor: pointer;
+
+}
+
+
+button:disabled {
+
+  cursor: not-allowed;
+
+  opacity: .55;
+
+}
+
+
+input,
+select,
+textarea {
+
+  color:
+    var(--ink);
+
+}
+
+
+[hidden] {
+
+  display: none !important;
+
+}
+
+
+
+/* =========================================================
+   TEXTO
+========================================================= */
+
+h1,
+h2,
+h3,
+h4,
+p {
+
+  margin-top: 0;
+
+}
+
+
+.eyebrow {
+
+  margin:
+    0 0 3px;
+
+  color:
+    var(--muted);
+
+  font-size: .68rem;
+
+  font-weight: 900;
+
+  letter-spacing: .13em;
+
+  text-transform: uppercase;
+
+}
+
+
+.subtle {
+
+  color:
+    var(--muted);
+
+}
+
+
+small {
+
+  color:
+    var(--muted);
+
+}
+
+
+
+/* =========================================================
+   CABECERA SUPERIOR
+========================================================= */
+
+.topbar {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 20px;
+
+
+  padding:
+    20px
+    clamp(16px, 4vw, 46px);
+
+
+  background:
+    linear-gradient(
+      135deg,
+      #0f172a 0%,
+      #1e293b 100%
+    );
+
+
+  color:
+    #ffffff;
+
+}
+
+
+.brand-area {
+
+  min-width: 0;
+
+}
+
+
+.brand-area .eyebrow {
+
+  color:
+    #94a3b8;
+
+}
+
+
+.brand-area h1 {
+
+  margin:
+    1px 0 5px;
+
+  font-size:
+    clamp(
+      1.5rem,
+      3vw,
+      2.1rem
+    );
+
+  line-height: 1.1;
+
+}
+
+
+.topbar-status {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  align-items: center;
+
+  gap: 7px;
+
+
+  color:
+    #cbd5e1;
+
+
+  font-size: .82rem;
+
+  font-weight: 650;
+
+}
+
+
+.separator {
+
+  color:
+    #64748b;
+
+}
+
+
+.topbar-actions {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 9px;
+
+}
+
+
+
+/* =========================================================
+   CONTENEDOR PRINCIPAL
+========================================================= */
+
+.app-shell {
+
+  width:
+    min(
+      1480px,
+      100%
+    );
+
+
+  margin:
+    0 auto;
+
+
+  padding:
+
+    15px
+    clamp(
+      10px,
+      3vw,
+      32px
+    )
+    60px;
+
+}
+
+
+
+/* =========================================================
+   NAVEGACIÓN
+========================================================= */
+
+.tabs {
+
+  position: sticky;
+
+  top: 0;
+
+  z-index: 20;
+
+
+  display: flex;
+
+  gap: 7px;
+
+
+  overflow-x: auto;
+
+
+  padding:
+    10px 0;
+
+
+  margin-bottom:
+    16px;
+
+
+  background:
+    rgba(
+      241,
+      245,
+      249,
+      .94
+    );
+
+
+  backdrop-filter:
+    blur(12px);
+
+
+  scrollbar-width:
+    thin;
+
+}
+
+
+.tab {
+
+  flex:
+    0 0 auto;
+
+
+  border:
+    1px solid
+    var(--line);
+
+
+  border-radius:
+    999px;
+
+
+  background:
+    #ffffff;
+
+
+  color:
+    var(--ink-soft);
+
+
+  padding:
+    9px 14px;
+
+
+  font-size: .82rem;
+
+  font-weight: 800;
+
+
+  transition:
+
+    background .15s ease,
+
+    color .15s ease,
+
+    border-color .15s ease,
+
+    transform .15s ease;
+
+}
+
+
+.tab:hover {
+
+  transform:
+    translateY(-1px);
+
+}
+
+
+.tab.active {
+
+  background:
+    var(--primary);
+
+
+  border-color:
+    var(--primary);
+
+
+  color:
+    #ffffff;
+
+}
+
+
+
+/* =========================================================
+   VISTAS
+========================================================= */
+
+.view {
+
+  display: none;
+
+}
+
+
+.view.active {
+
+  display: block;
+
+}
+
+
+
+/* =========================================================
+   ENCABEZADOS DE SECCIÓN
+========================================================= */
+
+.section-heading {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-end;
+
+
+  gap: 18px;
+
+
+  margin:
+    18px 0 14px;
+
+}
+
+
+.section-heading h2 {
+
+  margin:
+    2px 0 4px;
+
+
+  font-size:
+    clamp(
+      1.4rem,
+      3vw,
+      1.95rem
+    );
+
+
+  line-height: 1.15;
+
+}
+
+
+.section-heading p:last-child {
+
+  margin: 0;
+
+  color:
+    var(--muted);
+
+}
+
+
+
+/* =========================================================
+   TARJETAS GENERALES
+========================================================= */
+
+.card,
+fieldset {
+
+  background:
+    var(--surface);
+
+
+  border:
+    1px solid
+    var(--line);
+
+
+  border-radius:
+    var(--radius);
+
+
+  box-shadow:
+    var(--shadow);
+
+}
+
+
+.card {
+
+  padding:
+    clamp(
+      15px,
+      2.4vw,
+      23px
+    );
+
+
+  margin-bottom:
+    17px;
+
+}
+
+
+.card-header {
+
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+
+  gap: 15px;
+
+
+  margin-bottom:
+    14px;
+
+}
+
+
+.card-header h3 {
+
+  margin:
+    0 0 3px;
+
+}
+
+
+.card-header p {
+
+  margin: 0;
+
+
+  color:
+    var(--muted);
+
+
+  font-size: .85rem;
+
+}
+
+
+
+/* =========================================================
+   COLUMNAS GENERALES
+========================================================= */
+
+.two-col {
+
+  display: grid;
+
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+
+  gap: 16px;
+
+}
+
+
+
+/* =========================================================
+   MÉTRICAS
+========================================================= */
+
+.metric-grid {
+
+  display: grid;
+
+
+  grid-template-columns:
+    repeat(
+      6,
+      minmax(130px, 1fr)
+    );
+
+
+  gap: 11px;
+
+
+  margin-bottom:
+    17px;
+
+}
+
+
+.metric {
+
+  min-width: 0;
+
+
+  padding:
+    15px;
+
+
+  background:
+    #ffffff;
+
+
+  border:
+    1px solid
+    var(--line);
+
+
+  border-radius:
+    15px;
+
+
+  box-shadow:
+    var(--shadow-small);
+
+}
+
+
+.metric span {
+
+  display: block;
+
+
+  margin-bottom:
+    7px;
+
+
+  color:
+    var(--muted);
+
+
+  font-size: .76rem;
+
+}
+
+
+.metric strong {
+
+  display: block;
+
+
+  overflow-wrap:
+    anywhere;
+
+
+  font-size:
+    clamp(
+      1.12rem,
+      2.4vw,
+      1.4rem
+    );
+
+}
+
+
+.metric small {
+
+  display: block;
+
+
+  margin-top:
+    4px;
+
+
+  font-size: .72rem;
+
+}
+
+
+.metric.good strong {
+
+  color:
+    var(--green);
+
+}
+
+
+.metric.warn strong {
+
+  color:
+    var(--orange);
+
+}
+
+
+.metric.bad strong {
+
+  color:
+    var(--red);
+
+}
+
+
+
+/* =========================================================
+   BOTONES GENERALES
+========================================================= */
+
+.btn {
+
+  border: 0;
+
+
+  border-radius:
+    11px;
+
+
+  padding:
+    10px 14px;
+
+
+  font-weight: 820;
+
+
+  transition:
+
+    transform .15s ease,
+
+    opacity .15s ease,
+
+    box-shadow .15s ease;
+
+}
+
+
+.btn:hover {
+
+  transform:
+    translateY(-1px);
+
+}
+
+
+.btn:active {
+
+  transform:
+    scale(.98);
+
+}
+
+
+.btn.primary {
+
+  background:
+    var(--primary);
+
+
+  color:
+    #ffffff;
+
+}
+
+
+.btn.primary.large {
+
+  min-width:
+    190px;
+
+
+  padding:
+    13px 21px;
+
+
+  font-size:
+    .95rem;
+
+}
+
+
+.btn.secondary {
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .09
+    );
+
+
+  color:
+    #ffffff;
+
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      .17
+    );
+
+}
+
+
+.btn.ghost {
+
+  background:
+    #ffffff;
+
+
+  color:
+    var(--ink-soft);
+
+
+  border:
+    1px solid
+    var(--line);
+
+}
+
+
+.btn.ghost:hover {
+
+  background:
+    var(--surface-hover);
+
+}
+
+
+.btn.danger {
+
+  background:
+    var(--red-soft);
+
+
+  color:
+    var(--red);
+
+
+  border:
+    1px solid
+    #fecaca;
+
+}
+
+
+.btn.small {
+
+  padding:
+    7px 10px;
+
+
+  font-size:
+    .76rem;
+
+}
+
+
+.file-btn {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+}
+
+
+
+/* =========================================================
+   FORMULARIOS
+========================================================= */
+
+.form-card label,
+fieldset label,
+.field-block,
+.dialog-card label {
+
+  display: flex;
+
+  flex-direction: column;
+
+
+  gap: 6px;
+
+
+  color:
+    var(--ink-soft);
+
+
+  font-size: .85rem;
+
+  font-weight: 720;
+
+}
+
+
+.field-label {
+
+  color:
+    var(--ink-soft);
+
+
+  font-size: .85rem;
+
+  font-weight: 780;
+
+}
+
+
+.form-grid {
+
+  display: grid;
+
+
+  gap: 13px;
+
+
+  margin-bottom:
+    14px;
+
+}
+
+
+.form-grid.two {
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+}
+
+
+.form-grid.three {
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+}
+
+
+
+/* =========================================================
+   CAMPOS
+========================================================= */
+
+input,
+select,
+textarea {
+
+  width: 100%;
+
+
+  border:
+    1px solid
+    var(--line-strong);
+
+
+  border-radius:
+    11px;
+
+
+  background:
+    #ffffff;
+
+
+  padding:
+    11px 12px;
+
+
+  outline:
+    none;
+
+
+  transition:
+
+    border-color .15s ease,
+
+    box-shadow .15s ease,
+
+    background .15s ease;
+
+}
+
+
+input:focus,
+select:focus,
+textarea:focus {
+
+  border-color:
+    #64748b;
+
+
+  box-shadow:
+    0 0 0 3px
+    rgba(
+      15,
+      23,
+      42,
+      .07
+    );
+
+}
+
+
+textarea {
+
+  resize: vertical;
+
+}
+
+
+input[readonly] {
+
+  background:
+    var(--surface-soft);
+
+}
+
+
+
+/* =========================================================
+   ACCIONES DE FORMULARIO
+========================================================= */
+
+.form-actions {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  justify-content: flex-end;
+
+
+  gap: 9px;
+
+
+  margin-top:
+    16px;
+
+}
+
+
+
+/* =========================================================
+   FECHA Y HORA AUTOMÁTICA
+========================================================= */
+
+.auto-time {
+
+  min-height: 44px;
+
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+
+  gap: 9px;
+
+
+  padding:
+    10px 12px;
+
+
+  background:
+    var(--surface-soft);
+
+
+  border:
+    1px solid
+    var(--line);
+
+
+  border-radius:
+    11px;
+
+}
+
+
+.auto-time span {
+
+  color:
+    var(--muted);
+
+
+  font-size: .74rem;
+
+}
+
+
+.auto-time strong {
+
+  text-align: right;
+
+
+  font-size: .82rem;
+
+}
+
+
+.main-time {
+
+  margin-bottom:
+    16px;
+
+}
+
+
+
+/* =========================================================
+   SUBENCABEZADOS
+========================================================= */
+
+.subsection-heading {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+
+
+  gap: 14px;
+
+
+  margin-bottom:
+    13px;
+
+}
+
+
+.subsection-heading h3 {
+
+  margin:
+    0 0 3px;
+
+
+  font-size:
+    1rem;
+
+}
+
+
+.subsection-heading p {
+
+  margin: 0;
+
+
+  color:
+    var(--muted);
+
+
+  font-size:
+    .8rem;
+
+}
+
+
+
+/* =========================================================
+   MENSAJES
+========================================================= */
+
+.warning-box,
+.info-box,
+.success-box {
+
+  padding:
+    13px 14px;
+
+
+  margin:
+    13px 0;
+
+
+  border-radius:
+    13px;
+
+
+  font-size:
+    .83rem;
+
+
+  line-height: 1.5;
+
+}
+
+
+.warning-box {
+
+  background:
+    #fff7ed;
+
+
+  border:
+    1px solid
+    #fed7aa;
+
+
+  color:
+    #9a3412;
+
+}
+
+
+.info-box {
+
+  background:
+    var(--blue-soft);
+
+
+  border:
+    1px solid
+    #bfdbfe;
+
+
+  color:
+    #1e40af;
+
+}
+
+
+.success-box {
+
+  background:
+    var(--green-soft);
+
+
+  border:
+    1px solid
+    #bbf7d0;
+
+
+  color:
+    var(--green);
+
+}
+
+
+
+/* =========================================================
+   ESTADO VACÍO
+========================================================= */
+
+.empty-state {
+
+  padding:
+    24px 18px;
+
+
+  text-align: center;
+
+
+  color:
+    var(--muted);
+
+
+  background:
+    var(--surface-soft);
+
+
+  border:
+    1px dashed
+    var(--line-strong);
+
+
+  border-radius:
+    13px;
+
+
+  font-size:
+    .83rem;
+
+}
+
+
+
+/* =========================================================
+   COLORES POR MARCA
+========================================================= */
+
+.duragas {
+
+  --gas-color:
+    var(--duragas);
+
+
+  --gas-dark:
+    var(--duragas-dark);
+
+
+  --gas-soft:
+    var(--duragas-soft);
+
+}
+
+
+.kinggas {
+
+  --gas-color:
+    var(--kinggas);
+
+
+  --gas-dark:
+    var(--kinggas-dark);
+
+
+  --gas-soft:
+    var(--kinggas-soft);
+
+}
+
+
+.gas-dot {
+
+  width: 14px;
+
+  height: 14px;
+
+
+  flex:
+    0 0 14px;
+
+
+  display: inline-block;
+
+
+  border-radius:
+    50%;
+
+}
+
+
+.duragas-dot {
+
+  background:
+    var(--duragas);
+
+}
+
+
+.kinggas-dot {
+
+  background:
+    var(--kinggas);
+
+}
+
+
+
+/* =========================================================
+   TÍTULO DE MARCA
+========================================================= */
+
+.gas-title {
+
+  display: flex;
+
+  align-items: center;
+
+
+  gap: 9px;
+
+}
+
+
+.gas-title > div {
+
+  display: grid;
+
+
+  gap: 1px;
+
+}
+
+
+.gas-title strong,
+.gas-title h3 {
+
+  margin: 0;
+
+}
+
+
+.gas-title small {
+
+  font-size: .72rem;
+
+}
+
+
+
+/* =========================================================
+   BOLSAS DE REPOSICIÓN
+========================================================= */
+
+.reserve-wallet-grid {
+
+  display: grid;
+
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+
+  gap: 13px;
+
+}
+
+
+.reserve-wallet {
+
+  position: relative;
+
+
+  overflow: hidden;
+
+
+  min-width: 0;
+
+
+  padding:
+    17px;
+
+
+  background:
+    var(--surface-soft);
+
+
+  border:
+    1px solid
+    var(--line);
+
+
+  border-radius:
+    16px;
+
+}
+
+
+.reserve-wallet::before {
+
+  content: "";
+
+
+  position: absolute;
+
+
+  top: 0;
+
+  left: 0;
+
+
+  width: 5px;
+
+  height: 100%;
+
+
+  background:
+    var(--gas-color);
+
+}
+
+
+.reserve-wallet.duragas {
+
+  background:
+    linear-gradient(
+      135deg,
+      #ffffff 0%,
+      var(--duragas-soft) 170%
+    );
+
+}
+
+
+.reserve-wallet.kinggas {
+
+  background:
+    linear-gradient(
+      135deg,
+      #ffffff 0%,
+      var(--kinggas-soft) 170%
+    );
+
+}
+
+
+.wallet-head {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+
+
+  gap: 12px;
+
+
+  margin-bottom:
+    13px;
+
+}
+
+
+.wallet-head strong {
+
+  display: block;
+
+
+  font-size:
+    .9rem;
+
+}
+
+
+.wallet-head small {
+
+  display: block;
+
+
+  margin-top:
+    2px;
+
+
+  font-size:
+    .72rem;
+
+}
+
+
+.wallet-money {
+
+  display: block;
+
+
+  margin:
+    5px 0 13px;
+
+
+  color:
+    var(--gas-dark);
+
+
+  font-size:
+    clamp(
+      1.8rem,
+      4vw,
+      2.5rem
+    );
+
+
+  line-height: 1;
+
+
+  letter-spacing:
+    -.04em;
+
+}
+
+
+.wallet-details {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+
+  gap: 12px;
+
+
+  padding-top:
+    10px;
+
+
+  border-top:
+    1px solid
+    rgba(
+      100,
+      116,
+      139,
+      .16
+    );
+
+}
+
+
+.wallet-details span {
+
+  color:
+    var(--muted);
+
+
+  font-size:
+    .73rem;
+
+}
+
+
+.wallet-details strong {
+
+  text-align: right;
+
+
+  font-size:
+    .78rem;
+
+}
+
+
+
+/* =========================================================
+   GANANCIAS
+========================================================= */
+
+.profit-card {
+
+  overflow: hidden;
+
+}
+
+
+.profit-grid {
+
+  display: grid;
+
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+
+  gap: 11px;
+
+}
+
+
+.profit-box {
+
+  min-width: 0;
+
+
+  padding:
+    16px;
+
+
+  border-radius:
+    14px;
+
+
+  background:
+    var(--surface-soft);
+
+
+  border:
+    1px solid
+    var(--line);
+
+}
+
+
+.profit-box span {
+
+  display: block;
+
+
+  margin-bottom:
+    7px;
+
+
+  color:
+    var(--muted);
+
+
+  font-size:
+    .75rem;
+
+}
+
+
+.profit-box strong {
+
+  display: block;
+
+
+  font-size:
+    clamp(
+      1.35rem,
+      3vw,
+      1.8rem
+    );
+
+}
+
+
+.duragas-profit {
+
+  border-left:
+    5px solid
+    var(--duragas);
+
+}
+
+
+.duragas-profit strong {
+
+  color:
+    var(--duragas-dark);
+
+}
+
+
+.kinggas-profit {
+
+  border-left:
+    5px solid
+    var(--kinggas);
+
+}
+
+
+.kinggas-profit strong {
+
+  color:
+    var(--kinggas-dark);
+
+}
+
+
+.total-profit {
+
+  border-left:
+    5px solid
+    var(--green);
+
+
+  background:
+    var(--green-soft);
+
+}
+
+
+.total-profit strong {
+
+  color:
+    var(--green);
+
+}
+
+
+
+/* =========================================================
+   APERTURA
+========================================================= */
+
+.opening-gas-grid {
+
+  display: grid;
+
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+
+  gap: 15px;
+
+
+  margin-bottom:
+    18px;
+
+}
+
+
+fieldset {
+
+  margin: 0;
+
+
+  padding:
+    18px;
+
+
+  box-shadow:
+    none;
+
+}
+
+
+fieldset legend {
+
+  padding:
+    0 8px;
+
+
+  color:
+    var(--ink);
+
+
+  font-weight:
+    900;
+
+}
+
+
+.gas-card.duragas {
+
+  border-top:
+    5px solid
+    var(--duragas);
+
+}
+
+
+.gas-card.kinggas {
+
+  border-top:
+    5px solid
+    var(--kinggas);
+
+}
+
+
+.inventory-input-grid {
+
+  display: grid;
+
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+
+  gap: 12px;
+
+}
+
+
+.inventory-input-grid small {
+
+  font-size: .7rem;
+
+}
+
+
+
+/* =========================================================
+   TOTAL DE APERTURA
+========================================================= */
+
+.inline-result {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+
+  gap: 10px;
+
+
+  margin-top:
+    14px;
+
+
+  padding:
+    11px 12px;
+
+
+  background:
+    var(--surface-soft);
+
+
+  border:
+    1px solid
+    var(--line);
+
+
+  border-radius:
+    11px;
+
+}
+
+
+.inline-result span {
+
+  color:
+    var(--muted);
+
+
+  font-size:
+    .78rem;
+
+}
+
+
+.inline-result strong {
+
+  font-size:
+    1.1rem;
+
+}
+
+
+
+/* =========================================================
+   BOLSAS EN APERTURA
+========================================================= */
+
+.opening-wallet-section {
+
+  margin:
+    18px 0;
+
+
+  padding:
+    16px;
+
+
+  background:
+    var(--surface-soft);
+
+
+  border:
+    1px solid
+    var(--line);
+
+
+  border-radius:
+    15px;
+
+}
+
+
+.opening-wallet {
+
+  position: relative;
+
+
+  display: flex;
+
+  flex-direction: column;
+
+
+  gap: 4px;
+
+
+  padding:
+    15px;
+
+
+  overflow: hidden;
+
+
+  background:
+    #ffffff;
+
+
+  border:
+    1px solid
+    var(--line);
+
+
+  border-radius:
+    13px;
+
+}
+
+
+.opening-wallet::before {
+
+  content: "";
+
+
+  position: absolute;
+
+
+  top: 0;
+
+  left: 0;
+
+
+  width: 4px;
+
+  height: 100%;
+
+
+  background:
+    var(--gas-color);
+
+}
+
+
+.opening-wallet span {
+
+  color:
+    var(--gas-dark);
+
+
+  font-size:
+    .8rem;
+
+  font-weight:
+    800;
+
+}
+
+
+.opening-wallet strong {
+
+  color:
+    var(--gas-dark);
+
+
+  font-size:
+    1.45rem;
+
+}
+
+
+.opening-wallet small {
+
+  font-size:
+    .7rem;
+
+}
+
+
+
+/* =========================================================
+   RESULTADO GRANDE INLINE
+========================================================= */
+
+.big-inline-result {
+
+  min-height:
+    44px;
+
+
+  display: flex;
+
+  align-items: center;
+
+
+  padding:
+    10px 12px;
+
+
+  background:
+    var(--surface-soft);
+
+
+  border:
+    1px solid
+    var(--line);
+
+
+  border-radius:
+    11px;
+
+}
+
+
+.big-inline-result strong {
+
+  font-size:
+    1rem;
+
+}
+
+
+
+/* =========================================================
+   INVENTARIO RÁPIDO DEL DASHBOARD
+========================================================= */
+
+.inventory-visual-grid {
+
+  display: grid;
+
+
+  gap: 10px;
+
+}
+
+
+.dashboard-inventory-card {
+
+  padding:
+    13px;
+
+
+  background:
+    var(--surface-soft);
+
+
+  border:
+    1px solid
+    var(--line);
+
+
+  border-left:
+    5px solid
+    var(--gas-color);
+
+
+  border-radius:
+    12px;
+
+}
+
+
+.dashboard-inventory-card-head {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+
+  gap: 10px;
+
+
+  margin-bottom:
+    9px;
+
+}
+
+
+.dashboard-inventory-card-head strong {
+
+  color:
+    var(--gas-dark);
+
+}
+
+
+.dashboard-inventory-values {
+
+  display: grid;
+
+
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(0, 1fr)
+    );
+
+
+  gap: 6px;
+
+}
+
+
+.dashboard-inventory-values div {
+
+  padding:
+    8px 5px;
+
+
+  text-align: center;
+
+
+  background:
+    #ffffff;
+
+
+  border:
+    1px solid
+    var(--line);
+
+
+  border-radius:
+    9px;
+
+}
+
+
+.dashboard-inventory-values span {
+
+  display: block;
+
+
+  color:
+    var(--muted);
+
+
+  font-size:
+    .62rem;
+
+}
+
+
+.dashboard-inventory-values strong {
+
+  display: block;
+
+
+  margin-top:
+    2px;
+
+
+  font-size:
+    .9rem;
+
+}
+
+
+
+/* =========================================================
+   ACCESIBILIDAD
+========================================================= */
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+
+  outline:
+    3px solid
+    rgba(
+      37,
+      99,
+      235,
+      .22
+    );
+
+
+  outline-offset:
+    2px;
+
+}
+/* =========================================================
+   VENTA - MODO DE ENTREGA
+========================================================= */
+
+.sale-mode-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 10px;
+
+  margin-bottom: 17px;
+
+}
+
+
+.mode-btn {
+
+  min-height: 76px;
+
+  padding: 14px 15px;
+
+  text-align: left;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 14px;
+
+  background:
+    var(--surface-soft);
+
+  color:
+    var(--ink);
+
+  transition:
+    background .15s ease,
+    border-color .15s ease,
+    box-shadow .15s ease,
+    transform .15s ease;
+
+}
+
+
+.mode-btn:hover {
+
+  transform:
+    translateY(-1px);
+
+}
+
+
+.mode-btn strong {
+
+  display: block;
+
+  margin-bottom: 4px;
+
+  font-size: .91rem;
+
+}
+
+
+.mode-btn span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .77rem;
+
+}
+
+
+.mode-btn.active {
+
+  background:
+    var(--blue-soft);
+
+  border-color:
+    #60a5fa;
+
+  box-shadow:
+    0 0 0 2px
+    rgba(37, 99, 235, .07);
+
+}
+
+
+
+/* =========================================================
+   BLOQUES DE VENTA
+========================================================= */
+
+.order-block,
+.sale-subsection {
+
+  margin:
+    15px 0;
+
+  padding:
+    16px;
+
+  background:
+    #ffffff;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    var(--radius);
+
+  box-shadow:
+    var(--shadow-small);
+
+}
+
+
+.order-block-head {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  gap: 12px;
+
+  margin-bottom: 13px;
+
+}
+
+
+.order-block-head > div {
+
+  display: grid;
+
+  gap: 2px;
+
+}
+
+
+.order-block-head small {
+
+  font-size: .75rem;
+
+}
+
+
+
+/* =========================================================
+   PEDIDO POR MARCA
+========================================================= */
+
+.gas-order-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 12px;
+
+}
+
+
+.product-card {
+
+  position: relative;
+
+  overflow: hidden;
+
+  min-width: 0;
+
+  padding: 15px;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 15px;
+
+}
+
+
+.product-card.duragas {
+
+  border-left:
+    5px solid
+    var(--duragas);
+
+}
+
+
+.product-card.kinggas {
+
+  border-left:
+    5px solid
+    var(--kinggas);
+
+}
+
+
+.product-title {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+
+  margin-bottom: 10px;
+
+}
+
+
+.product-title > div {
+
+  display: grid;
+
+  gap: 1px;
+
+}
+
+
+.product-title strong {
+
+  font-size: .95rem;
+
+}
+
+
+.product-title small {
+
+  font-size: .71rem;
+
+}
+
+
+.product-dot {
+
+  width: 14px;
+
+  height: 14px;
+
+  flex:
+    0 0 14px;
+
+  border-radius: 50%;
+
+  background:
+    var(--gas-color);
+
+}
+
+
+
+/* =========================================================
+   DISPONIBILIDAD
+========================================================= */
+
+.stock-hint {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  gap: 8px;
+
+  margin-bottom: 10px;
+
+  padding:
+    7px 9px;
+
+  background:
+    #ffffff;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 9px;
+
+  color:
+    var(--muted);
+
+  font-size: .72rem;
+
+}
+
+
+.stock-hint strong {
+
+  color:
+    var(--gas-dark);
+
+  font-size: .9rem;
+
+}
+
+
+
+/* =========================================================
+   CONTADORES + / -
+========================================================= */
+
+.qty-stepper {
+
+  display: grid;
+
+  grid-template-columns:
+    48px
+    minmax(0, 1fr)
+    48px;
+
+  align-items: center;
+
+  gap: 7px;
+
+  margin-bottom: 9px;
+
+}
+
+
+.qty-stepper input {
+
+  height: 48px;
+
+  padding: 5px;
+
+  text-align: center;
+
+  font-size: 1.2rem;
+
+  font-weight: 900;
+
+}
+
+
+.step-btn {
+
+  width: 48px;
+
+  height: 48px;
+
+  display: grid;
+
+  place-items: center;
+
+  padding: 0;
+
+  border:
+    1px solid
+    var(--line-strong);
+
+  border-radius: 11px;
+
+  background:
+    #ffffff;
+
+  color:
+    var(--ink);
+
+  font-size: 1.5rem;
+
+  font-weight: 850;
+
+  line-height: 1;
+
+  user-select: none;
+
+  touch-action: manipulation;
+
+  transition:
+    background .12s ease,
+    transform .12s ease,
+    border-color .12s ease;
+
+}
+
+
+.step-btn:hover {
+
+  background:
+    var(--surface-hover);
+
+}
+
+
+.step-btn:active {
+
+  transform:
+    scale(.93);
+
+}
+
+
+
+/* =========================================================
+   BOTONES RÁPIDOS
+========================================================= */
+
+.quick-picks {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+}
+
+
+.quick-picks.centered {
+
+  justify-content: center;
+
+}
+
+
+.quick-btn {
+
+  min-height: 38px;
+
+  padding:
+    7px 11px;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 10px;
+
+  background:
+    #ffffff;
+
+  color:
+    var(--ink-soft);
+
+  font-size: .8rem;
+
+  font-weight: 800;
+
+  touch-action: manipulation;
+
+  transition:
+    background .12s ease,
+    color .12s ease,
+    border-color .12s ease,
+    transform .12s ease;
+
+}
+
+
+.quick-btn:hover {
+
+  background:
+    var(--surface-hover);
+
+}
+
+
+.quick-btn:active {
+
+  transform:
+    scale(.96);
+
+}
+
+
+.quick-btn.selected {
+
+  background:
+    var(--primary);
+
+  border-color:
+    var(--primary);
+
+  color:
+    #ffffff;
+
+}
+
+
+
+/* =========================================================
+   PRECIOS
+========================================================= */
+
+.price-buttons {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 8px;
+
+}
+
+
+.price-btn {
+
+  min-height: 52px;
+
+  padding:
+    10px 8px;
+
+  border:
+    2px solid
+    var(--line);
+
+  border-radius: 12px;
+
+  background:
+    #ffffff;
+
+  color:
+    var(--ink);
+
+  font-size: 1rem;
+
+  font-weight: 900;
+
+  touch-action: manipulation;
+
+  transition:
+    background .15s ease,
+    color .15s ease,
+    border-color .15s ease,
+    transform .15s ease;
+
+}
+
+
+.price-btn:hover {
+
+  transform:
+    translateY(-1px);
+
+}
+
+
+.price-btn.active {
+
+  background:
+    var(--primary);
+
+  border-color:
+    var(--primary);
+
+  color:
+    #ffffff;
+
+}
+
+
+
+/* =========================================================
+   INTERCAMBIO / VACÍOS
+========================================================= */
+
+.exchange-section {
+
+  background:
+    #f8fafc;
+
+}
+
+
+.exchange-actions {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 8px;
+
+  margin-bottom: 13px;
+
+}
+
+
+.empty-gas-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 12px;
+
+}
+
+
+.empty-counter-card {
+
+  padding: 14px;
+
+  background:
+    #ffffff;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 14px;
+
+}
+
+
+.empty-counter-card.duragas {
+
+  border-top:
+    4px solid
+    var(--duragas);
+
+}
+
+
+.empty-counter-card.kinggas {
+
+  border-top:
+    4px solid
+    var(--kinggas);
+
+}
+
+
+.empty-counter-card > div:first-child {
+
+  display: grid;
+
+  gap: 2px;
+
+  margin-bottom: 11px;
+
+}
+
+
+.empty-counter-card > div:first-child strong {
+
+  color:
+    var(--gas-dark);
+
+  font-size: .87rem;
+
+}
+
+
+.empty-counter-card > div:first-child small {
+
+  font-size: .7rem;
+
+}
+
+
+
+/* =========================================================
+   RESULTADO DEL INTERCAMBIO
+========================================================= */
+
+.exchange-result {
+
+  margin-top: 13px;
+
+  padding:
+    11px 12px;
+
+  background:
+    #ffffff;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 11px;
+
+  color:
+    var(--ink-soft);
+
+  font-size: .8rem;
+
+  font-weight: 700;
+
+}
+
+
+.exchange-result.good {
+
+  background:
+    var(--green-soft);
+
+  border-color:
+    #bbf7d0;
+
+  color:
+    var(--green);
+
+}
+
+
+.exchange-result.warn {
+
+  background:
+    var(--orange-soft);
+
+  border-color:
+    #fed7aa;
+
+  color:
+    var(--orange);
+
+}
+
+
+
+/* =========================================================
+   BOTONES SEGMENTADOS
+========================================================= */
+
+.segmented {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 6px;
+
+}
+
+
+.payment-segmented {
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+}
+
+
+.segment {
+
+  min-height: 42px;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 10px;
+
+  background:
+    #ffffff;
+
+  color:
+    var(--ink-soft);
+
+  padding:
+    8px 10px;
+
+  font-size: .8rem;
+
+  font-weight: 820;
+
+  touch-action: manipulation;
+
+  transition:
+    background .12s ease,
+    color .12s ease,
+    border-color .12s ease,
+    transform .12s ease;
+
+}
+
+
+.segment:hover {
+
+  background:
+    var(--surface-hover);
+
+}
+
+
+.segment:active {
+
+  transform:
+    scale(.97);
+
+}
+
+
+.segment.active {
+
+  background:
+    var(--primary);
+
+  border-color:
+    var(--primary);
+
+  color:
+    #ffffff;
+
+}
+
+
+
+/* =========================================================
+   DINERO RECIBIDO
+========================================================= */
+
+.received-block {
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(180px, 1fr)
+    minmax(250px, 1.5fr);
+
+  align-items: end;
+
+  gap: 13px;
+
+  margin:
+    15px 0;
+
+}
+
+
+.received-block label {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  color:
+    var(--ink-soft);
+
+  font-size: .85rem;
+
+  font-weight: 720;
+
+}
+
+
+#saleReceived {
+
+  min-height: 50px;
+
+  font-size: 1.08rem;
+
+  font-weight: 850;
+
+}
+
+
+.quick-cash {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      5,
+      minmax(0, 1fr)
+    );
+
+  gap: 6px;
+
+}
+
+
+
+/* =========================================================
+   TOTAL Y VUELTO
+========================================================= */
+
+.money-hero-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 12px;
+
+  margin:
+    18px 0 12px;
+
+}
+
+
+.money-hero {
+
+  min-height: 137px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 5px;
+
+  padding: 18px;
+
+  text-align: center;
+
+  border-radius: 18px;
+
+  box-shadow:
+    var(--shadow);
+
+}
+
+
+.money-hero span {
+
+  font-size: .74rem;
+
+  font-weight: 950;
+
+  letter-spacing: .11em;
+
+  text-transform: uppercase;
+
+}
+
+
+.money-hero strong {
+
+  font-size:
+    clamp(
+      2.1rem,
+      5vw,
+      3.4rem
+    );
+
+  line-height: 1;
+
+  letter-spacing: -.045em;
+
+}
+
+
+
+/* TOTAL */
+
+.total-hero {
+
+  background:
+    var(--blue-soft);
+
+  border:
+    3px solid
+    #3b82f6;
+
+  color:
+    #1d4ed8;
+
+}
+
+
+.total-hero span {
+
+  color:
+    #1e40af;
+
+}
+
+
+
+/* VUELTO */
+
+.change-hero {
+
+  background:
+    var(--green-soft);
+
+  border:
+    3px solid
+    #22c55e;
+
+  color:
+    var(--green);
+
+}
+
+
+.change-hero span {
+
+  color:
+    #166534;
+
+}
+
+
+
+/* =========================================================
+   DESGLOSE FINANCIERO DE VENTA
+========================================================= */
+
+.sale-financial-preview {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(0, 1fr)
+    );
+
+  gap: 8px;
+
+  margin-bottom: 12px;
+
+}
+
+
+.sale-financial-preview > div {
+
+  min-width: 0;
+
+  padding: 11px;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 11px;
+
+}
+
+
+.sale-financial-preview span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .68rem;
+
+}
+
+
+.sale-financial-preview strong {
+
+  display: block;
+
+  margin-top: 4px;
+
+  overflow-wrap: anywhere;
+
+  font-size: 1rem;
+
+}
+
+
+
+/* =========================================================
+   GANANCIA POR MARCA EN VENTA
+========================================================= */
+
+.brand-profit-preview {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 10px;
+
+  margin-bottom: 12px;
+
+}
+
+
+.brand-preview {
+
+  display: grid;
+
+  grid-template-columns:
+    1fr auto;
+
+  gap:
+    4px
+    12px;
+
+  align-items: center;
+
+  padding: 13px;
+
+  background:
+    var(--gas-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-left:
+    5px solid
+    var(--gas-color);
+
+  border-radius: 12px;
+
+}
+
+
+.brand-preview > span {
+
+  grid-column:
+    1 / -1;
+
+  color:
+    var(--gas-dark);
+
+  font-size: .82rem;
+
+  font-weight: 900;
+
+}
+
+
+.brand-preview small {
+
+  font-size: .69rem;
+
+}
+
+
+.brand-preview strong {
+
+  color:
+    var(--gas-dark);
+
+  font-size: .96rem;
+
+}
+
+
+
+/* =========================================================
+   PANEL DE CÁLCULOS
+========================================================= */
+
+.calc-panel {
+
+  display: grid;
+
+  gap: 8px;
+
+  margin:
+    12px 0;
+
+  padding: 10px;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 13px;
+
+}
+
+
+.calc-panel.four {
+
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(0, 1fr)
+    );
+
+}
+
+
+.calc-panel > div {
+
+  min-width: 0;
+
+  padding: 9px;
+
+  background:
+    #ffffff;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 9px;
+
+}
+
+
+.calc-panel span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .66rem;
+
+}
+
+
+.calc-panel strong {
+
+  display: block;
+
+  margin-top: 3px;
+
+  overflow-wrap: anywhere;
+
+  font-size: .95rem;
+
+}
+
+
+
+/* =========================================================
+   ESTADO DE OPERACIÓN
+========================================================= */
+
+.operation-status {
+
+  margin:
+    13px 0;
+
+  padding:
+    11px 13px;
+
+  border-radius: 11px;
+
+  font-size: .81rem;
+
+  font-weight: 760;
+
+}
+
+
+.operation-status.good {
+
+  background:
+    var(--green-soft);
+
+  color:
+    var(--green);
+
+}
+
+
+.operation-status.warn {
+
+  background:
+    var(--orange-soft);
+
+  color:
+    var(--orange);
+
+}
+
+
+.operation-status.bad {
+
+  background:
+    var(--red-soft);
+
+  color:
+    var(--red);
+
+}
+
+
+
+/* =========================================================
+   TABLAS
+========================================================= */
+
+.table-wrap {
+
+  width: 100%;
+
+  overflow-x: auto;
+
+  border-radius: 12px;
+
+  -webkit-overflow-scrolling:
+    touch;
+
+}
+
+
+table {
+
+  width: 100%;
+
+  min-width: 780px;
+
+  border-collapse:
+    collapse;
+
+}
+
+
+th,
+td {
+
+  padding:
+    10px 9px;
+
+  text-align: left;
+
+  vertical-align: middle;
+
+  border-bottom:
+    1px solid
+    var(--line);
+
+}
+
+
+th {
+
+  background:
+    #f8fafc;
+
+  color:
+    var(--muted);
+
+  font-size: .68rem;
+
+  font-weight: 900;
+
+  letter-spacing: .05em;
+
+  text-transform:
+    uppercase;
+
+}
+
+
+td {
+
+  color:
+    var(--ink-soft);
+
+  font-size: .8rem;
+
+}
+
+
+tbody tr:last-child td {
+
+  border-bottom: 0;
+
+}
+
+
+tbody tr:hover {
+
+  background:
+    #f8fafc;
+
+}
+
+
+
+/* =========================================================
+   BADGES
+========================================================= */
+
+.badge {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 4px;
+
+  padding:
+    4px 8px;
+
+  border-radius: 999px;
+
+  background:
+    #f1f5f9;
+
+  color:
+    #475569;
+
+  font-size: .68rem;
+
+  font-weight: 850;
+
+  white-space: nowrap;
+
+}
+
+
+.badge.good {
+
+  background:
+    var(--green-soft);
+
+  color:
+    var(--green);
+
+}
+
+
+.badge.warn {
+
+  background:
+    var(--orange-soft);
+
+  color:
+    var(--orange);
+
+}
+
+
+.badge.bad {
+
+  background:
+    var(--red-soft);
+
+  color:
+    var(--red);
+
+}
+
+
+.badge.duragas {
+
+  background:
+    var(--duragas-soft);
+
+  color:
+    var(--duragas-dark);
+
+}
+
+
+.badge.kinggas {
+
+  background:
+    var(--kinggas-soft);
+
+  color:
+    var(--kinggas-dark);
+
+}
+
+
+
+/* =========================================================
+   RESPONSIVE DE VENTA
+========================================================= */
+
+@media
+(max-width: 850px) {
+
+  .sale-quick-grid {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .gas-order-grid,
+  .empty-gas-grid {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .received-block {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .sale-financial-preview {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+  }
+
+
+  .calc-panel.four {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+  }
+
+}
+
+
+
+/* =========================================================
+   CELULAR
+========================================================= */
+
+@media
+(max-width: 600px) {
+
+  .exchange-summary-row {
+
+    align-items: stretch;
+
+    flex-direction: column;
+
+  }
+
+
+  .exchange-summary-actions {
+
+    justify-content: stretch;
+
+  }
+
+
+  .exchange-summary-actions .btn {
+
+    flex: 1;
+
+  }
+
+  .sale-mode-grid {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .order-block,
+  .sale-subsection {
+
+    padding:
+      13px;
+
+  }
+
+
+  /*
+    BOTONES GRANDES PARA DEDOS.
+  */
+
+  .qty-stepper {
+
+    grid-template-columns:
+      52px
+      minmax(0, 1fr)
+      52px;
+
+  }
+
+
+  .step-btn {
+
+    width: 52px;
+
+    height: 52px;
+
+    font-size: 1.65rem;
+
+  }
+
+
+  .qty-stepper input {
+
+    height: 52px;
+
+    font-size: 1.3rem;
+
+  }
+
+
+  .quick-btn {
+
+    min-height: 42px;
+
+  }
+
+
+  .exchange-actions {
+
+    display: grid;
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .price-btn {
+
+    min-height: 55px;
+
+    font-size: 1.05rem;
+
+  }
+
+
+  .quick-cash {
+
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(0, 1fr)
+      );
+
+  }
+
+
+  .quick-cash .quick-btn {
+
+    min-height: 45px;
+
+  }
+
+
+  .money-hero-grid {
+
+    grid-template-columns:
+      1fr 1fr;
+
+  }
+
+
+  .money-hero {
+
+    min-height: 115px;
+
+    padding: 13px 8px;
+
+  }
+
+
+  .money-hero strong {
+
+    font-size:
+      clamp(
+        1.9rem,
+        9vw,
+        2.7rem
+      );
+
+  }
+
+
+  .brand-profit-preview {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+}
+
+
+
+/* =========================================================
+   CELULAR PEQUEÑO
+========================================================= */
+
+@media
+(max-width: 430px) {
+
+  .price-buttons {
+
+    gap: 5px;
+
+  }
+
+
+  .price-btn {
+
+    padding:
+      8px 3px;
+
+    font-size: .93rem;
+
+  }
+
+
+  .payment-segmented {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .money-hero-grid {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .money-hero {
+
+    min-height: 105px;
+
+  }
+
+
+  .sale-financial-preview {
+
+    grid-template-columns:
+      1fr 1fr;
+
+  }
+
+
+  .calc-panel.four {
+
+    grid-template-columns:
+      1fr 1fr;
+
+  }
+
+
+  .quick-cash {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+  }
+
+}
+/* =========================================================
+   REPOSICIONES - CONTADORES GRANDES
+========================================================= */
+
+.counter-section {
+
+  margin:
+    16px 0;
+
+  padding:
+    16px;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    15px;
+
+}
+
+
+.large-counter {
+
+  width:
+    min(
+      390px,
+      100%
+    );
+
+  display: grid;
+
+  grid-template-columns:
+    58px
+    minmax(0, 1fr)
+    58px;
+
+  align-items: center;
+
+  gap: 9px;
+
+  margin:
+    12px auto;
+
+}
+
+
+.large-counter .step-btn {
+
+  width: 58px;
+
+  height: 58px;
+
+  font-size: 1.8rem;
+
+}
+
+
+.large-counter input {
+
+  height: 58px;
+
+  padding: 5px;
+
+  text-align: center;
+
+  font-size: 1.45rem;
+
+  font-weight: 950;
+
+}
+
+
+
+/* =========================================================
+   APORTE ADICIONAL DE REPOSICIÓN
+========================================================= */
+
+.extra-contribution-box {
+
+  margin:
+    17px 0;
+
+  padding:
+    16px;
+
+  background:
+    #fff7ed;
+
+  border:
+    1px solid
+    #fed7aa;
+
+  border-radius:
+    15px;
+
+}
+
+
+.extra-contribution-box h3 {
+
+  color:
+    #9a3412;
+
+}
+
+
+
+/* =========================================================
+   RESUMEN DE REPOSICIÓN
+========================================================= */
+
+.replenishment-summary {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 9px;
+
+  margin:
+    17px 0;
+
+  padding:
+    12px;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    15px;
+
+}
+
+
+.replenishment-summary > div {
+
+  min-width: 0;
+
+  padding:
+    12px;
+
+  background:
+    #ffffff;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    11px;
+
+}
+
+
+.replenishment-summary span {
+
+  display: block;
+
+  margin-bottom: 4px;
+
+  color:
+    var(--muted);
+
+  font-size: .7rem;
+
+}
+
+
+.replenishment-summary strong {
+
+  display: block;
+
+  overflow-wrap: anywhere;
+
+  font-size: 1.05rem;
+
+}
+
+
+.replenishment-summary .important {
+
+  background:
+    var(--blue-soft);
+
+  border-color:
+    #bfdbfe;
+
+}
+
+
+.replenishment-summary .important strong {
+
+  color:
+    #1d4ed8;
+
+  font-size: 1.2rem;
+
+}
+
+
+
+/* =========================================================
+   INVENTARIO PRINCIPAL
+========================================================= */
+
+.inventory-main-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 15px;
+
+  margin-bottom: 17px;
+
+}
+
+
+.inventory-big-card {
+
+  min-width: 0;
+
+  padding:
+    18px;
+
+  background:
+    #ffffff;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    var(--radius-large);
+
+  box-shadow:
+    var(--shadow);
+
+}
+
+
+.inventory-big-card.duragas {
+
+  border-top:
+    6px solid
+    var(--duragas);
+
+}
+
+
+.inventory-big-card.kinggas {
+
+  border-top:
+    6px solid
+    var(--kinggas);
+
+}
+
+
+
+/* =========================================================
+   CABECERA DE INVENTARIO
+========================================================= */
+
+.inventory-brand-head {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+
+  gap: 12px;
+
+  margin-bottom: 16px;
+
+}
+
+
+.inventory-brand-head h3 {
+
+  margin: 0;
+
+}
+
+
+.inventory-total-badge {
+
+  min-width: 100px;
+
+  padding:
+    9px 11px;
+
+  text-align: center;
+
+  background:
+    var(--gas-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    12px;
+
+}
+
+
+.inventory-total-badge span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .62rem;
+
+}
+
+
+.inventory-total-badge strong {
+
+  display: block;
+
+  margin-top: 2px;
+
+  color:
+    var(--gas-dark);
+
+  font-size: 1.3rem;
+
+}
+
+
+
+/* =========================================================
+   NÚMEROS DE INVENTARIO
+========================================================= */
+
+.inventory-number-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 9px;
+
+}
+
+
+.inventory-number {
+
+  min-width: 0;
+
+  padding:
+    14px;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    12px;
+
+}
+
+
+.inventory-number span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .7rem;
+
+}
+
+
+.inventory-number strong {
+
+  display: block;
+
+  margin:
+    4px 0 2px;
+
+  font-size:
+    clamp(
+      1.45rem,
+      4vw,
+      2rem
+    );
+
+}
+
+
+.inventory-number small {
+
+  display: block;
+
+  font-size: .65rem;
+
+}
+
+
+
+/* DISPONIBLES */
+
+.inventory-number.available {
+
+  background:
+    #f0fdf4;
+
+}
+
+
+.inventory-number.available strong {
+
+  color:
+    var(--green);
+
+}
+
+
+
+/* VACÍOS */
+
+.inventory-number.empty strong {
+
+  color:
+    #475569;
+
+}
+
+
+
+/* RESERVADOS */
+
+.inventory-number.reserved {
+
+  background:
+    var(--blue-soft);
+
+}
+
+
+.inventory-number.reserved strong {
+
+  color:
+    #1d4ed8;
+
+}
+
+
+
+/* PRESTADOS */
+
+.inventory-number.loaned {
+
+  background:
+    #fff7ed;
+
+}
+
+
+.inventory-number.loaned strong {
+
+  color:
+    var(--orange);
+
+}
+
+
+
+/* =========================================================
+   TOTAL CONTROLADO POR MARCA
+========================================================= */
+
+.inventory-ownership {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  gap: 10px;
+
+  margin-top: 12px;
+
+  padding:
+    11px 12px;
+
+  background:
+    var(--gas-soft);
+
+  border-radius:
+    11px;
+
+}
+
+
+.inventory-ownership span {
+
+  color:
+    var(--gas-dark);
+
+  font-size: .73rem;
+
+}
+
+
+.inventory-ownership strong {
+
+  color:
+    var(--gas-dark);
+
+  font-size: 1.2rem;
+
+}
+
+
+
+/* =========================================================
+   RESUMEN TOTAL DE INVENTARIO
+========================================================= */
+
+.inventory-control-summary {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 10px;
+
+}
+
+
+.inventory-control-summary > div {
+
+  padding:
+    15px;
+
+  text-align: center;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    12px;
+
+}
+
+
+.inventory-control-summary span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .7rem;
+
+}
+
+
+.inventory-control-summary strong {
+
+  display: block;
+
+  margin-top: 4px;
+
+  font-size: 1.45rem;
+
+}
+
+
+.inventory-control-summary > div:last-child {
+
+  background:
+    var(--blue-soft);
+
+}
+
+
+.inventory-control-summary > div:last-child strong {
+
+  color:
+    #1d4ed8;
+
+}
+
+
+
+/* =========================================================
+   PENDIENTES
+========================================================= */
+
+.pending-sections {
+
+  display: grid;
+
+  gap: 13px;
+
+}
+
+
+.pending-card {
+
+  overflow: hidden;
+
+  padding:
+    16px;
+
+  background:
+    #ffffff;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    15px;
+
+  box-shadow:
+    var(--shadow-small);
+
+}
+
+
+.pending-card.money {
+
+  border-left:
+    5px solid
+    #3b82f6;
+
+}
+
+
+.pending-card.tanks {
+
+  border-left:
+    5px solid
+    var(--orange);
+
+}
+
+
+.pending-card.mixed {
+
+  border-left:
+    5px solid
+    #8b5cf6;
+
+}
+
+
+.pending-card.pickup {
+
+  border-left:
+    5px solid
+    var(--green);
+
+}
+
+
+.pending-card-head {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+
+  gap: 12px;
+
+  margin-bottom: 12px;
+
+}
+
+
+.pending-card-head h3,
+.pending-card-head strong {
+
+  margin: 0;
+
+}
+
+
+.pending-card-head small {
+
+  display: block;
+
+  margin-top: 3px;
+
+}
+
+
+.pending-values {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(0, 1fr)
+    );
+
+  gap: 7px;
+
+  margin-bottom: 12px;
+
+}
+
+
+.pending-values > div {
+
+  padding:
+    9px;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    9px;
+
+}
+
+
+.pending-values span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .64rem;
+
+}
+
+
+.pending-values strong {
+
+  display: block;
+
+  margin-top: 2px;
+
+  font-size: .9rem;
+
+}
+
+
+.pending-actions {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 7px;
+
+}
+
+
+
+/* =========================================================
+   AJUSTES - EXISTENCIA ACTUAL
+========================================================= */
+
+.adjustment-current-box {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  gap: 12px;
+
+  margin:
+    15px 0;
+
+  padding:
+    14px;
+
+  background:
+    var(--blue-soft);
+
+  border:
+    1px solid
+    #bfdbfe;
+
+  border-radius:
+    13px;
+
+}
+
+
+.adjustment-current-box span {
+
+  color:
+    #1e40af;
+
+  font-size: .8rem;
+
+}
+
+
+.adjustment-current-box strong {
+
+  color:
+    #1d4ed8;
+
+  font-size: 1.5rem;
+
+}
+
+
+
+/* =========================================================
+   AUMENTAR / DISMINUIR
+========================================================= */
+
+.adjustment-direction {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 9px;
+
+  margin:
+    15px 0;
+
+}
+
+
+.direction-btn {
+
+  min-height: 70px;
+
+  padding:
+    12px 14px;
+
+  text-align: left;
+
+  background:
+    #ffffff;
+
+  border:
+    2px solid
+    var(--line);
+
+  border-radius:
+    13px;
+
+  color:
+    var(--ink);
+
+  transition:
+    background .15s ease,
+    border-color .15s ease,
+    transform .15s ease;
+
+}
+
+
+.direction-btn:hover {
+
+  transform:
+    translateY(-1px);
+
+}
+
+
+.direction-btn strong {
+
+  display: block;
+
+  margin-bottom: 3px;
+
+}
+
+
+.direction-btn span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .72rem;
+
+}
+
+
+.direction-btn[data-adjustment-direction="increase"].active {
+
+  background:
+    var(--green-soft);
+
+  border-color:
+    #22c55e;
+
+  color:
+    var(--green);
+
+}
+
+
+.direction-btn[data-adjustment-direction="decrease"].active {
+
+  background:
+    var(--red-soft);
+
+  border-color:
+    #ef4444;
+
+  color:
+    var(--red);
+
+}
+
+
+
+/* =========================================================
+   PREVISUALIZACIÓN DEL AJUSTE
+========================================================= */
+
+.adjustment-preview {
+
+  display: grid;
+
+  grid-template-columns:
+    1fr
+    auto
+    1fr
+    auto
+    1fr;
+
+  align-items: center;
+
+  gap: 8px;
+
+  margin:
+    15px 0;
+
+  padding:
+    12px;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    14px;
+
+}
+
+
+.adjustment-preview > div:not(.adjustment-symbol) {
+
+  min-width: 0;
+
+  padding:
+    10px;
+
+  text-align: center;
+
+  background:
+    #ffffff;
+
+  border-radius:
+    10px;
+
+}
+
+
+.adjustment-preview span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .65rem;
+
+}
+
+
+.adjustment-preview strong {
+
+  display: block;
+
+  margin-top: 3px;
+
+  font-size: 1.15rem;
+
+}
+
+
+.adjustment-symbol {
+
+  color:
+    var(--muted);
+
+  font-size: 1.3rem;
+
+}
+
+
+.adjustment-preview .important {
+
+  background:
+    var(--blue-soft) !important;
+
+}
+
+
+.adjustment-preview .important strong {
+
+  color:
+    #1d4ed8;
+
+}
+
+
+
+/* =========================================================
+   CONTADOR DE AJUSTES
+========================================================= */
+
+.adjustment-counter-section {
+
+  background:
+    #f8fafc;
+
+}
+
+
+.compact-counter-section {
+
+  padding:
+    12px;
+
+}
+
+
+.compact-counter-section .large-counter {
+
+  margin-top: 0;
+
+}
+
+
+
+/* =========================================================
+   PRÉSTAMOS DE TANQUES
+========================================================= */
+
+#loanForm {
+
+  display: grid;
+
+  gap: 12px;
+
+}
+
+
+#loanForm .form-grid {
+
+  margin-bottom: 0;
+
+}
+
+
+
+/* =========================================================
+   HISTORIAL DE AJUSTES
+========================================================= */
+
+.adjustment-positive {
+
+  color:
+    var(--green);
+
+  font-weight: 850;
+
+}
+
+
+.adjustment-negative {
+
+  color:
+    var(--red);
+
+  font-weight: 850;
+
+}
+
+
+
+/* =========================================================
+   DIÁLOGOS
+========================================================= */
+
+dialog {
+
+  width:
+    min(
+      760px,
+      calc(100% - 22px)
+    );
+
+  max-height:
+    calc(100vh - 24px);
+
+  padding: 0;
+
+  overflow: auto;
+
+  border: 0;
+
+  border-radius:
+    19px;
+
+  background:
+    transparent;
+
+  box-shadow:
+    var(--shadow-strong);
+
+}
+
+
+dialog::backdrop {
+
+  background:
+    rgba(
+      15,
+      23,
+      42,
+      .60
+    );
+
+  backdrop-filter:
+    blur(2px);
+
+}
+
+
+.dialog-card {
+
+  width: 100%;
+
+  padding:
+    19px;
+
+  background:
+    #ffffff;
+
+  border-radius:
+    19px;
+
+}
+
+
+.dialog-head {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+
+  gap: 15px;
+
+  margin-bottom:
+    16px;
+
+}
+
+
+.dialog-head h3 {
+
+  margin:
+    2px 0 0;
+
+}
+
+
+.icon-btn {
+
+  width: 40px;
+
+  height: 40px;
+
+  flex:
+    0 0 40px;
+
+  display: grid;
+
+  place-items: center;
+
+  padding: 0;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    10px;
+
+  background:
+    #ffffff;
+
+  color:
+    var(--ink);
+
+  font-size: 1.4rem;
+
+}
+
+
+.icon-btn:hover {
+
+  background:
+    var(--surface-hover);
+
+}
+
+
+
+/* =========================================================
+   PENDIENTE - BALANCE
+========================================================= */
+
+.dialog-balance-box {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  gap: 10px;
+
+  margin-bottom: 13px;
+
+  padding:
+    12px;
+
+  background:
+    var(--blue-soft);
+
+  border:
+    1px solid
+    #bfdbfe;
+
+  border-radius:
+    11px;
+
+}
+
+
+.dialog-balance-box span {
+
+  color:
+    #1e40af;
+
+  font-size: .76rem;
+
+}
+
+
+.dialog-balance-box strong {
+
+  color:
+    #1d4ed8;
+
+  font-size: 1.25rem;
+
+}
+
+
+.dialog-method {
+
+  margin-top: 13px;
+
+}
+
+
+.dialog-help {
+
+  color:
+    var(--muted);
+
+  font-size: .8rem;
+
+}
+
+
+
+/* =========================================================
+   CONTADORES DEL MODAL
+========================================================= */
+
+.dialog-brand-counters {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 10px;
+
+  margin:
+    12px 0;
+
+}
+
+
+.dialog-counter {
+
+  padding:
+    12px;
+
+  background:
+    var(--gas-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-left:
+    4px solid
+    var(--gas-color);
+
+  border-radius:
+    11px;
+
+}
+
+
+.dialog-counter > span {
+
+  display: block;
+
+  margin-bottom: 9px;
+
+  color:
+    var(--gas-dark);
+
+  font-size: .78rem;
+
+  font-weight: 850;
+
+}
+
+
+
+/* =========================================================
+   RESPONSIVE INVENTARIO / AJUSTES / REPOSICIÓN
+========================================================= */
+
+@media
+(max-width: 900px) {
+
+  .inventory-main-grid {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .replenishment-summary {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+  }
+
+
+  .pending-values {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+  }
+
+}
+
+
+
+/* =========================================================
+   TABLET / CELULAR
+========================================================= */
+
+@media
+(max-width: 650px) {
+
+  .inventory-control-summary {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .adjustment-direction {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .adjustment-preview {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .adjustment-symbol {
+
+    text-align: center;
+
+  }
+
+
+  .dialog-brand-counters {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .replenishment-summary {
+
+    grid-template-columns:
+      1fr 1fr;
+
+  }
+
+}
+
+
+
+/* =========================================================
+   CELULAR PEQUEÑO
+========================================================= */
+
+@media
+(max-width: 480px) {
+
+  .inventory-number-grid {
+
+    grid-template-columns:
+      1fr 1fr;
+
+  }
+
+
+  .inventory-big-card {
+
+    padding:
+      14px;
+
+  }
+
+
+  .inventory-brand-head {
+
+    align-items: center;
+
+  }
+
+
+  .inventory-total-badge {
+
+    min-width: 82px;
+
+  }
+
+
+  .large-counter {
+
+    grid-template-columns:
+      60px
+      minmax(0, 1fr)
+      60px;
+
+  }
+
+
+  .large-counter .step-btn {
+
+    width: 60px;
+
+    height: 60px;
+
+  }
+
+
+  .large-counter input {
+
+    height: 60px;
+
+    font-size: 1.5rem;
+
+  }
+
+
+  .replenishment-summary {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .pending-values {
+
+    grid-template-columns:
+      1fr 1fr;
+
+  }
+
+
+  .pending-actions {
+
+    display: grid;
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .pending-actions .btn {
+
+    width: 100%;
+
+  }
+
+
+  dialog {
+
+    width:
+      calc(100% - 12px);
+
+    max-height:
+      calc(100vh - 12px);
+
+  }
+
+
+  .dialog-card {
+
+    padding:
+      14px;
+
+  }
+
+}
+/* =========================================================
+   CIERRE DEL DÍA
+========================================================= */
+
+.closing-section {
+
+  margin:
+    17px 0;
+
+  padding:
+    16px;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    15px;
+
+}
+
+
+
+/* =========================================================
+   RESUMEN FINANCIERO DEL CIERRE
+========================================================= */
+
+.closing-financial-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 9px;
+
+}
+
+
+.closing-financial-grid > div {
+
+  min-width: 0;
+
+  padding:
+    13px;
+
+  background:
+    #ffffff;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    11px;
+
+}
+
+
+.closing-financial-grid span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .68rem;
+
+}
+
+
+.closing-financial-grid strong {
+
+  display: block;
+
+  margin-top: 4px;
+
+  overflow-wrap: anywhere;
+
+  font-size: 1.05rem;
+
+}
+
+
+
+/* =========================================================
+   GANANCIA EN CIERRE
+========================================================= */
+
+.profit-closing-section {
+
+  background:
+    #ffffff;
+
+}
+
+
+.profit-closing-section .profit-grid {
+
+  margin-top:
+    5px;
+
+}
+
+
+
+/* =========================================================
+   REPOSICIONES POR MARCA EN CIERRE
+========================================================= */
+
+.closing-brand-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 12px;
+
+}
+
+
+.closing-brand-card {
+
+  display: grid;
+
+  gap: 9px;
+
+  padding:
+    15px;
+
+  background:
+    #ffffff;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-top:
+    5px solid
+    var(--gas-color);
+
+  border-radius:
+    13px;
+
+}
+
+
+.closing-brand-card > strong {
+
+  color:
+    var(--gas-dark);
+
+  font-size: .9rem;
+
+}
+
+
+.closing-brand-card > div {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  gap: 12px;
+
+  padding-top:
+    8px;
+
+  border-top:
+    1px solid
+    var(--line);
+
+}
+
+
+.closing-brand-card span {
+
+  color:
+    var(--muted);
+
+  font-size: .7rem;
+
+}
+
+
+.closing-brand-card div strong {
+
+  font-size: .9rem;
+
+}
+
+
+
+/* =========================================================
+   ARQUEO DE CAJA
+========================================================= */
+
+.cash-closing-section {
+
+  background:
+    linear-gradient(
+      135deg,
+      #f8fafc 0%,
+      #eff6ff 100%
+    );
+
+}
+
+
+.cash-audit-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 11px;
+
+}
+
+
+.cash-audit-box,
+.cash-count-box {
+
+  min-width: 0;
+
+  padding:
+    15px;
+
+  background:
+    #ffffff;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    13px;
+
+}
+
+
+.cash-audit-box span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .7rem;
+
+}
+
+
+.cash-audit-box strong {
+
+  display: block;
+
+  margin:
+    5px 0 3px;
+
+  font-size:
+    clamp(
+      1.35rem,
+      3vw,
+      1.8rem
+    );
+
+}
+
+
+.cash-audit-box small {
+
+  font-size: .65rem;
+
+}
+
+
+.cash-count-box {
+
+  justify-content:
+    center;
+
+}
+
+
+.cash-count-box input {
+
+  margin-top:
+    6px;
+
+  font-size: 1.2rem;
+
+  font-weight: 900;
+
+}
+
+
+.cash-audit-box.difference {
+
+  background:
+    var(--green-soft);
+
+}
+
+
+.cash-audit-box.difference strong {
+
+  color:
+    var(--green);
+
+}
+
+
+.cash-audit-box.difference.warn {
+
+  background:
+    var(--orange-soft);
+
+}
+
+
+.cash-audit-box.difference.warn strong {
+
+  color:
+    var(--orange);
+
+}
+
+
+.cash-audit-box.difference.bad {
+
+  background:
+    var(--red-soft);
+
+}
+
+
+.cash-audit-box.difference.bad strong {
+
+  color:
+    var(--red);
+
+}
+
+
+
+/* =========================================================
+   INVENTARIO DEL CIERRE
+========================================================= */
+
+.closing-inventory-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 14px;
+
+}
+
+
+.closing-inventory-grid fieldset {
+
+  display: grid;
+
+  gap: 12px;
+
+}
+
+
+.expected-inventory-banner {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  gap: 10px;
+
+  padding:
+    11px;
+
+  background:
+    var(--gas-soft);
+
+  border-radius:
+    10px;
+
+}
+
+
+.expected-inventory-banner span {
+
+  color:
+    var(--gas-dark);
+
+  font-size: .7rem;
+
+}
+
+
+.expected-inventory-banner strong {
+
+  color:
+    var(--gas-dark);
+
+  font-size: 1.2rem;
+
+}
+
+
+.closing-brand-difference {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 10px;
+
+  padding:
+    11px;
+
+  background:
+    var(--green-soft);
+
+  border:
+    1px solid
+    #bbf7d0;
+
+  border-radius:
+    10px;
+
+}
+
+
+.closing-brand-difference span {
+
+  color:
+    #166534;
+
+  font-size: .72rem;
+
+}
+
+
+.closing-brand-difference strong {
+
+  color:
+    var(--green);
+
+  font-size: 1.1rem;
+
+}
+
+
+.closing-brand-difference.warn {
+
+  background:
+    var(--orange-soft);
+
+  border-color:
+    #fed7aa;
+
+}
+
+
+.closing-brand-difference.warn span,
+.closing-brand-difference.warn strong {
+
+  color:
+    var(--orange);
+
+}
+
+
+.closing-brand-difference.bad {
+
+  background:
+    var(--red-soft);
+
+  border-color:
+    #fecaca;
+
+}
+
+
+.closing-brand-difference.bad span,
+.closing-brand-difference.bad strong {
+
+  color:
+    var(--red);
+
+}
+
+
+
+/* =========================================================
+   PENDIENTES EN CIERRE
+========================================================= */
+
+.closing-pending-summary {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(0, 1fr)
+    );
+
+  gap: 8px;
+
+}
+
+
+.closing-pending-summary > div {
+
+  min-width: 0;
+
+  padding:
+    11px;
+
+  background:
+    #ffffff;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    10px;
+
+}
+
+
+.closing-pending-summary span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .65rem;
+
+}
+
+
+.closing-pending-summary strong {
+
+  display: block;
+
+  margin-top: 3px;
+
+  font-size: 1rem;
+
+}
+
+
+
+/* =========================================================
+   RESULTADO DEL CIERRE
+========================================================= */
+
+#closingSummary {
+
+  border-left:
+    5px solid
+    var(--green);
+
+}
+
+
+.closing-result-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 9px;
+
+}
+
+
+.closing-result-grid > div {
+
+  padding:
+    12px;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    11px;
+
+}
+
+
+.closing-result-grid span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .67rem;
+
+}
+
+
+.closing-result-grid strong {
+
+  display: block;
+
+  margin-top: 3px;
+
+  font-size: 1rem;
+
+}
+
+
+
+/* =========================================================
+   HISTORIAL - PESTAÑAS
+========================================================= */
+
+.history-tabs {
+
+  display: flex;
+
+  gap: 7px;
+
+  overflow-x: auto;
+
+  margin-bottom:
+    16px;
+
+  padding-bottom:
+    3px;
+
+}
+
+
+.history-tab {
+
+  flex:
+    0 0 auto;
+
+  min-height:
+    41px;
+
+  padding:
+    8px 13px;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    999px;
+
+  background:
+    #ffffff;
+
+  color:
+    var(--ink-soft);
+
+  font-size:
+    .77rem;
+
+  font-weight:
+    850;
+
+  white-space:
+    nowrap;
+
+}
+
+
+.history-tab.active {
+
+  background:
+    var(--blue);
+
+  border-color:
+    var(--blue);
+
+  color:
+    #ffffff;
+
+}
+
+
+
+/* =========================================================
+   PANELES DE HISTORIAL
+========================================================= */
+
+.history-panel {
+
+  display: none;
+
+}
+
+
+.history-panel.active {
+
+  display: block;
+
+}
+
+
+
+/* =========================================================
+   LISTA DE DÍAS CERRADOS
+========================================================= */
+
+.history-list {
+
+  display: grid;
+
+  gap: 11px;
+
+}
+
+
+.history-day-card {
+
+  padding:
+    15px;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    14px;
+
+}
+
+
+.history-day-head {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+
+  gap: 12px;
+
+  margin-bottom:
+    11px;
+
+}
+
+
+.history-day-head h4 {
+
+  margin:
+    0 0 2px;
+
+}
+
+
+.history-day-head small {
+
+  display: block;
+
+}
+
+
+.history-day-metrics {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      5,
+      minmax(0, 1fr)
+    );
+
+  gap: 7px;
+
+  margin-bottom:
+    11px;
+
+}
+
+
+.history-day-metrics > div {
+
+  padding:
+    9px;
+
+  background:
+    #ffffff;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    9px;
+
+}
+
+
+.history-day-metrics span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .62rem;
+
+}
+
+
+.history-day-metrics strong {
+
+  display: block;
+
+  margin-top:
+    2px;
+
+  font-size: .87rem;
+
+}
+
+
+
+/* =========================================================
+   FILTROS DEL HISTORIAL
+========================================================= */
+
+.history-filter-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 10px;
+
+  margin-bottom:
+    11px;
+
+}
+
+
+.history-filter-grid.compact {
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+}
+
+
+.history-filter-grid label {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 5px;
+
+  color:
+    var(--ink-soft);
+
+  font-size:
+    .74rem;
+
+  font-weight:
+    750;
+
+}
+
+
+.history-filter-actions {
+
+  display: flex;
+
+  justify-content: flex-end;
+
+  margin-bottom:
+    13px;
+
+}
+
+
+
+/* =========================================================
+   ESTADÍSTICAS DEL HISTORIAL
+========================================================= */
+
+.history-stat-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(0, 1fr)
+    );
+
+  gap: 8px;
+
+  margin-bottom:
+    14px;
+
+}
+
+
+.history-stat-grid > div {
+
+  min-width: 0;
+
+  padding:
+    12px;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    11px;
+
+}
+
+
+.history-stat-grid span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .65rem;
+
+}
+
+
+.history-stat-grid strong {
+
+  display: block;
+
+  margin-top:
+    4px;
+
+  overflow-wrap:
+    anywhere;
+
+  font-size: 1.08rem;
+
+}
+
+
+
+/* =========================================================
+   DETALLE COMPLETO DE UN DÍA
+========================================================= */
+
+#dayDetailDialog {
+
+  width:
+    min(
+      1180px,
+      calc(100% - 20px)
+    );
+
+}
+
+
+.day-detail-dialog {
+
+  min-height:
+    300px;
+
+}
+
+
+.dialog-section {
+
+  margin-top:
+    18px;
+
+  padding-top:
+    16px;
+
+  border-top:
+    1px solid
+    var(--line);
+
+}
+
+
+.dialog-section h4 {
+
+  margin:
+    0 0 11px;
+
+}
+
+
+#dayDetailClosing {
+
+  padding:
+    13px;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    12px;
+
+}
+
+
+
+/* =========================================================
+   CONFIGURACIÓN
+========================================================= */
+
+.rule-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(0, 1fr)
+    );
+
+  gap: 10px;
+
+}
+
+
+.rule-card {
+
+  min-width: 0;
+
+  padding:
+    15px;
+
+  background:
+    var(--surface-soft);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    13px;
+
+}
+
+
+.rule-card span {
+
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size: .7rem;
+
+}
+
+
+.rule-card strong {
+
+  display: block;
+
+  margin:
+    6px 0 3px;
+
+  overflow-wrap:
+    anywhere;
+
+  font-size: 1.2rem;
+
+}
+
+
+.rule-card small {
+
+  display: block;
+
+  font-size: .67rem;
+
+}
+
+
+.rule-card.duragas-rule {
+
+  background:
+    var(--duragas-soft);
+
+  border-left:
+    5px solid
+    var(--duragas);
+
+}
+
+
+.rule-card.duragas-rule strong {
+
+  color:
+    var(--duragas-dark);
+
+}
+
+
+.rule-card.kinggas-rule {
+
+  background:
+    var(--kinggas-soft);
+
+  border-left:
+    5px solid
+    var(--kinggas);
+
+}
+
+
+.rule-card.kinggas-rule strong {
+
+  color:
+    var(--kinggas-dark);
+
+}
+
+
+
+/* =========================================================
+   REGLAS FINANCIERAS
+========================================================= */
+
+.rules-list {
+
+  display: grid;
+
+  gap: 1px;
+
+  overflow: hidden;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    12px;
+
+}
+
+
+.rule-line {
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(140px, .45fr)
+    1.55fr;
+
+  gap: 15px;
+
+  padding:
+    12px 13px;
+
+  background:
+    #ffffff;
+
+  border-bottom:
+    1px solid
+    var(--line);
+
+}
+
+
+.rule-line:last-child {
+
+  border-bottom: 0;
+
+}
+
+
+.rule-line strong {
+
+  font-size: .78rem;
+
+}
+
+
+.rule-line span {
+
+  color:
+    var(--muted);
+
+  font-size: .77rem;
+
+}
+
+
+
+/* =========================================================
+   ACCIONES DE CONFIGURACIÓN
+========================================================= */
+
+.settings-actions {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 9px;
+
+  margin-bottom:
+    12px;
+
+}
+
+
+
+/* =========================================================
+   ZONA DE PELIGRO
+========================================================= */
+
+.danger-zone {
+
+  border:
+    1px solid
+    #fecaca;
+
+  background:
+    #fffafa;
+
+}
+
+
+.danger-zone h3 {
+
+  color:
+    var(--red);
+
+}
+
+
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+.toast {
+
+  position: fixed;
+
+  right: 18px;
+
+  bottom: 18px;
+
+  z-index: 100;
+
+
+  max-width:
+    min(
+      390px,
+      calc(100% - 30px)
+    );
+
+
+  padding:
+    12px 15px;
+
+
+  background:
+    #0f172a;
+
+
+  color:
+    #ffffff;
+
+
+  border-radius:
+    12px;
+
+
+  box-shadow:
+    var(--shadow-strong);
+
+
+  font-size:
+    .8rem;
+
+
+  font-weight:
+    720;
+
+
+  opacity: 0;
+
+
+  pointer-events:
+    none;
+
+
+  transform:
+    translateY(12px);
+
+
+  transition:
+    opacity .2s ease,
+    transform .2s ease;
+
+}
+
+
+.toast.show {
+
+  opacity: 1;
+
+  transform:
+    translateY(0);
+
+}
+
+
+.toast.good {
+
+  background:
+    #166534;
+
+}
+
+
+.toast.warn {
+
+  background:
+    #9a3412;
+
+}
+
+
+.toast.bad {
+
+  background:
+    #991b1b;
+
+}
+
+
+
+/* =========================================================
+   UTILIDADES DINÁMICAS PARA JS
+========================================================= */
+
+.text-good {
+
+  color:
+    var(--green) !important;
+
+}
+
+
+.text-warn {
+
+  color:
+    var(--orange) !important;
+
+}
+
+
+.text-bad {
+
+  color:
+    var(--red) !important;
+
+}
+
+
+.text-duragas {
+
+  color:
+    var(--duragas-dark) !important;
+
+}
+
+
+.text-kinggas {
+
+  color:
+    var(--kinggas-dark) !important;
+
+}
+
+
+.money-positive {
+
+  color:
+    var(--green);
+
+  font-weight:
+    850;
+
+}
+
+
+.money-negative {
+
+  color:
+    var(--red);
+
+  font-weight:
+    850;
+
+}
+
+
+
+/* =========================================================
+   RESPONSIVE GENERAL - LAPTOP PEQUEÑA / TABLET
+========================================================= */
+
+@media
+(max-width: 1100px) {
+
+  .metric-grid {
+
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(0, 1fr)
+      );
+
+  }
+
+
+  .rule-grid {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+  }
+
+
+  .history-day-metrics {
+
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(0, 1fr)
+      );
+
+  }
+
+}
+
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media
+(max-width: 850px) {
+
+  .topbar {
+
+    align-items:
+      flex-start;
+
+  }
+
+
+  .two-col {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .reserve-wallet-grid,
+  .opening-gas-grid,
+  .closing-brand-grid,
+  .closing-inventory-grid {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .closing-financial-grid {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+  }
+
+
+  .cash-audit-grid {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .history-filter-grid,
+  .history-filter-grid.compact {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+  }
+
+
+  .history-stat-grid {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+  }
+
+
+  .closing-pending-summary {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+  }
+
+
+  .closing-result-grid {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+  }
+
+}
+
+
+
+/* =========================================================
+   CELULAR
+========================================================= */
+
+@media
+(max-width: 650px) {
+
+  .topbar {
+
+    flex-direction:
+      column;
+
+    padding:
+      16px;
+
+  }
+
+
+  .topbar-actions {
+
+    width: 100%;
+
+  }
+
+
+  .topbar-actions .btn,
+  .topbar-actions .file-btn {
+
+    flex:
+      1;
+
+  }
+
+
+  .app-shell {
+
+    padding:
+      8px
+      9px
+      45px;
+
+  }
+
+
+  .tabs {
+
+    margin-bottom:
+      10px;
+
+  }
+
+
+  .section-heading {
+
+    align-items:
+      flex-start;
+
+    margin-top:
+      11px;
+
+  }
+
+
+  .card {
+
+    padding:
+      14px;
+
+  }
+
+
+  .card-header {
+
+    flex-direction:
+      column;
+
+  }
+
+
+  .card-header .btn {
+
+    width: 100%;
+
+  }
+
+
+  .metric-grid {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+  }
+
+
+  .profit-grid {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .form-grid.two,
+  .form-grid.three {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .inventory-input-grid {
+
+    grid-template-columns:
+      1fr 1fr;
+
+  }
+
+
+  .closing-financial-grid {
+
+    grid-template-columns:
+      1fr 1fr;
+
+  }
+
+
+  .history-filter-grid,
+  .history-filter-grid.compact {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .rule-grid {
+
+    grid-template-columns:
+      1fr 1fr;
+
+  }
+
+
+  .history-day-metrics {
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+  }
+
+
+  .rule-line {
+
+    grid-template-columns:
+      1fr;
+
+    gap: 3px;
+
+  }
+
+
+  .settings-actions {
+
+    display: grid;
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .settings-actions .btn,
+  .settings-actions .file-btn {
+
+    width: 100%;
+
+  }
+
+
+  .form-actions {
+
+    display: grid;
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .form-actions .btn {
+
+    width: 100%;
+
+  }
+
+
+  .toast {
+
+    right: 10px;
+
+    bottom: 10px;
+
+    max-width:
+      calc(100% - 20px);
+
+  }
+
+}
+
+
+
+/* =========================================================
+   CELULAR PEQUEÑO
+========================================================= */
+
+@media
+(max-width: 430px) {
+
+  .metric-grid {
+
+    grid-template-columns:
+      1fr 1fr;
+
+    gap: 7px;
+
+  }
+
+
+  .metric {
+
+    padding:
+      11px;
+
+  }
+
+
+  .metric strong {
+
+    font-size:
+      1.08rem;
+
+  }
+
+
+  .inventory-input-grid {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .closing-financial-grid {
+
+    grid-template-columns:
+      1fr 1fr;
+
+  }
+
+
+  .closing-pending-summary {
+
+    grid-template-columns:
+      1fr 1fr;
+
+  }
+
+
+  .closing-result-grid {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .rule-grid {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .history-stat-grid {
+
+    grid-template-columns:
+      1fr 1fr;
+
+  }
+
+
+  .history-day-metrics {
+
+    grid-template-columns:
+      1fr 1fr;
+
+  }
+
+
+  .wallet-details {
+
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+
+  }
+
+
+  .wallet-details strong {
+
+    text-align:
+      left;
+
+  }
+
+
+  .auto-time {
+
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+
+  }
+
+
+  .auto-time strong {
+
+    text-align:
+      left;
+
+  }
+
+}
+
+
+
+/* =========================================================
+   PANTALLAS MUY PEQUEÑAS
+========================================================= */
+
+@media
+(max-width: 360px) {
+
+  .metric-grid,
+  .history-stat-grid,
+  .closing-financial-grid,
+  .closing-pending-summary,
+  .history-day-metrics {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .topbar-actions {
+
+    display: grid;
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .inventory-number-grid {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+}
+
+
+
+/* =========================================================
+   IMPRESIÓN
+========================================================= */
+
+@media print {
+
+  body {
+
+    background:
+      #ffffff;
+
+  }
+
+
+  .topbar,
+  .tabs,
+  .btn,
+  .history-tabs,
+  .form-actions {
+
+    display:
+      none !important;
+
+  }
+
+
+  .app-shell {
+
+    width: 100%;
+
+    padding: 0;
+
+  }
+
+
+  .card,
+  fieldset {
+
+    box-shadow:
+      none;
+
+  }
+
+}
+
+
+.sale-quick-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 13px;
+
+  margin-bottom: 15px;
+
+}
+
+
+.sale-quick-grid .field {
+
+  min-width: 0;
+
+  padding: 14px;
+
+  background: #ffffff;
+
+  border: 1px solid var(--line);
+
+  border-radius: 13px;
+
+}
+
+
+.sale-quick-grid label {
+
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: var(--ink-soft);
+
+  font-size: .85rem;
+
+  font-weight: 780;
+
+}
+
+
+.sale-quick-grid small {
+
+  display: block;
+
+  min-height: 2.2em;
+
+  margin-bottom: 10px;
+
+  color: var(--muted);
+
+  font-size: .76rem;
+
+}
+
+
+.sale-quick-grid .payment-segmented {
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+}
+
+
+.exchange-summary-row {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 14px;
+
+}
+
+
+.exchange-summary-row strong {
+
+  display: block;
+
+  margin-bottom: 3px;
+
+}
+
+
+.exchange-summary-row p {
+
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: .8rem;
+
+}
+
+
+.exchange-summary-actions {
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  justify-content: flex-end;
+
+  gap: 8px;
+
+}
+
+
+.compact-exchange {
+
+  padding:
+    14px 16px;
+
+}
+
+
+.exchange-edit-panel {
+
+  margin-top: 14px;
+
+  padding-top: 14px;
+
+  border-top: 1px solid var(--line);
+
+}
+
+
+.exchange-edit-panel[hidden] {
+
+  display: none !important;
+
+}
+
+
+.exchange-edit-head {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin-bottom: 14px;
+
+}
+
+
+.exchange-edit-head p {
+
+  margin: 4px 0 0;
+
+  color: var(--muted);
+
+  font-size: .8rem;
+
+}
+
+
+.btn-primary {
+
+  background: var(--primary);
+
+  border-color: var(--primary);
+
+  color: #ffffff;
+
+}
+
+
+.quick-btn:disabled,
+.step-btn:disabled {
+
+  opacity: .35;
+
+  cursor: not-allowed;
+
+}
+
+
+@media
+(max-width: 850px) {
+
+  .sale-quick-grid {
+
+    grid-template-columns: 1fr;
+
+  }
+
+  .exchange-summary-row,
+  .exchange-edit-head {
+
+    align-items: stretch;
+
+    flex-direction: column;
+
+  }
+
+  .exchange-summary-actions {
+
+    width: 100%;
+
+  }
+
+  .exchange-summary-actions .btn {
+
+    flex: 1;
+
+  }
+
+}
+
+
+.dashboard-quick-actions {
+
+  display: flex;
+
+  justify-content: flex-end;
+
+  margin-bottom: 14px;
+
+}
+
+
+.dashboard-sale-btn {
+
+  min-width: 190px;
+
+  min-height: 48px;
+
+  font-size: 1rem;
+
+  font-weight: 800;
+
+}
+
+
+@media
+(max-width: 650px) {
+
+  .dashboard-quick-actions {
+
+    position: sticky;
+
+    bottom: 12px;
+
+    z-index: 20;
+
+    justify-content: stretch;
+
+  }
+
+  .dashboard-sale-btn {
+
+    width: 100%;
+
+  }
+
+}
+
+
+.wallet-details small,
+.profit-box small,
+.money-hero small,
+.brand-preview small,
+.big-inline-result small,
+.replenishment-summary small {
+
+  display: block;
+
+  margin-top: 4px;
+
+  color: var(--muted);
+
+  font-size: .72rem;
+
+  font-weight: 600;
+
+}
+
+
+.money-hero small {
+
+  text-align: center;
+
+}
+
+
+.brand-preview small {
+
+  line-height: 1.35;
+
+}
+
+
+.cost-composition {
+
+  display: grid;
+
+  gap: 4px;
+
+  margin: -4px 0 14px;
+
+  padding: 10px 12px;
+
+  background: var(--surface-soft);
+
+  border: 1px solid var(--line);
+
+  border-radius: 11px;
+
+}
+
+
+.cost-composition strong {
+
+  font-size: .82rem;
+
+}
+
+
+.cost-composition small {
+
+  color: var(--muted);
+
+  font-size: .76rem;
+
+}
