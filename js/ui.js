@@ -2047,7 +2047,37 @@ export function renderReplenishmentPreview(
     )}`
   );
 
+  /* =======================================================
+     INVENTARIO ACTUAL DE LA MARCA
+  ======================================================= */
 
+  setText(
+    'replenishmentCurrentFull',
+    String(
+      preview
+        .inventory
+        .fullBefore
+    )
+  );
+
+
+  setText(
+    'replenishmentCurrentEmpty',
+    String(
+      preview
+        .inventory
+        .emptyBefore
+    )
+  );
+
+
+  setText(
+    'replenishmentCurrentWallet',
+    formatMoney(
+      preview.walletBefore
+    )
+  );
+   
   const composition =
     byId(
       'replenishmentDuragasComposition'
