@@ -597,8 +597,6 @@ function metricCard(
 
 }
 
-
-
 /* =========================================================
    DASHBOARD
 ========================================================= */
@@ -632,6 +630,12 @@ export function renderDashboard() {
   const metrics = [];
 
 
+  /*
+    =====================================================
+    VENTAS REGISTRADAS HOY
+    =====================================================
+  */
+
   metrics.push(
     metricCard(
       'Ventas hoy',
@@ -642,6 +646,12 @@ export function renderDashboard() {
     )
   );
 
+
+  /*
+    =====================================================
+    CILINDROS VENDIDOS HOY
+    =====================================================
+  */
 
   metrics.push(
     metricCard(
@@ -654,9 +664,50 @@ export function renderDashboard() {
   );
 
 
+  /*
+    =====================================================
+    CAJA ACTUAL ESTIMADA
+
+    Fondo inicial
+    + efectivo cobrado
+    - dinero enviado a bolsas
+    - gastos
+    =====================================================
+  */
+
   metrics.push(
     metricCard(
-      'Ingresos',
+      'Caja actual',
+      formatMoney(
+        finance?.cash?.expected ??
+        0
+      ),
+      `Fondo ${formatMoney(
+        finance?.cash?.openingFund ??
+        0
+      )} + cobrado ${formatMoney(
+        finance?.cash?.collected ??
+        0
+      )} - bolsas ${formatMoney(
+        finance?.cash?.transferredToWallets ??
+        0
+      )} - gastos ${formatMoney(
+        finance?.cash?.expenses ??
+        0
+      )}`
+    )
+  );
+
+
+  /*
+    =====================================================
+    VALOR TOTAL DE VENTAS
+    =====================================================
+  */
+
+  metrics.push(
+    metricCard(
+      'Ventas $',
       formatMoney(
         finance?.sales?.revenue ??
         0
@@ -664,6 +715,12 @@ export function renderDashboard() {
     )
   );
 
+
+  /*
+    =====================================================
+    DINERO REALMENTE COBRADO
+    =====================================================
+  */
 
   metrics.push(
     metricCard(
@@ -678,6 +735,12 @@ export function renderDashboard() {
   );
 
 
+  /*
+    =====================================================
+    DINERO PENDIENTE
+    =====================================================
+  */
+
   metrics.push(
     metricCard(
       'Pendiente dinero',
@@ -687,6 +750,12 @@ export function renderDashboard() {
     )
   );
 
+
+  /*
+    =====================================================
+    GANANCIA DISPONIBLE
+    =====================================================
+  */
 
   metrics.push(
     metricCard(
@@ -737,7 +806,9 @@ export function renderDashboard() {
   setText(
     'dashboardDuragasWalletFormula',
     `${formatMoney(
-      wallets[GAS_IDS.DURAGAS].balance
+      wallets[
+        GAS_IDS.DURAGAS
+      ].balance
     )} / ${formatMoney(
       getReplacementCost(
         GAS_IDS.DURAGAS
@@ -771,7 +842,9 @@ export function renderDashboard() {
   setText(
     'dashboardKingGasWalletFormula',
     `${formatMoney(
-      wallets[GAS_IDS.KING_GAS].balance
+      wallets[
+        GAS_IDS.KING_GAS
+      ].balance
     )} / ${formatMoney(
       getReplacementCost(
         GAS_IDS.KING_GAS
@@ -823,25 +896,39 @@ export function renderDashboard() {
   setText(
     'dashboardDuragasProfitFormula',
     `Ventas ${formatMoney(
-      finance?.byGas?.[GAS_IDS.DURAGAS]
-        ?.revenue ?? 0
+      finance
+        ?.byGas
+        ?.[GAS_IDS.DURAGAS]
+        ?.revenue ??
+      0
     )} − reposición ${formatMoney(
-      finance?.byGas?.[GAS_IDS.DURAGAS]
-        ?.reserveRequired ?? 0
+      finance
+        ?.byGas
+        ?.[GAS_IDS.DURAGAS]
+        ?.reserveRequired ??
+      0
     )}`
   );
 
 
   setText(
     'dashboardDuragasReserveFormula',
-    `Reposición: ${finance?.byGas?.[GAS_IDS.DURAGAS]
-      ?.units ?? 0} × ${formatMoney(
+    `Reposición: ${
+      finance
+        ?.byGas
+        ?.[GAS_IDS.DURAGAS]
+        ?.units ??
+      0
+    } × ${formatMoney(
       getReplacementCost(
         GAS_IDS.DURAGAS
       )
     )} = ${formatMoney(
-      finance?.byGas?.[GAS_IDS.DURAGAS]
-        ?.reserveRequired ?? 0
+      finance
+        ?.byGas
+        ?.[GAS_IDS.DURAGAS]
+        ?.reserveRequired ??
+      0
     )}`
   );
 
@@ -849,25 +936,39 @@ export function renderDashboard() {
   setText(
     'dashboardKingGasProfitFormula',
     `Ventas ${formatMoney(
-      finance?.byGas?.[GAS_IDS.KING_GAS]
-        ?.revenue ?? 0
+      finance
+        ?.byGas
+        ?.[GAS_IDS.KING_GAS]
+        ?.revenue ??
+      0
     )} − reposición ${formatMoney(
-      finance?.byGas?.[GAS_IDS.KING_GAS]
-        ?.reserveRequired ?? 0
+      finance
+        ?.byGas
+        ?.[GAS_IDS.KING_GAS]
+        ?.reserveRequired ??
+      0
     )}`
   );
 
 
   setText(
     'dashboardKingGasReserveFormula',
-    `Reposición: ${finance?.byGas?.[GAS_IDS.KING_GAS]
-      ?.units ?? 0} × ${formatMoney(
+    `Reposición: ${
+      finance
+        ?.byGas
+        ?.[GAS_IDS.KING_GAS]
+        ?.units ??
+      0
+    } × ${formatMoney(
       getReplacementCost(
         GAS_IDS.KING_GAS
       )
     )} = ${formatMoney(
-      finance?.byGas?.[GAS_IDS.KING_GAS]
-        ?.reserveRequired ?? 0
+      finance
+        ?.byGas
+        ?.[GAS_IDS.KING_GAS]
+        ?.reserveRequired ??
+      0
     )}`
   );
 
@@ -875,14 +976,15 @@ export function renderDashboard() {
   setText(
     'dashboardCollectedProfitFormula',
     `Cobrado después de separar reposición: ${formatMoney(
-      finance?.collection?.profit ?? 0
+      finance?.collection?.profit ??
+      0
     )}`
   );
 
 
 
   /* =======================================================
-     INVENTARIO
+     INVENTARIO ACTUAL
   ======================================================= */
 
   setHtml(
@@ -892,12 +994,22 @@ export function renderDashboard() {
 
         ${dashboardGasInventoryCard(
           GAS_IDS.DURAGAS,
-          inventory.duragas
+          inventory.duragas,
+          finance
+            ?.byGas
+            ?.[GAS_IDS.DURAGAS]
+            ?.units ??
+          0
         )}
 
         ${dashboardGasInventoryCard(
           GAS_IDS.KING_GAS,
-          inventory.kinggas
+          inventory.kinggas,
+          finance
+            ?.byGas
+            ?.[GAS_IDS.KING_GAS]
+            ?.units ??
+          0
         )}
 
       </div>
@@ -905,18 +1017,24 @@ export function renderDashboard() {
       <div class="inventory-control-summary">
 
         <div>
-          <span>En bodega</span>
-          <strong>${inventory.totals.physical}</strong>
+          <span>En bodega ahora</span>
+          <strong>
+            ${inventory.totals.physical}
+          </strong>
         </div>
 
         <div>
           <span>Prestados</span>
-          <strong>${inventory.totals.loaned}</strong>
+          <strong>
+            ${inventory.totals.loaned}
+          </strong>
         </div>
 
         <div>
           <span>Total controlado</span>
-          <strong>${inventory.totals.controlled}</strong>
+          <strong>
+            ${inventory.totals.controlled}
+          </strong>
         </div>
 
       </div>
@@ -928,6 +1046,156 @@ export function renderDashboard() {
   /* =======================================================
      PENDIENTES
   ======================================================= */
+
+  setHtml(
+    'pendingSnapshot',
+    `
+      <div class="inventory-control-summary">
+
+        <div>
+          <span>Cuentas abiertas</span>
+          <strong>
+            ${accounts.openAccounts}
+          </strong>
+        </div>
+
+        <div>
+          <span>Dinero pendiente</span>
+          <strong>
+            ${formatMoney(
+              accounts.moneyDue
+            )}
+          </strong>
+        </div>
+
+        <div>
+          <span>Tanques pendientes</span>
+          <strong>
+            ${accounts.tanksDue.total}
+          </strong>
+        </div>
+
+      </div>
+    `
+  );
+
+
+  renderRecentReplenishments();
+
+  renderRecentMovements();
+
+}
+
+
+
+/* =========================================================
+   TARJETA INVENTARIO DASHBOARD
+========================================================= */
+
+function dashboardGasInventoryCard(
+  gasId,
+  inventory,
+  soldToday = 0
+) {
+
+  const gas =
+    GAS_TYPES[gasId];
+
+
+  return `
+    <div class="inventory-big-card ${gasId}">
+
+      <div class="inventory-brand-head">
+
+        <div>
+
+          <h3>
+            ${gas.emoji}
+            ${escapeHtml(
+              gas.name
+            )}
+          </h3>
+
+        </div>
+
+
+        <div class="inventory-total-badge">
+
+          <span>
+            Vendidos hoy
+          </span>
+
+          <strong>
+            ${soldToday}
+          </strong>
+
+        </div>
+
+      </div>
+
+
+      <div class="inventory-number-grid">
+
+        <div class="inventory-number available">
+
+          <span>
+            Llenos ahora
+          </span>
+
+          <strong>
+            ${inventory.full}
+          </strong>
+
+        </div>
+
+
+        <div class="inventory-number empty">
+
+          <span>
+            Vacíos ahora
+          </span>
+
+          <strong>
+            ${inventory.empty}
+          </strong>
+
+        </div>
+
+
+        <div class="inventory-number reserved">
+
+          <span>
+            Reservados
+          </span>
+
+          <strong>
+            ${inventory.reserved}
+          </strong>
+
+        </div>
+
+
+        <div class="inventory-number loaned">
+
+          <span>
+            Prestados
+          </span>
+
+          <strong>
+            ${inventory.loaned}
+          </strong>
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+
+}
+/* =========================================================
+   APERTURA
+========================================================= */
 
   setHtml(
     'pendingSnapshot',
