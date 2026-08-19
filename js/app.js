@@ -2625,19 +2625,102 @@ function bindReplenishmentButtons() {
 
 
 
-  byId(
+   byId(
     'replenishmentSameEmptyBtn'
   )?.addEventListener(
     'click',
     () => {
 
+      /*
+        =====================================================
+        MARCA SELECCIONADA
+        =====================================================
+      */
+
+      const gasId =
+        getValue(
+          'replenishmentGasType'
+        ) ||
+        GAS_IDS.DURAGAS;
+
+
+      /*
+        =====================================================
+        INVENTARIO ACTUAL
+        =====================================================
+      */
+
+      const inventory =
+        getInventorySnapshot();
+
+
+      /*
+        =====================================================
+        VACÍOS DISPONIBLES DE ESA MARCA
+        =====================================================
+      */
+
+      const emptyAvailable =
+        toNonNegativeInteger(
+          inventory
+            ?.[gasId]
+            ?.empty ??
+          0
+        );
+
+
+      /*
+        =====================================================
+        CANTIDAD DE LLENOS QUE TRAE EL PROVEEDOR
+        =====================================================
+      */
+
+      const quantity =
+        toNonNegativeInteger(
+          getValue(
+            'replenishmentQty'
+          )
+        );
+
+
+      /*
+        =====================================================
+        USAR COMO MÁXIMO LOS VACÍOS QUE REALMENTE EXISTEN
+
+        Ejemplo:
+
+        Llegan 105 llenos
+        Tengo 103 vacíos
+
+        Resultado:
+        Entrego 103 vacíos
+        =====================================================
+      */
+
+      const emptyToUse =
+        Math.min(
+          quantity,
+          emptyAvailable
+        );
+
+
+      /*
+        =====================================================
+        ACTUALIZAR CAMPO
+        =====================================================
+      */
+
       setValue(
         'replenishmentEmptyOut',
-        getValue(
-          'replenishmentQty'
-        )
+        emptyToUse
       );
 
+
+      /*
+        =====================================================
+        ACTUALIZAR PREVISUALIZACIÓN
+        =====================================================
+      */
 
       updateReplenishmentPreview();
 
