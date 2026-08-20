@@ -753,13 +753,30 @@ function createReplenishmentMovement(
         extraContributionSource:
           replenishment
             .extraContributionSource,
+walletAfter:
+  replenishment.walletAfter,
 
-        walletAfter:
-          replenishment.walletAfter,
 
-        cylinderDifference:
-          replenishment
-            .cylinderDifference,
+/*
+  Trazabilidad del origen del dinero.
+*/
+
+walletFunding:
+  cloneData(
+    replenishment.walletFunding ??
+    null
+  ),
+
+walletAfterBreakdown:
+  cloneData(
+    replenishment.walletAfterBreakdown ??
+    null
+  ),
+
+
+cylinderDifference:
+  replenishment
+    .cylinderDifference,
 
       },
 
