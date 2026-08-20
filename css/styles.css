@@ -3501,21 +3501,17 @@ summary:focus-visible {
 
 }
 
-
 .brand-preview {
 
-  display: grid;
+  display: flex;
 
-  grid-template-columns:
-    1fr auto;
+  flex-direction: column;
 
-  gap:
-    4px
-    12px;
+  align-items: stretch;
 
-  align-items: center;
+  gap: 4px;
 
-  padding: 13px;
+  padding: 14px;
 
   background:
     var(--gas-soft);
@@ -3535,36 +3531,65 @@ summary:focus-visible {
 
 .brand-preview > span {
 
-  grid-column:
-    1 / -1;
-
   color:
     var(--gas-dark);
 
-  font-size: .82rem;
+  font-size: .86rem;
 
   font-weight: 900;
+
+  margin-bottom: 5px;
 
 }
 
 
-.brand-preview small {
+.brand-preview > small {
 
-  font-size: .69rem;
+  display: block;
+
+  font-size: .72rem;
+
+  line-height: 1.35;
+
+}
+
+
+.brand-preview > small:nth-of-type(1),
+.brand-preview > small:nth-of-type(3) {
+
+  color:
+    var(--muted);
+
+  font-weight: 800;
+
+}
+
+
+.brand-preview > small:nth-of-type(3) {
+
+  margin-top: 8px;
+
+  padding-top: 8px;
+
+  border-top:
+    1px solid
+    var(--line);
 
 }
 
 
 .brand-preview strong {
 
+  display: block;
+
   color:
     var(--gas-dark);
 
-  font-size: .96rem;
+  font-size: 1.08rem;
+
+  font-weight: 900;
 
 }
-
-
 
 /* =========================================================
    PANEL DE CÁLCULOS
