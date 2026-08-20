@@ -781,23 +781,19 @@ export function validateSale({
     );
 
   }
+if (
+  paymentMethod !==
+    PAYMENT_METHODS.CASH
+  &&
+  paymentMethod !==
+    PAYMENT_METHODS.CREDIT
+) {
 
+  errors.push(
+    'Las ventas nuevas solo pueden registrarse en efectivo o fiado.'
+  );
 
-
-  if (
-    !PAYMENT_METHOD_LIST.includes(
-      paymentMethod
-    )
-  ) {
-
-    errors.push(
-      'La forma de pago no es válida.'
-    );
-
-  }
-
-
-
+}
   if (
     !isValidSalePrice(
       price
