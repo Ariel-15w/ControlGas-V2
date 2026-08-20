@@ -3648,17 +3648,37 @@ export function createEmptyFinanceSummary() {
 /* =========================================================
    RESUMEN DE BOLSAS
 ========================================================= */
+export function getWalletSummary(
+  dayId =
+    getActiveDay()?.id ??
+    null
+) {
 
-export function getWalletSummary() {
+  const duragas =
+    getWalletDayBreakdown(
+      GAS_IDS.DURAGAS,
+      dayId
+    );
+
+
+  const kingGas =
+    getWalletDayBreakdown(
+      GAS_IDS.KING_GAS,
+      dayId
+    );
+
 
   return {
 
     [GAS_IDS.DURAGAS]: {
 
+      /*
+        Mantener "balance" evita romper
+        todo lo que ya utiliza esta función.
+      */
+
       balance:
-        getGasWalletBalance(
-          GAS_IDS.DURAGAS
-        ),
+        duragas.balance,
 
       equivalentUnits:
         getWalletEquivalentUnits(
@@ -3669,6 +3689,41 @@ export function getWalletSummary() {
         getReplacementCost(
           GAS_IDS.DURAGAS
         ),
+
+
+      /*
+        NUEVO DESGLOSE
+      */
+
+      openingBalance:
+        duragas.openingBalance,
+
+      previousRemaining:
+        duragas.previousRemaining,
+
+      todayReserveAdded:
+        duragas.todayReserveAdded,
+
+      todayReserveRemaining:
+        duragas.todayReserveRemaining,
+
+      contributionsAdded:
+        duragas.contributionsAdded,
+
+      contributionsRemaining:
+        duragas.contributionsRemaining,
+
+      spentToday:
+        duragas.spentToday,
+
+      usedFromPrevious:
+        duragas.usedFromPrevious,
+
+      usedFromToday:
+        duragas.usedFromToday,
+
+      usedFromContributions:
+        duragas.usedFromContributions,
 
     },
 
@@ -3676,9 +3731,7 @@ export function getWalletSummary() {
     [GAS_IDS.KING_GAS]: {
 
       balance:
-        getGasWalletBalance(
-          GAS_IDS.KING_GAS
-        ),
+        kingGas.balance,
 
       equivalentUnits:
         getWalletEquivalentUnits(
@@ -3690,14 +3743,46 @@ export function getWalletSummary() {
           GAS_IDS.KING_GAS
         ),
 
+
+      /*
+        NUEVO DESGLOSE
+      */
+
+      openingBalance:
+        kingGas.openingBalance,
+
+      previousRemaining:
+        kingGas.previousRemaining,
+
+      todayReserveAdded:
+        kingGas.todayReserveAdded,
+
+      todayReserveRemaining:
+        kingGas.todayReserveRemaining,
+
+      contributionsAdded:
+        kingGas.contributionsAdded,
+
+      contributionsRemaining:
+        kingGas.contributionsRemaining,
+
+      spentToday:
+        kingGas.spentToday,
+
+      usedFromPrevious:
+        kingGas.usedFromPrevious,
+
+      usedFromToday:
+        kingGas.usedFromToday,
+
+      usedFromContributions:
+        kingGas.usedFromContributions,
+
     },
 
   };
 
 }
-
-
-
 /* =========================================================
    DINERO QUE FALTA PARA UNA REPOSICIÓN
 ========================================================= */
