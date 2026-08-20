@@ -211,7 +211,365 @@ export function getWalletEquivalentUnits(
 
 }
 
+/* =========================================================
+   DESGLOSE DE BOLSA POR JORNADA
+========================================================= */
 
+/*
+  La bolsa sigue siendo UNA sola bolsa real.
+
+  Pero para mostrarla y usarla correctamente
+  distinguimos el origen del dinero:
+
+  1. Saldo que ya existía al abrir el día.
+  2. Reserva generada durante el día.
+  3. Aportes adicionales del día.
+
+  REGLA DE CONSUMO:
+
+  Al pagar una reposición se considera que
+  primero se utiliza el saldo anterior.
+
+  Solo cuando ese saldo se termina,
+  se utiliza la reserva generada hoy.
+
+  Los aportes adicionales quedan al final.
+*/
+
+export function getWalletDayBreakdown(
+
+  gasId,
+
+  dayId =
+    getActiveDay()?.id ??
+    null
+
+) {
+
+  assertGasType(
+    gasId
+  );
+
+
+  const state =
+    getState();
+
+
+  const currentBalance =
+    getGasWalletBalance(
+      gasId
+    );
+
+
+  /*
+    Si no existe jornada, todo el saldo
+    simplemente se considera saldo anterior.
+  */
+
+  if (
+    !dayId
+  ) {
+
+    return {
+
+      gasId,
+
+      openingBalance:
+        currentBalance,
+
+      previousRemaining:
+        currentBalance,
+
+      todayReserveAdded:
+        0,
+
+      todayReserveRemaining:
+        0,
+
+      contributionsAdded:
+        0,
+
+      contributionsRemaining:
+        0,
+
+      spentToday:
+        0,
+
+      usedFromPrevious:
+        0,
+
+      usedFromToday:
+        0,
+
+      usedFromContributions:
+        0,
+
+      balance:
+        currentBalance,
+
+    };
+
+  }
+
+
+  const day =
+    state.days.find(
+      item =>
+        item.id ===
+        dayId
+    );
+
+
+  /*
+    Este es el dinero que YA EXISTÍA
+    cuando comenzó la jornada.
+
+    Mañana, todo lo que quede hoy
+    pasará automáticamente a ser
+    "saldo anterior".
+  */
+
+  const openingBalance =
+    roundMoney(
+      toNonNegativeNumber(
+        day?.opening
+          ?.wallets
+          ?.[gasId] ??
+        0
+      )
+    );
+
+
+  const movements =
+    state.walletMovements.filter(
+      movement =>
+
+        movement.dayId ===
+          dayId
+
+        &&
+
+        movement.gasId ===
+          gasId
+    );
+
+
+  /*
+    Reserva que entró HOY por ventas
+    o por cobros que completaron una
+    reserva pendiente.
+  */
+
+  const todayReserveAdded =
+    roundMoney(
+
+      sumBy(
+
+        movements.filter(
+          movement =>
+
+            movement.amount > 0
+
+            &&
+
+            movement.type ===
+              WALLET_MOVEMENT_TYPES
+                .SALE_RESERVE
+        ),
+
+        movement =>
+          movement.amount
+
+      )
+
+    );
+
+
+  /*
+    Aportes adicionales hechos hoy.
+  */
+
+  const contributionsAdded =
+    roundMoney(
+
+      sumBy(
+
+        movements.filter(
+          movement =>
+
+            movement.amount > 0
+
+            &&
+
+            movement.type ===
+              WALLET_MOVEMENT_TYPES
+                .EXTRA_CONTRIBUTION
+        ),
+
+        movement =>
+          movement.amount
+
+      )
+
+    );
+
+
+  /*
+    Todo dinero que salió de la bolsa hoy.
+
+    Normalmente corresponde a pagos
+    de reposiciones.
+  */
+
+  const spentToday =
+    roundMoney(
+
+      Math.abs(
+
+        sumBy(
+
+          movements.filter(
+            movement =>
+              movement.amount < 0
+          ),
+
+          movement =>
+            movement.amount
+
+        )
+
+      )
+
+    );
+
+
+  /*
+    =====================================================
+    ORDEN DE CONSUMO
+    =====================================================
+
+    PRIMERO:
+    saldo que venía de días anteriores.
+
+    SEGUNDO:
+    reserva generada hoy.
+
+    TERCERO:
+    aportes adicionales.
+  */
+
+  const usedFromPrevious =
+    roundMoney(
+      Math.min(
+        openingBalance,
+        spentToday
+      )
+    );
+
+
+  let remainingSpend =
+    roundMoney(
+      Math.max(
+        0,
+        spentToday -
+        usedFromPrevious
+      )
+    );
+
+
+  const usedFromToday =
+    roundMoney(
+      Math.min(
+        todayReserveAdded,
+        remainingSpend
+      )
+    );
+
+
+  remainingSpend =
+    roundMoney(
+      Math.max(
+        0,
+        remainingSpend -
+        usedFromToday
+      )
+    );
+
+
+  const usedFromContributions =
+    roundMoney(
+      Math.min(
+        contributionsAdded,
+        remainingSpend
+      )
+    );
+
+
+  const previousRemaining =
+    roundMoney(
+      Math.max(
+        0,
+        openingBalance -
+        usedFromPrevious
+      )
+    );
+
+
+  const todayReserveRemaining =
+    roundMoney(
+      Math.max(
+        0,
+        todayReserveAdded -
+        usedFromToday
+      )
+    );
+
+
+  const contributionsRemaining =
+    roundMoney(
+      Math.max(
+        0,
+        contributionsAdded -
+        usedFromContributions
+      )
+    );
+
+
+  return {
+
+    gasId,
+
+    openingBalance,
+
+    previousRemaining,
+
+    todayReserveAdded,
+
+    todayReserveRemaining,
+
+    contributionsAdded,
+
+    contributionsRemaining,
+
+    spentToday,
+
+    usedFromPrevious,
+
+    usedFromToday,
+
+    usedFromContributions,
+
+    /*
+      Este continúa siendo el saldo REAL
+      de la bolsa registrado en ControlGas.
+    */
+
+    balance:
+      currentBalance,
+
+  };
+
+}
 
 /* =========================================================
    ESTABLECER BOLSA
