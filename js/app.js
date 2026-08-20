@@ -146,14 +146,11 @@ import {
 /* =========================================================
    CIERRE
 ========================================================= */
-
 import {
   calculateClosingPreview,
   closeDay,
+  getLastClosingInventory,
 } from './closing.js';
-
-
-
 /* =========================================================
    HISTORIAL
 ========================================================= */
@@ -532,11 +529,9 @@ function readInitialWalletBalances() {
 
 
 function loadCurrentInventoryIntoOpeningForm() {
-
-  const inventory =
-    getInventorySnapshot();
-
-
+const inventory =
+  getLastClosingInventory();
+   
   setValue(
     'duragasFull',
     inventory[GAS_IDS.DURAGAS].full
