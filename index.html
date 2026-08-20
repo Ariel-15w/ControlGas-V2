@@ -2452,86 +2452,157 @@
       <div class="reserve-wallet-grid">
 
 
-        <article class="reserve-wallet duragas">
+       <!-- DURAGAS -->
 
-          <div class="wallet-head">
+<article class="reserve-wallet duragas">
 
-            <div>
+  <div class="wallet-head">
 
-              <strong>
-                🟡 Bolsa Duragas
-              </strong>
+    <div>
 
-              <small>
-                Disponible actualmente
-              </small>
+      <strong>
+        🟡 Bolsa Duragas
+      </strong>
 
-            </div>
+      <small>
+        Disponible actualmente
+      </small>
 
-          </div>
+    </div>
 
-
-          <strong
-            id="replenishmentDuragasWallet"
-            class="wallet-money"
-          >
-            $0.00
-          </strong>
+  </div>
 
 
-          <small id="replenishmentDuragasEquivalent">
-            Aproximadamente 0 reposiciones
-          </small>
-
-          <small id="replenishmentDuragasWalletFormula">
-            $0,00 / $1,70
-          </small>
-
-        </article>
+  <strong
+    id="replenishmentDuragasWallet"
+    class="wallet-money"
+  >
+    $0.00
+  </strong>
 
 
+  <div class="wallet-details">
 
-        <article class="reserve-wallet kinggas">
+    <span>
+      Saldo anterior
+    </span>
 
-          <div class="wallet-head">
-
-            <div>
-
-              <strong>
-                🌸 Bolsa King Gas
-              </strong>
-
-              <small>
-                Disponible actualmente
-              </small>
-
-            </div>
-
-          </div>
+    <strong id="replenishmentDuragasPrevious">
+      $0.00
+    </strong>
 
 
-          <strong
-            id="replenishmentKingGasWallet"
-            class="wallet-money"
-          >
-            $0.00
-          </strong>
+    <span>
+      Generado hoy
+    </span>
+
+    <strong id="replenishmentDuragasToday">
+      $0.00
+    </strong>
 
 
-          <small id="replenishmentKingGasEquivalent">
-            Aproximadamente 0 reposiciones
-          </small>
+    <span>
+      Aportes
+    </span>
 
-          <small id="replenishmentKingGasWalletFormula">
-            $0,00 / $1,48
-          </small>
+    <strong id="replenishmentDuragasContributions">
+      $0.00
+    </strong>
 
-        </article>
 
-      </div>
+    <span>
+      Equivale aproximadamente a
+    </span>
+
+    <strong id="replenishmentDuragasEquivalent">
+      0 tanques
+    </strong>
+
+
+    <small id="replenishmentDuragasWalletFormula">
+      Anterior $0.00 + hoy $0.00 + aportes $0.00 = $0.00
+    </small>
+
+  </div>
+
+</article>
 
 
 
+<!-- KING GAS -->
+
+<article class="reserve-wallet kinggas">
+
+  <div class="wallet-head">
+
+    <div>
+
+      <strong>
+        🌸 Bolsa King Gas
+      </strong>
+
+      <small>
+        Disponible actualmente
+      </small>
+
+    </div>
+
+  </div>
+
+
+  <strong
+    id="replenishmentKingGasWallet"
+    class="wallet-money"
+  >
+    $0.00
+  </strong>
+
+
+  <div class="wallet-details">
+
+    <span>
+      Saldo anterior
+    </span>
+
+    <strong id="replenishmentKingGasPrevious">
+      $0.00
+    </strong>
+
+
+    <span>
+      Generado hoy
+    </span>
+
+    <strong id="replenishmentKingGasToday">
+      $0.00
+    </strong>
+
+
+    <span>
+      Aportes
+    </span>
+
+    <strong id="replenishmentKingGasContributions">
+      $0.00
+    </strong>
+
+
+    <span>
+      Equivale aproximadamente a
+    </span>
+
+    <strong id="replenishmentKingGasEquivalent">
+      0 tanques
+    </strong>
+
+
+    <small id="replenishmentKingGasWalletFormula">
+      Anterior $0.00 + hoy $0.00 + aportes $0.00 = $0.00
+    </small>
+
+  </div>
+
+</article>
       <!-- =================================================
            FORMULARIO DE REPOSICIÓN
       ================================================== -->
@@ -3100,7 +3171,150 @@
 
         </div>
 
+        <!-- =================================================
+     ORIGEN DEL DINERO QUE SE USARÁ
+================================================== -->
 
+<section class="counter-section">
+
+  <div class="subsection-heading">
+
+    <div>
+
+      <h3>
+        Dinero que se usará de la bolsa
+      </h3>
+
+      <p>
+        Primero se utiliza el saldo anterior y después el dinero generado hoy.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <div class="replenishment-summary">
+
+    <div>
+
+      <span>
+        Del saldo anterior
+      </span>
+
+      <strong id="replenishmentUsePrevious">
+        $0.00
+      </strong>
+
+    </div>
+
+
+    <div>
+
+      <span>
+        De lo generado hoy
+      </span>
+
+      <strong id="replenishmentUseToday">
+        $0.00
+      </strong>
+
+    </div>
+
+
+    <div>
+
+      <span>
+        De aportes
+      </span>
+
+      <strong id="replenishmentUseContributions">
+        $0.00
+      </strong>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+
+<!-- =================================================
+     CÓMO QUEDARÁ LA BOLSA
+================================================== -->
+
+<section class="counter-section">
+
+  <div class="subsection-heading">
+
+    <div>
+
+      <h3>
+        Bolsa después de pagar el gas
+      </h3>
+
+    </div>
+
+  </div>
+
+
+  <div class="replenishment-summary">
+
+    <div>
+
+      <span>
+        Saldo anterior
+      </span>
+
+      <strong id="replenishmentPreviousAfter">
+        $0.00
+      </strong>
+
+    </div>
+
+
+    <div>
+
+      <span>
+        Generado hoy
+      </span>
+
+      <strong id="replenishmentTodayAfter">
+        $0.00
+      </strong>
+
+    </div>
+
+
+    <div>
+
+      <span>
+        Aportes
+      </span>
+
+      <strong id="replenishmentContributionsAfter">
+        $0.00
+      </strong>
+
+    </div>
+
+
+    <div class="important">
+
+      <span>
+        Total restante
+      </span>
+
+      <strong id="replenishmentFundingAfterTotal">
+        $0.00
+      </strong>
+
+    </div>
+
+  </div>
+
+</section>
 
         <div
           id="replenishmentStatus"
