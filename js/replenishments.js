@@ -270,26 +270,38 @@ export function calculateReplenishmentPreview({
       additionalCosts
     );
 
+const walletBefore =
+  getGasWalletBalance(
+    gasId
+  );
 
-  const walletBefore =
-    getGasWalletBalance(
-      gasId
-    );
+
+/*
+  =====================================================
+  ORIGEN DEL DINERO DE LA BOLSA
+
+  finance.js calcula cuánto de esta reposición
+  puede salir de:
+
+  - saldo anterior
+  - reserva generada hoy
+  - aportes que ya existan
+  =====================================================
+*/
+
+const fundingPlan =
+  calculateReplenishmentFunding({
+
+    gasId,
+
+    quantity:
+      qty,
+
+  });
 
 
-  /*
-    Cuánto faltaría si NO agregáramos
-    ningún aporte adicional.
-  */
-
-  const extraNeededBeforeContribution =
-    roundMoney(
-      Math.max(
-        0,
-        gasCost -
-        walletBefore
-      )
-    );
+const extraNeededBeforeContribution =
+  fundingPlan.extraNeeded;
 
 
   const walletAvailable =
@@ -391,10 +403,23 @@ export function calculateReplenishmentPreview({
 
     totalPaid,
 
-    walletBefore,
+   walletBefore,
 
-    extraContribution:
-      extra,
+
+/*
+  Desglose del dinero que financiaría
+  esta reposición antes de registrar
+  un aporte adicional nuevo.
+*/
+
+fundingBreakdown:
+  cloneData(
+    fundingPlan.fundingBreakdown
+  ),
+
+
+extraContribution:
+  extra,
 
     extraNeededBeforeContribution,
 
