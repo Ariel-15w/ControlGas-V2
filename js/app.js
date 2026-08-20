@@ -584,137 +584,9 @@ function loadCurrentInventoryIntoOpeningForm() {
 
 function prepareOpeningMode() {
 
-  const activeDay =
-    getActiveDay();
-
-  const firstOpening =
-    isFirstSystemOpening();
-
-  const hasActivity =
-    activeDay
-      ? dayHasBusinessActivity(
-          activeDay.id
-        )
-      : false;
-
-  const initialWalletBlock =
-    byId(
-      'openingInitialWalletsBlock'
-    );
-
-
-  setVisible(
-    'openingInitialWalletsBlock',
-    firstOpening
-  );
-
-
-  if (
-    !firstOpening
-  ) {
-
-    loadCurrentInventoryIntoOpeningForm();
-
-  }
-
-
-  const inventoryIds = [
-
-    'duragasFull',
-    'duragasEmpty',
-    'duragasReserved',
-    'duragasLoaned',
-    'kinggasFull',
-    'kinggasEmpty',
-    'kinggasReserved',
-    'kinggasLoaned',
-
-  ];
-
-
-  inventoryIds.forEach(
-    id => {
-
-      const input =
-        byId(id);
-
-
-      if (input) {
-
-        input.readOnly =
-          !firstOpening ||
-          hasActivity;
-
-      }
-
-    }
-  );
-
-
-  [
-    'openingInitialDuragasWallet',
-    'openingInitialKingGasWallet',
-  ].forEach(
-    id => {
-
-      const input =
-        byId(id);
-
-
-      if (input) {
-
-        input.readOnly =
-          !firstOpening ||
-          hasActivity;
-
-      }
-
-    }
-  );
-
-
-  if (
-    firstOpening &&
-    !hasActivity
-  ) {
-
-    const wallets =
-      getWalletsSnapshot();
-
-    setValue(
-      'openingInitialDuragasWallet',
-      wallets[GAS_IDS.DURAGAS]
-    );
-    setValue(
-      'openingInitialKingGasWallet',
-      wallets[GAS_IDS.KING_GAS]
-    );
-
-  }
-
-
-  setText(
-    'openingModeText',
-    firstOpening
-      ? hasActivity
-        ? 'La configuración inicial ya tiene movimientos y no puede modificarse.'
-        : 'Primera configuración: ingresa el inventario y dinero que ya existían antes de comenzar a usar ControlGas.'
-      : 'El inventario y las bolsas vienen automáticamente del cierre anterior. No necesitas volver a escribirlos.'
-  );
-
-  setVisible(
-    'openingWarning',
-    Boolean(activeDay && hasActivity)
-  );
-
-  if (initialWalletBlock) {
-    initialWalletBlock.hidden =
-      !firstOpening;
-  }
+  // TODO EL BLOQUE NUEVO QUE TE PASÉ
 
 }
-
-
 
 /* =========================================================
    REGISTRAR APERTURA
@@ -761,9 +633,7 @@ function openBusinessDay() {
 
 
     const inventory =
-      firstOpening
-        ? readOpeningInventory()
-        : getInventorySnapshot();
+  readOpeningInventory();
 
 
     const wallets =
@@ -788,23 +658,15 @@ function openBusinessDay() {
           'openingNote'
         )
       );
+/*
+  El conteo físico escrito en Apertura
+  pasa a ser el inventario real con el
+  que comienza esta jornada.
+*/
 
-
-
-    /*
-      Colocamos el inventario inicial real
-      de la jornada.
-    */
-
-    if (
-      firstOpening
-    ) {
-
-      applyOpeningInventory(
-        inventory
-      );
-
-    }
+applyOpeningInventory(
+  inventory
+);
 
 
     if (
@@ -4065,42 +3927,27 @@ function updateClosingPreview() {
     );
 
 
-  /*
-    Evitamos mostrar una falsa diferencia
-    de caja mientras el usuario todavía
-    no ha escrito cuánto contó.
-  */
-
-  if (
-    cashRaw === ''
-  ) {
-
-    setText(
-      'closingCashDifference',
-      '—'
-    );
-
-
-    setText(
-      'closingCashDifferenceText',
-      'Escribe el efectivo contado.'
-    );
-
-
-    return null;
-
-  }
-
-
   try {
+
+    /*
+      =====================================================
+      CALCULAR SIEMPRE EL INVENTARIO
+
+      Aunque todavía no se haya escrito
+      el efectivo contado, las diferencias
+      físicas de cilindros deben actualizarse.
+      =====================================================
+    */
 
     const preview =
       calculateClosingPreview({
 
         cashCounted:
-          toNonNegativeNumber(
-            cashRaw
-          ),
+          cashRaw === ''
+            ? 0
+            : toNonNegativeNumber(
+                cashRaw
+              ),
 
         inventory:
           readClosingInventory(),
@@ -4108,13 +3955,100 @@ function updateClosingPreview() {
       });
 
 
-    if (preview) {
+    if (!preview) {
 
-      renderClosingPreview(
-        preview
-      );
+      return null;
 
     }
+
+
+    /*
+      =====================================================
+      CAJA TODAVÍA SIN CONTAR
+
+      Actualizamos inventario, pero NO mostramos
+      una falsa diferencia de dinero.
+      =====================================================
+    */
+
+    if (
+      cashRaw === ''
+    ) {
+
+      const duragas =
+        preview
+          .inventory
+          .byGas[
+            GAS_IDS.DURAGAS
+          ];
+
+
+      const kinggas =
+        preview
+          .inventory
+          .byGas[
+            GAS_IDS.KING_GAS
+          ];
+
+
+      setText(
+        'closingDuragasDifference',
+        String(
+          duragas.warehouseDifference
+        )
+      );
+
+
+      setText(
+        'closingKingGasDifference',
+        String(
+          kinggas.warehouseDifference
+        )
+      );
+
+
+      setText(
+        'closingCashDifference',
+        '—'
+      );
+
+
+      setText(
+        'closingCashDifferenceText',
+        'Escribe el efectivo contado.'
+      );
+
+
+      setOperationStatus(
+        'closingStatus',
+
+        preview.hasInventoryDifference
+          ? 'Hay diferencias en el conteo físico de cilindros.'
+          : 'El conteo físico coincide. Falta escribir el efectivo contado.',
+
+        preview.hasInventoryDifference
+          ? 'warn'
+          : 'good'
+      );
+
+
+      return preview;
+
+    }
+
+
+    /*
+      =====================================================
+      CAJA YA CONTADA
+
+      Ahora sí mostramos todo el cierre:
+      inventario + efectivo.
+      =====================================================
+    */
+
+    renderClosingPreview(
+      preview
+    );
 
 
     return preview;
@@ -4134,7 +4068,6 @@ function updateClosingPreview() {
   }
 
 }
-
 
 /* =========================================================
    FORMULARIO CIERRE
