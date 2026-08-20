@@ -235,7 +235,6 @@ export function getWalletEquivalentUnits(
 
   Los aportes adicionales quedan al final.
 */
-
 export function getWalletDayBreakdown(
 
   gasId,
@@ -262,8 +261,9 @@ export function getWalletDayBreakdown(
 
 
   /*
-    Si no existe jornada, todo el saldo
-    simplemente se considera saldo anterior.
+    Si no hay jornada activa,
+    todo el dinero existente se considera
+    saldo acumulado/anterior.
   */
 
   if (
@@ -321,24 +321,14 @@ export function getWalletDayBreakdown(
 
 
   /*
-    Este es el dinero que YA EXISTÍA
-    cuando comenzó la jornada.
+    Movimientos de ESTA bolsa durante
+    ESTA jornada.
 
-    Mañana, todo lo que quede hoy
-    pasará automáticamente a ser
-    "saldo anterior".
+    IMPORTANTE:
+    mantenemos el orden del array porque
+    corresponde al orden real en que fueron
+    registrados los movimientos.
   */
-
-  const openingBalance =
-    roundMoney(
-      toNonNegativeNumber(
-        day?.opening
-          ?.wallets
-          ?.[gasId] ??
-        0
-      )
-    );
-
 
   const movements =
     state.walletMovements.filter(
@@ -354,185 +344,441 @@ export function getWalletDayBreakdown(
     );
 
 
-  /*
-    Reserva que entró HOY por ventas
-    o por cobros que completaron una
-    reserva pendiente.
-  */
 
-  const todayReserveAdded =
-    roundMoney(
+  /* =====================================================
+     SALDO QUE EXISTÍA AL ABRIR EL DÍA
+  ===================================================== */
 
-      sumBy(
-
-        movements.filter(
-          movement =>
-
-            movement.amount > 0
-
-            &&
-
-            movement.type ===
-              WALLET_MOVEMENT_TYPES
-                .SALE_RESERVE
-        ),
-
-        movement =>
-          movement.amount
-
-      )
-
-    );
+  let openingBalance;
 
 
-  /*
-    Aportes adicionales hechos hoy.
-  */
+  if (
+    day?.opening?.wallets?.[gasId] !==
+      undefined
+  ) {
 
-  const contributionsAdded =
-    roundMoney(
-
-      sumBy(
-
-        movements.filter(
-          movement =>
-
-            movement.amount > 0
-
-            &&
-
-            movement.type ===
-              WALLET_MOVEMENT_TYPES
-                .EXTRA_CONTRIBUTION
-        ),
-
-        movement =>
-          movement.amount
-
-      )
-
-    );
-
-
-  /*
-    Todo dinero que salió de la bolsa hoy.
-
-    Normalmente corresponde a pagos
-    de reposiciones.
-  */
-
-  const spentToday =
-    roundMoney(
-
-      Math.abs(
-
-        sumBy(
-
-          movements.filter(
-            movement =>
-              movement.amount < 0
-          ),
-
-          movement =>
-            movement.amount
-
+    openingBalance =
+      roundMoney(
+        toNonNegativeNumber(
+          day.opening.wallets[gasId]
         )
+      );
 
-      )
+  }
+  else {
 
+    /*
+      Compatibilidad con datos antiguos.
+
+      Si existe un movimiento de saldo inicial,
+      utilizamos ese valor.
+    */
+
+    const openingMovement =
+      movements.find(
+        movement =>
+
+          movement.type ===
+            WALLET_MOVEMENT_TYPES
+              .OPENING_BALANCE
+
+          &&
+
+          movement.amount > 0
+      );
+
+
+    if (
+      openingMovement
+    ) {
+
+      openingBalance =
+        roundMoney(
+          toNonNegativeNumber(
+            openingMovement.amount
+          )
+        );
+
+    }
+    else {
+
+      /*
+        Última protección para respaldos antiguos:
+
+        saldo al abrir =
+        saldo actual - movimiento neto del día
+      */
+
+      const netMovement =
+        roundMoney(
+          sumBy(
+            movements,
+            movement =>
+              toNumber(
+                movement.amount
+              )
+          )
+        );
+
+
+      openingBalance =
+        roundMoney(
+          Math.max(
+            0,
+            currentBalance -
+            netMovement
+          )
+        );
+
+    }
+
+  }
+
+
+
+  /* =====================================================
+     BOLSILLOS INTERNOS
+
+     Todos siguen formando UNA sola bolsa real.
+  ===================================================== */
+
+  let previousRemaining =
+    openingBalance;
+
+
+  let todayReserveAdded =
+    0;
+
+
+  let todayReserveRemaining =
+    0;
+
+
+  let contributionsAdded =
+    0;
+
+
+  let contributionsRemaining =
+    0;
+
+
+  let spentToday =
+    0;
+
+
+  let usedFromPrevious =
+    0;
+
+
+  let usedFromToday =
+    0;
+
+
+  let usedFromContributions =
+    0;
+
+
+
+  /* =====================================================
+     RECORRER MOVIMIENTOS EN ORDEN REAL
+  ===================================================== */
+
+  movements.forEach(
+    movement => {
+
+      const amount =
+        roundMoney(
+          toNumber(
+            movement.amount
+          )
+        );
+
+
+      /*
+        El saldo inicial ya está incluido
+        en openingBalance.
+
+        No debemos volver a sumarlo.
+      */
+
+      if (
+        movement.type ===
+          WALLET_MOVEMENT_TYPES
+            .OPENING_BALANCE
+      ) {
+
+        return;
+
+      }
+
+
+
+      /* ===============================================
+         DINERO GENERADO POR VENTAS / COBROS
+      =============================================== */
+
+      if (
+        amount > 0
+
+        &&
+
+        movement.type ===
+          WALLET_MOVEMENT_TYPES
+            .SALE_RESERVE
+      ) {
+
+        todayReserveAdded =
+          roundMoney(
+            todayReserveAdded +
+            amount
+          );
+
+
+        todayReserveRemaining =
+          roundMoney(
+            todayReserveRemaining +
+            amount
+          );
+
+
+        return;
+
+      }
+
+
+
+      /* ===============================================
+         APORTE ADICIONAL
+      =============================================== */
+
+      if (
+        amount > 0
+
+        &&
+
+        movement.type ===
+          WALLET_MOVEMENT_TYPES
+            .EXTRA_CONTRIBUTION
+      ) {
+
+        contributionsAdded =
+          roundMoney(
+            contributionsAdded +
+            amount
+          );
+
+
+        contributionsRemaining =
+          roundMoney(
+            contributionsRemaining +
+            amount
+          );
+
+
+        return;
+
+      }
+
+
+
+      /*
+        Solo las salidas necesitan distribuirse
+        entre los diferentes orígenes.
+      */
+
+      if (
+        amount >= 0
+      ) {
+
+        return;
+
+      }
+
+
+      let remainingSpend =
+        roundMoney(
+          Math.abs(
+            amount
+          )
+        );
+
+
+      spentToday =
+        roundMoney(
+          spentToday +
+          remainingSpend
+        );
+
+
+
+      /* ===============================================
+         1. SALDO ANTERIOR
+      =============================================== */
+
+      const fromPrevious =
+        roundMoney(
+          Math.min(
+            previousRemaining,
+            remainingSpend
+          )
+        );
+
+
+      previousRemaining =
+        roundMoney(
+          Math.max(
+            0,
+            previousRemaining -
+            fromPrevious
+          )
+        );
+
+
+      usedFromPrevious =
+        roundMoney(
+          usedFromPrevious +
+          fromPrevious
+        );
+
+
+      remainingSpend =
+        roundMoney(
+          Math.max(
+            0,
+            remainingSpend -
+            fromPrevious
+          )
+        );
+
+
+
+      /* ===============================================
+         2. RESERVA GENERADA HOY
+      =============================================== */
+
+      const fromToday =
+        roundMoney(
+          Math.min(
+            todayReserveRemaining,
+            remainingSpend
+          )
+        );
+
+
+      todayReserveRemaining =
+        roundMoney(
+          Math.max(
+            0,
+            todayReserveRemaining -
+            fromToday
+          )
+        );
+
+
+      usedFromToday =
+        roundMoney(
+          usedFromToday +
+          fromToday
+        );
+
+
+      remainingSpend =
+        roundMoney(
+          Math.max(
+            0,
+            remainingSpend -
+            fromToday
+          )
+        );
+
+
+
+      /* ===============================================
+         3. APORTES ADICIONALES
+      =============================================== */
+
+      const fromContributions =
+        roundMoney(
+          Math.min(
+            contributionsRemaining,
+            remainingSpend
+          )
+        );
+
+
+      contributionsRemaining =
+        roundMoney(
+          Math.max(
+            0,
+            contributionsRemaining -
+            fromContributions
+          )
+        );
+
+
+      usedFromContributions =
+        roundMoney(
+          usedFromContributions +
+          fromContributions
+        );
+
+    }
+  );
+
+
+
+  /* =====================================================
+     PROTECCIÓN PARA DATOS ANTIGUOS / CORRECCIONES
+  ===================================================== */
+
+  const reconstructedBalance =
+    roundMoney(
+
+      previousRemaining
+
+      +
+
+      todayReserveRemaining
+
+      +
+
+      contributionsRemaining
+
+    );
+
+
+  const difference =
+    roundMoney(
+      currentBalance -
+      reconstructedBalance
     );
 
 
   /*
-    =====================================================
-    ORDEN DE CONSUMO
-    =====================================================
-
-    PRIMERO:
-    saldo que venía de días anteriores.
-
-    SEGUNDO:
-    reserva generada hoy.
-
-    TERCERO:
-    aportes adicionales.
+    Si existe dinero no clasificado debido
+    a una versión antigua del sistema,
+    lo tratamos como saldo previo para no
+    perder disponibilidad de la bolsa.
   */
 
-  const usedFromPrevious =
-    roundMoney(
-      Math.min(
-        openingBalance,
-        spentToday
-      )
-    );
+  if (
+    difference > 0.005
+  ) {
 
+    previousRemaining =
+      roundMoney(
+        previousRemaining +
+        difference
+      );
 
-  let remainingSpend =
-    roundMoney(
-      Math.max(
-        0,
-        spentToday -
-        usedFromPrevious
-      )
-    );
+    openingBalance =
+      roundMoney(
+        openingBalance +
+        difference
+      );
 
+  }
 
-  const usedFromToday =
-    roundMoney(
-      Math.min(
-        todayReserveAdded,
-        remainingSpend
-      )
-    );
-
-
-  remainingSpend =
-    roundMoney(
-      Math.max(
-        0,
-        remainingSpend -
-        usedFromToday
-      )
-    );
-
-
-  const usedFromContributions =
-    roundMoney(
-      Math.min(
-        contributionsAdded,
-        remainingSpend
-      )
-    );
-
-
-  const previousRemaining =
-    roundMoney(
-      Math.max(
-        0,
-        openingBalance -
-        usedFromPrevious
-      )
-    );
-
-
-  const todayReserveRemaining =
-    roundMoney(
-      Math.max(
-        0,
-        todayReserveAdded -
-        usedFromToday
-      )
-    );
-
-
-  const contributionsRemaining =
-    roundMoney(
-      Math.max(
-        0,
-        contributionsAdded -
-        usedFromContributions
-      )
-    );
 
 
   return {
@@ -560,8 +806,7 @@ export function getWalletDayBreakdown(
     usedFromContributions,
 
     /*
-      Este continúa siendo el saldo REAL
-      de la bolsa registrado en ControlGas.
+      Saldo REAL de la bolsa.
     */
 
     balance:
@@ -570,7 +815,6 @@ export function getWalletDayBreakdown(
   };
 
 }
-
 /* =========================================================
    ESTABLECER BOLSA
 ========================================================= */
