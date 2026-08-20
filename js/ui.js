@@ -1822,28 +1822,67 @@ export function renderSalesTable() {
 /* =========================================================
    BOLSAS EN REPOSICIONES
 ========================================================= */
-
 export function renderReplenishmentWallets() {
 
   const wallets =
     getWalletSummary();
 
 
+  const duragas =
+    wallets[
+      GAS_IDS.DURAGAS
+    ];
+
+
+  const kingGas =
+    wallets[
+      GAS_IDS.KING_GAS
+    ];
+
+
+
+  /* =======================================================
+     DURAGAS
+  ======================================================= */
+
   setText(
     'replenishmentDuragasWallet',
     formatMoney(
-      wallets[
-        GAS_IDS.DURAGAS
-      ].balance
+      duragas.balance
+    )
+  );
+
+
+  setText(
+    'replenishmentDuragasPrevious',
+    formatMoney(
+      duragas.previousRemaining ??
+      0
+    )
+  );
+
+
+  setText(
+    'replenishmentDuragasToday',
+    formatMoney(
+      duragas.todayReserveRemaining ??
+      0
+    )
+  );
+
+
+  setText(
+    'replenishmentDuragasContributions',
+    formatMoney(
+      duragas.contributionsRemaining ??
+      0
     )
   );
 
 
   setText(
     'replenishmentDuragasEquivalent',
-    `${wallets[
-      GAS_IDS.DURAGAS
-    ].equivalentUnits} × ${formatMoney(
+    `${duragas.equivalentUnits} × ${formatMoney(
       getReplacementCost(
         GAS_IDS.DURAGAS
       )
@@ -1854,30 +1893,63 @@ export function renderReplenishmentWallets() {
   setText(
     'replenishmentDuragasWalletFormula',
     `${formatMoney(
-      wallets[GAS_IDS.DURAGAS].balance
-    )} / ${formatMoney(
-      getReplacementCost(
-        GAS_IDS.DURAGAS
-      )
+      duragas.previousRemaining ??
+      0
+    )} anterior + ${formatMoney(
+      duragas.todayReserveRemaining ??
+      0
+    )} hoy + ${formatMoney(
+      duragas.contributionsRemaining ??
+      0
+    )} aportes = ${formatMoney(
+      duragas.balance
     )}`
   );
 
 
+
+  /* =======================================================
+     KING GAS
+  ======================================================= */
+
   setText(
     'replenishmentKingGasWallet',
     formatMoney(
-      wallets[
-        GAS_IDS.KING_GAS
-      ].balance
+      kingGas.balance
+    )
+  );
+
+
+  setText(
+    'replenishmentKingGasPrevious',
+    formatMoney(
+      kingGas.previousRemaining ??
+      0
+    )
+  );
+
+
+  setText(
+    'replenishmentKingGasToday',
+    formatMoney(
+      kingGas.todayReserveRemaining ??
+      0
+    )
+  );
+
+
+  setText(
+    'replenishmentKingGasContributions',
+    formatMoney(
+      kingGas.contributionsRemaining ??
+      0
     )
   );
 
 
   setText(
     'replenishmentKingGasEquivalent',
-    `${wallets[
-      GAS_IDS.KING_GAS
-    ].equivalentUnits} × ${formatMoney(
+    `${kingGas.equivalentUnits} × ${formatMoney(
       getReplacementCost(
         GAS_IDS.KING_GAS
       )
@@ -1888,18 +1960,20 @@ export function renderReplenishmentWallets() {
   setText(
     'replenishmentKingGasWalletFormula',
     `${formatMoney(
-      wallets[GAS_IDS.KING_GAS].balance
-    )} / ${formatMoney(
-      getReplacementCost(
-        GAS_IDS.KING_GAS
-      )
+      kingGas.previousRemaining ??
+      0
+    )} anterior + ${formatMoney(
+      kingGas.todayReserveRemaining ??
+      0
+    )} hoy + ${formatMoney(
+      kingGas.contributionsRemaining ??
+      0
+    )} aportes = ${formatMoney(
+      kingGas.balance
     )}`
   );
 
 }
-
-
-
 /* =========================================================
    PREVISUALIZACIÓN DE REPOSICIÓN
 ========================================================= */
@@ -2083,6 +2157,163 @@ export function renderReplenishmentPreview(
     )
   );
 
+   /* =======================================================
+   ORIGEN DEL DINERO PARA LA REPOSICIÓN
+======================================================= */
+
+const funding =
+  preview.fundingBreakdown ??
+  {};
+
+
+const fromPrevious =
+  roundMoney(
+    funding.fromPrevious ??
+    0
+  );
+
+
+const fromToday =
+  roundMoney(
+    funding.fromToday ??
+    0
+  );
+
+
+const fromExistingContributions =
+  roundMoney(
+    funding.fromContributions ??
+    0
+  );
+
+
+const alreadyCovered =
+  roundMoney(
+    fromPrevious +
+    fromToday +
+    fromExistingContributions
+  );
+
+
+const stillNeeded =
+  roundMoney(
+    Math.max(
+      0,
+      preview.gasCost -
+      alreadyCovered
+    )
+  );
+
+
+const fromNewContribution =
+  roundMoney(
+    Math.min(
+      preview.extraContribution ??
+      0,
+      stillNeeded
+    )
+  );
+
+
+const totalFromContributions =
+  roundMoney(
+    fromExistingContributions +
+    fromNewContribution
+  );
+
+
+setText(
+  'replenishmentUsePrevious',
+  formatMoney(
+    fromPrevious
+  )
+);
+
+
+setText(
+  'replenishmentUseToday',
+  formatMoney(
+    fromToday
+  )
+);
+
+
+setText(
+  'replenishmentUseContributions',
+  formatMoney(
+    totalFromContributions
+  )
+);
+
+
+const previousAfter =
+  roundMoney(
+    funding.previousAfter ??
+    0
+  );
+
+
+const todayAfter =
+  roundMoney(
+    funding.todayAfter ??
+    0
+  );
+
+
+const existingContributionsAfter =
+  roundMoney(
+    funding.contributionsAfter ??
+    0
+  );
+
+
+const unusedNewContribution =
+  roundMoney(
+    Math.max(
+      0,
+      (preview.extraContribution ?? 0) -
+      fromNewContribution
+    )
+  );
+
+
+const contributionsAfter =
+  roundMoney(
+    existingContributionsAfter +
+    unusedNewContribution
+  );
+
+
+setText(
+  'replenishmentPreviousAfter',
+  formatMoney(
+    previousAfter
+  )
+);
+
+
+setText(
+  'replenishmentTodayAfter',
+  formatMoney(
+    todayAfter
+  )
+);
+
+
+setText(
+  'replenishmentContributionsAfter',
+  formatMoney(
+    contributionsAfter
+  )
+);
+
+
+setText(
+  'replenishmentFundingAfterTotal',
+  formatMoney(
+    preview.walletAfter
+  )
+);
 
   const messages = [];
 
