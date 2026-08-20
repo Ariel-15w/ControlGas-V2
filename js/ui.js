@@ -802,21 +802,22 @@ export function renderDashboard() {
     )}`
   );
 
-
-  setText(
-    'dashboardDuragasWalletFormula',
-    `${formatMoney(
-      wallets[
-        GAS_IDS.DURAGAS
-      ].balance
-    )} / ${formatMoney(
-      getReplacementCost(
-        GAS_IDS.DURAGAS
-      )
-    )}`
-  );
-
-
+setText(
+  'dashboardDuragasWalletFormula',
+  `Anterior ${formatMoney(
+    wallets[GAS_IDS.DURAGAS]
+      .previousRemaining ?? 0
+  )} + hoy ${formatMoney(
+    wallets[GAS_IDS.DURAGAS]
+      .todayReserveRemaining ?? 0
+  )} + aportes ${formatMoney(
+    wallets[GAS_IDS.DURAGAS]
+      .contributionsRemaining ?? 0
+  )} = ${formatMoney(
+    wallets[GAS_IDS.DURAGAS]
+      .balance
+  )}`
+);
   setText(
     'dashboardKingGasWallet',
     formatMoney(
@@ -837,23 +838,22 @@ export function renderDashboard() {
       )
     )}`
   );
-
-
-  setText(
-    'dashboardKingGasWalletFormula',
-    `${formatMoney(
-      wallets[
-        GAS_IDS.KING_GAS
-      ].balance
-    )} / ${formatMoney(
-      getReplacementCost(
-        GAS_IDS.KING_GAS
-      )
-    )}`
-  );
-
-
-
+setText(
+  'dashboardKingGasWalletFormula',
+  `Anterior ${formatMoney(
+    wallets[GAS_IDS.KING_GAS]
+      .previousRemaining ?? 0
+  )} + hoy ${formatMoney(
+    wallets[GAS_IDS.KING_GAS]
+      .todayReserveRemaining ?? 0
+  )} + aportes ${formatMoney(
+    wallets[GAS_IDS.KING_GAS]
+      .contributionsRemaining ?? 0
+  )} = ${formatMoney(
+    wallets[GAS_IDS.KING_GAS]
+      .balance
+  )}`
+);
   /* =======================================================
      GANANCIAS
   ======================================================= */
