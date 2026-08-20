@@ -1944,7 +1944,6 @@ export function registerExtraContribution({
 /* =========================================================
    PAGAR GAS REPUESTO DESDE LA BOLSA
 ========================================================= */
-
 export function payReplacementFromWallet({
 
   gasId,
@@ -1982,6 +1981,185 @@ export function payReplacementFromWallet({
   }
 
 
+  const effectiveDayId =
+    dayId ??
+    getActiveDay()?.id ??
+    null;
+
+
+  /*
+    =====================================================
+    COMPOSICIÓN DE LA BOLSA ANTES DEL PAGO
+    =====================================================
+  */
+
+  const breakdown =
+    getWalletDayBreakdown(
+      gasId,
+      effectiveDayId
+    );
+
+
+  const available =
+    getGasWalletBalance(
+      gasId
+    );
+
+
+  if (
+    value >
+    available + 0.005
+  ) {
+
+    throw new Error(
+      `La bolsa ${getGasName(gasId)} tiene ${available.toFixed(2)} y necesitas ${value.toFixed(2)}.`
+    );
+
+  }
+
+
+  let remaining =
+    value;
+
+
+  /*
+    =====================================================
+    1. CONSUMIR PRIMERO SALDO ANTERIOR
+    =====================================================
+  */
+
+  const fromPrevious =
+    roundMoney(
+      Math.min(
+        breakdown.previousRemaining,
+        remaining
+      )
+    );
+
+
+  remaining =
+    roundMoney(
+      Math.max(
+        0,
+        remaining -
+        fromPrevious
+      )
+    );
+
+
+
+  /*
+    =====================================================
+    2. DESPUÉS RESERVA GENERADA HOY
+    =====================================================
+  */
+
+  const fromToday =
+    roundMoney(
+      Math.min(
+        breakdown.todayReserveRemaining,
+        remaining
+      )
+    );
+
+
+  remaining =
+    roundMoney(
+      Math.max(
+        0,
+        remaining -
+        fromToday
+      )
+    );
+
+
+
+  /*
+    =====================================================
+    3. FINALMENTE APORTES ADICIONALES
+    =====================================================
+  */
+
+  const fromContributions =
+    roundMoney(
+      Math.min(
+        breakdown.contributionsRemaining,
+        remaining
+      )
+    );
+
+
+  remaining =
+    roundMoney(
+      Math.max(
+        0,
+        remaining -
+        fromContributions
+      )
+    );
+
+
+
+  /*
+    En funcionamiento normal remaining debe quedar 0.
+
+    Este campo queda guardado como protección para
+    datos antiguos, migraciones o correcciones manuales.
+  */
+
+  const fromOtherPreviousBalance =
+    roundMoney(
+      remaining
+    );
+
+
+
+  /* =====================================================
+     SALDOS DESPUÉS DEL PAGO
+  ===================================================== */
+
+  const previousAfter =
+    roundMoney(
+      Math.max(
+        0,
+        breakdown.previousRemaining -
+        fromPrevious
+      )
+    );
+
+
+  const todayAfter =
+    roundMoney(
+      Math.max(
+        0,
+        breakdown.todayReserveRemaining -
+        fromToday
+      )
+    );
+
+
+  const contributionsAfter =
+    roundMoney(
+      Math.max(
+        0,
+        breakdown.contributionsRemaining -
+        fromContributions
+      )
+    );
+
+
+
+  /*
+    =====================================================
+    HACER EL PAGO REAL
+
+    Seguimos utilizando spendWalletMoney(),
+    por lo que NO rompemos la lógica existente.
+
+    Solamente agregamos trazabilidad.
+    =====================================================
+  */
+
   return spendWalletMoney({
 
     gasId,
@@ -1993,7 +2171,8 @@ export function payReplacementFromWallet({
       WALLET_MOVEMENT_TYPES
         .REPLENISHMENT_PAYMENT,
 
-    dayId,
+    dayId:
+      effectiveDayId,
 
     referenceId:
       replenishmentId,
@@ -2005,6 +2184,75 @@ export function payReplacementFromWallet({
 
       replenishmentId,
 
+
+      /*
+        De dónde salió el dinero.
+      */
+
+      fundingOrigin: {
+
+        previous:
+          fromPrevious,
+
+        today:
+          fromToday,
+
+        contributions:
+          fromContributions,
+
+        otherPrevious:
+          fromOtherPreviousBalance,
+
+      },
+
+
+      /*
+        Cómo estaba la bolsa antes.
+      */
+
+      walletBeforeBreakdown: {
+
+        previous:
+          breakdown.previousRemaining,
+
+        today:
+          breakdown.todayReserveRemaining,
+
+        contributions:
+          breakdown.contributionsRemaining,
+
+        total:
+          available,
+
+      },
+
+
+      /*
+        Cómo queda después de este pago.
+      */
+
+      walletAfterBreakdown: {
+
+        previous:
+          previousAfter,
+
+        today:
+          todayAfter,
+
+        contributions:
+          contributionsAfter,
+
+        total:
+          roundMoney(
+            Math.max(
+              0,
+              available -
+              value
+            )
+          ),
+
+      },
+
     },
 
     createdAt,
@@ -2012,8 +2260,6 @@ export function payReplacementFromWallet({
   });
 
 }
-
-
 
 /* =========================================================
    REGISTRAR GASTO
@@ -3800,10 +4046,16 @@ export function calculateReplenishmentFunding({
   );
 
 
+  const qty =
+    toNonNegativeInteger(
+      quantity
+    );
+
+
   const gasCost =
     calculateReplacementCost(
       gasId,
-      quantity
+      qty
     );
 
 
@@ -3813,24 +4065,163 @@ export function calculateReplenishmentFunding({
     );
 
 
-  const missing =
+  /*
+    Obtenemos cómo está compuesta
+    la bolsa EN ESTE MOMENTO.
+  */
+
+  const breakdown =
+    getWalletDayBreakdown(
+      gasId
+    );
+
+
+  let remainingCost =
+    gasCost;
+
+
+  /* =======================================================
+     1. USAR PRIMERO SALDO ANTERIOR
+  ======================================================= */
+
+  const fromPrevious =
     roundMoney(
-      Math.max(
-        0,
-        gasCost -
-        walletBefore
+      Math.min(
+        breakdown.previousRemaining,
+        remainingCost
       )
     );
 
 
-  const excess =
+  remainingCost =
+    roundMoney(
+      Math.max(
+        0,
+        remainingCost -
+        fromPrevious
+      )
+    );
+
+
+
+  /* =======================================================
+     2. DESPUÉS USAR LO GENERADO HOY
+  ======================================================= */
+
+  const fromToday =
+    roundMoney(
+      Math.min(
+        breakdown.todayReserveRemaining,
+        remainingCost
+      )
+    );
+
+
+  remainingCost =
+    roundMoney(
+      Math.max(
+        0,
+        remainingCost -
+        fromToday
+      )
+    );
+
+
+
+  /* =======================================================
+     3. DESPUÉS APORTES QUE YA EXISTAN HOY
+  ======================================================= */
+
+  const fromContributions =
+    roundMoney(
+      Math.min(
+        breakdown.contributionsRemaining,
+        remainingCost
+      )
+    );
+
+
+  remainingCost =
+    roundMoney(
+      Math.max(
+        0,
+        remainingCost -
+        fromContributions
+      )
+    );
+
+
+
+  /* =======================================================
+     4. SI TODAVÍA FALTA DINERO
+  ======================================================= */
+
+  const extraNeeded =
+    roundMoney(
+      remainingCost
+    );
+
+
+  const walletUsed =
+    roundMoney(
+
+      fromPrevious
+
+      +
+
+      fromToday
+
+      +
+
+      fromContributions
+
+    );
+
+
+  const walletRemainingWithoutExtra =
     roundMoney(
       Math.max(
         0,
         walletBefore -
-        gasCost
+        walletUsed
       )
     );
+
+
+
+  /* =======================================================
+     SALDOS QUE QUEDARÍAN
+  ======================================================= */
+
+  const previousAfter =
+    roundMoney(
+      Math.max(
+        0,
+        breakdown.previousRemaining -
+        fromPrevious
+      )
+    );
+
+
+  const todayAfter =
+    roundMoney(
+      Math.max(
+        0,
+        breakdown.todayReserveRemaining -
+        fromToday
+      )
+    );
+
+
+  const contributionsAfter =
+    roundMoney(
+      Math.max(
+        0,
+        breakdown.contributionsRemaining -
+        fromContributions
+      )
+    );
+
 
 
   return {
@@ -3838,24 +4229,60 @@ export function calculateReplenishmentFunding({
     gasId,
 
     quantity:
-      toNonNegativeInteger(
-        quantity
-      ),
+      qty,
 
     gasCost,
 
+    /*
+      Conservamos estos campos porque ya pueden
+      estar siendo utilizados por replenishments.js.
+    */
+
     walletBefore,
 
-    extraNeeded:
-      missing,
+    extraNeeded,
 
-    walletRemainingWithoutExtra:
-      excess,
+    walletRemainingWithoutExtra,
+
+
+    /*
+      NUEVO:
+      desglose exacto del origen del dinero.
+    */
+
+    fundingBreakdown: {
+
+      previousAvailable:
+        breakdown.previousRemaining,
+
+      todayAvailable:
+        breakdown.todayReserveRemaining,
+
+      contributionsAvailable:
+        breakdown.contributionsRemaining,
+
+
+      fromPrevious,
+
+      fromToday,
+
+      fromContributions,
+
+      fromExtraContribution:
+        extraNeeded,
+
+
+      previousAfter,
+
+      todayAfter,
+
+      contributionsAfter,
+
+    },
 
   };
 
 }
-
 
 
 /* =========================================================
