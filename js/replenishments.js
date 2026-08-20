@@ -66,15 +66,14 @@ import {
   applyReplenishmentInventory,
 } from './inventory.js';
 
-
 import {
   getGasWalletBalance,
   calculateReplacementCost,
+  calculateReplenishmentFunding,
   registerExtraContribution,
   payReplacementFromWallet,
   registerExpense,
 } from './finance.js';
-
 
 import {
   saveState,
