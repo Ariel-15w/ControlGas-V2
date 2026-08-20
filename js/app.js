@@ -526,60 +526,310 @@ function readInitialWalletBalances() {
   };
 
 }
-
-
 function loadCurrentInventoryIntoOpeningForm() {
-const inventory =
-  getLastClosingInventory();
-   
+
+  const activeDay =
+    getActiveDay();
+
+
+  /*
+    Si ya existe una jornada abierta,
+    respetamos el inventario con el que
+    ESA jornada fue abierta.
+
+    Si todavía no existe jornada,
+    usamos como referencia el último
+    conteo físico del cierre.
+  */
+
+  const inventory =
+
+    activeDay
+      ?.opening
+      ?.inventory
+
+    ??
+
+    getLastClosingInventory();
+
+
+
   setValue(
     'duragasFull',
     inventory[GAS_IDS.DURAGAS].full
   );
+
 
   setValue(
     'duragasEmpty',
     inventory[GAS_IDS.DURAGAS].empty
   );
 
+
   setValue(
     'duragasReserved',
     inventory[GAS_IDS.DURAGAS].reserved
   );
+
 
   setValue(
     'duragasLoaned',
     inventory[GAS_IDS.DURAGAS].loaned
   );
 
+
   setValue(
     'kinggasFull',
     inventory[GAS_IDS.KING_GAS].full
   );
+
 
   setValue(
     'kinggasEmpty',
     inventory[GAS_IDS.KING_GAS].empty
   );
 
+
   setValue(
     'kinggasReserved',
     inventory[GAS_IDS.KING_GAS].reserved
   );
+
 
   setValue(
     'kinggasLoaned',
     inventory[GAS_IDS.KING_GAS].loaned
   );
 
+
   renderOpeningTotals();
 
 }
-
-
 function prepareOpeningMode() {
 
-  // TODO EL BLOQUE NUEVO QUE TE PASÉ
+  const activeDay =
+    getActiveDay();
+
+
+  const firstOpening =
+    isFirstSystemOpening();
+
+
+  const hasActivity =
+    activeDay
+      ? dayHasBusinessActivity(
+          activeDay.id
+        )
+      : false;
+
+
+  /*
+    En la primera configuración se permite
+    ingresar el dinero histórico de las bolsas.
+
+    En los días siguientes esas bolsas vienen
+    automáticamente del sistema.
+  */
+
+  setVisible(
+    'openingInitialWalletsBlock',
+    firstOpening
+  );
+
+
+  /*
+    Si no es la primera apertura,
+    cargamos como referencia:
+
+    - la apertura ya guardada del día actual, o
+    - el conteo físico del último cierre.
+  */
+
+  if (
+    !firstOpening
+  ) {
+
+    loadCurrentInventoryIntoOpeningForm();
+
+  }
+
+
+  /*
+    El inventario puede corregirse mientras
+    todavía no exista actividad del día.
+
+    Después del primer movimiento queda bloqueado.
+  */
+
+  const inventoryIds = [
+
+    'duragasFull',
+    'duragasEmpty',
+    'duragasReserved',
+    'duragasLoaned',
+
+    'kinggasFull',
+    'kinggasEmpty',
+    'kinggasReserved',
+    'kinggasLoaned',
+
+  ];
+
+
+  inventoryIds.forEach(
+    id => {
+
+      const input =
+        byId(id);
+
+
+      if (input) {
+
+        input.readOnly =
+          hasActivity;
+
+      }
+
+    }
+  );
+
+
+  /*
+    Las bolsas iniciales solamente se pueden
+    escribir durante la primera configuración.
+  */
+
+  [
+    'openingInitialDuragasWallet',
+    'openingInitialKingGasWallet',
+  ].forEach(
+    id => {
+
+      const input =
+        byId(id);
+
+
+      if (input) {
+
+        input.readOnly =
+          !firstOpening ||
+          hasActivity;
+
+      }
+
+    }
+  );
+
+
+  /*
+    Primera configuración:
+    mostrar en los campos el saldo actual
+    existente de las bolsas.
+  */
+
+  if (
+    firstOpening &&
+    !hasActivity
+  ) {
+
+    const wallets =
+      getWalletsSnapshot();
+
+
+    setValue(
+      'openingInitialDuragasWallet',
+      wallets[GAS_IDS.DURAGAS]
+    );
+
+
+    setValue(
+      'openingInitialKingGasWallet',
+      wallets[GAS_IDS.KING_GAS]
+    );
+
+  }
+
+
+  /*
+    Mensaje de ayuda según el estado
+    de la jornada.
+  */
+
+  let modeText;
+
+
+  if (
+    firstOpening
+  ) {
+
+    modeText =
+      hasActivity
+        ? 'La configuración inicial ya tiene movimientos y no puede modificarse.'
+        : 'Primera configuración: ingresa el inventario y el dinero de reposición que ya existían antes de comenzar a usar ControlGas.';
+
+  }
+  else if (
+    activeDay &&
+    hasActivity
+  ) {
+
+    modeText =
+      'La jornada ya tiene movimientos. La apertura quedó bloqueada para conservar el registro original.';
+
+  }
+  else if (
+    activeDay
+  ) {
+
+    modeText =
+      'La jornada está abierta pero todavía no tiene movimientos. Puedes corregir el conteo físico antes de comenzar a trabajar.';
+
+  }
+  else {
+
+    modeText =
+      'El último cierre aparece como referencia. Cuenta físicamente los cilindros y corrige cualquier diferencia antes de iniciar la jornada.';
+
+  }
+
+
+  setText(
+    'openingModeText',
+    modeText
+  );
+
+
+  setVisible(
+    'openingWarning',
+    Boolean(
+      activeDay &&
+      hasActivity
+    )
+  );
+
+
+  /*
+    Bloquear también el botón Guardar apertura
+    cuando ya existen movimientos.
+  */
+
+  const submitButton =
+    document.querySelector(
+      '#openingForm button[type="submit"]'
+    );
+
+
+  if (
+    submitButton
+  ) {
+
+    submitButton.disabled =
+      hasActivity;
+
+  }
+
+
+  renderOpeningTotals();
 
 }
 
