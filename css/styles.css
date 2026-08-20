@@ -1692,7 +1692,67 @@ input[readonly] {
     .78rem;
 
 }
+/* =========================================================
+   REPOSICIÓN - DESGLOSE DE BOLSAS
+========================================================= */
 
+#view-replenishments .wallet-details {
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto;
+
+  align-items: center;
+
+  gap:
+    7px
+    12px;
+
+}
+
+
+#view-replenishments .wallet-details span {
+
+  min-width: 0;
+
+}
+
+
+#view-replenishments .wallet-details strong {
+
+  min-width: 0;
+
+  text-align: right;
+
+}
+
+
+#view-replenishments .wallet-details small {
+
+  grid-column:
+    1 / -1;
+
+  margin-top:
+    4px;
+
+  padding-top:
+    7px;
+
+  border-top:
+    1px dashed
+    rgba(
+      100,
+      116,
+      139,
+      .18
+    );
+
+  line-height:
+    1.4;
+
+}
 
 
 /* =========================================================
