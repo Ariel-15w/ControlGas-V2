@@ -1174,17 +1174,79 @@ export function registerReplenishment({
           preview.extraContribution
 
         ),
+walletAfter:
+  roundMoney(
+    walletAfter
+  ),
 
-      walletAfter:
-        roundMoney(
-          walletAfter
-        ),
+
+/*
+  ORIGEN REAL DEL DINERO USADO.
+
+  finance.js ya calculó y guardó
+  esta información en el movimiento
+  de pago de la bolsa.
+*/
+
+walletFunding: {
+
+  previous:
+    roundMoney(
+      walletPayment
+        ?.metadata
+        ?.fundingOrigin
+        ?.previous ??
+      0
+    ),
+
+  today:
+    roundMoney(
+      walletPayment
+        ?.metadata
+        ?.fundingOrigin
+        ?.today ??
+      0
+    ),
+
+  contributions:
+    roundMoney(
+      walletPayment
+        ?.metadata
+        ?.fundingOrigin
+        ?.contributions ??
+      0
+    ),
+
+  otherPrevious:
+    roundMoney(
+      walletPayment
+        ?.metadata
+        ?.fundingOrigin
+        ?.otherPrevious ??
+      0
+    ),
+
+},
 
 
-      /*
-        Diferencia informativa entre llenos que
-        llegaron y vacíos que salieron.
-      */
+/*
+  Cómo quedó distribuida la bolsa
+  después de pagar.
+*/
+
+walletAfterBreakdown:
+  cloneData(
+    walletPayment
+      ?.metadata
+      ?.walletAfterBreakdown ??
+    null
+  ),
+
+
+/*
+  Diferencia informativa entre llenos que
+  llegaron y vacíos que salieron.
+*/
 
       cylinderDifference:
         preview.cylinderDifference,
