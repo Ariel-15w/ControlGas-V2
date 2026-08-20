@@ -1512,7 +1512,91 @@ export function closeDay({
 
 }
 
+/* =========================================================
+   ÚLTIMO INVENTARIO FÍSICO CERRADO
+========================================================= */
 
+/*
+  Devuelve el conteo físico REAL del último cierre.
+
+  Este valor servirá como referencia para la
+  Apertura de la siguiente jornada.
+
+  IMPORTANTE:
+
+  - NO modifica cierres anteriores.
+  - NO borra diferencias.
+  - NO altera el historial.
+  - Si todavía no existe ningún cierre,
+    usa el inventario lógico actual.
+*/
+
+export function getLastClosingInventory() {
+
+  const closings =
+    sortNewestFirst(
+
+      getState().closings,
+
+      item =>
+        item.closedAt
+
+    );
+
+
+  const lastClosing =
+    closings[0];
+
+
+  /*
+    Si todavía no existe ningún cierre,
+    utilizamos el inventario actual.
+  */
+
+  if (
+    !lastClosing
+  ) {
+
+    return getInventorySnapshot();
+
+  }
+
+
+  /*
+    Las versiones actuales guardan:
+
+    closing.inventory.expected
+    closing.inventory.counted
+
+    Para la siguiente mañana nos interesa
+    lo que REALMENTE se contó físicamente.
+  */
+
+  const counted =
+    lastClosing
+      .inventory
+      ?.counted;
+
+
+  if (
+    !counted
+  ) {
+
+    /*
+      Compatibilidad con cierres antiguos
+      que quizás no tengan "counted".
+    */
+
+    return getInventorySnapshot();
+
+  }
+
+
+  return cloneData(
+    counted
+  );
+
+}
 
 /* =========================================================
    CIERRE DE UN DÍA
