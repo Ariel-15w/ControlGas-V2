@@ -125,9 +125,6 @@ export function getWallets() {
   return getState().wallets;
 
 }
-
-
-
 export function getWalletsSnapshot() {
 
   return cloneData(
