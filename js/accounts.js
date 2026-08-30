@@ -2259,6 +2259,541 @@ export function registerRouteAccountPayment({
 
 }
 
+/* =========================================================
+   DEVOLVER TANQUES A CUENTA DEL VENDEDOR DE $2
+========================================================= */
+
+export function registerRouteTankReturn({
+
+  accountId,
+
+  duragas = 0,
+
+  kinggas = 0,
+
+  note = '',
+
+  createdAt =
+    nowIso(),
+
+}) {
+
+  const stateBefore =
+    cloneData(
+      getState()
+    );
+
+
+  try {
+
+    requireActiveDay();
+
+
+    const routeAccount =
+      requireRouteAccount(
+        accountId
+      );
+
+
+    const returned = {
+
+      [GAS_IDS.DURAGAS]:
+        toNonNegativeInteger(
+          duragas
+        ),
+
+      [GAS_IDS.KING_GAS]:
+        toNonNegativeInteger(
+          kinggas
+        ),
+
+    };
+
+
+    const totalReturned =
+      totalGasAmounts(
+        returned
+      );
+
+
+    if (
+      totalReturned <= 0
+    ) {
+
+      throw new Error(
+        'Debes indicar al menos un tanque devuelto.'
+      );
+
+    }
+
+
+    /*
+      Solo tomamos pendientes que pertenecen
+      a ESTE vendedor y que todavía deben tanques.
+    */
+    const pendingAccounts =
+      getRouteLinkedPendingAccounts(
+        routeAccount.id
+      )
+
+        .filter(
+          item => {
+
+            return (
+
+              item.account.status ===
+                ACCOUNT_STATUS.OPEN
+
+              &&
+
+              totalGasAmounts(
+                item.balance?.tanksDue
+              ) > 0
+
+            );
+
+          }
+        )
+
+        /*
+          Primero cancelamos las deudas
+          más antiguas.
+        */
+        .sort(
+          (a, b) => {
+
+            return new Date(
+              a.account.createdAt ?? 0
+            ).getTime()
+
+            -
+
+            new Date(
+              b.account.createdAt ?? 0
+            ).getTime();
+
+          }
+        );
+
+
+    const totalDue =
+      pendingAccounts.reduce(
+        (
+          total,
+          item
+        ) => {
+
+          return (
+
+            total
+
+            +
+
+            totalGasAmounts(
+              item.balance?.tanksDue
+            )
+
+          );
+
+        },
+        0
+      );
+
+
+    if (
+      totalDue <= 0
+    ) {
+
+      throw new Error(
+        'Esta cuenta del vendedor no tiene tanques pendientes.'
+      );
+
+    }
+
+
+    if (
+      totalReturned >
+      totalDue
+    ) {
+
+      throw new Error(
+        `Esta persona debe ${totalDue} tanque(s). No puedes registrar ${totalReturned}.`
+      );
+
+    }
+
+
+    /*
+      Estos son los vacíos físicos
+      que todavía falta repartir.
+    */
+    const remainingReturned =
+      cloneData(
+        returned
+      );
+
+
+    const allocations = [];
+
+
+    for (
+      const item
+      of pendingAccounts
+    ) {
+
+      if (
+        totalGasAmounts(
+          remainingReturned
+        ) <= 0
+      ) {
+
+        break;
+
+      }
+
+
+      const debt =
+        normalizeGasAmounts(
+          item.balance.tanksDue
+        );
+
+
+      const accountDue =
+        totalGasAmounts(
+          debt
+        );
+
+
+      if (
+        accountDue <= 0
+      ) {
+
+        continue;
+
+      }
+
+
+      const applied =
+        emptyGasMap();
+
+
+      /*
+        PASO A:
+        Intentamos primero compensar
+        la misma marca.
+      */
+
+      applied[
+        GAS_IDS.DURAGAS
+      ] =
+        Math.min(
+          remainingReturned[
+            GAS_IDS.DURAGAS
+          ],
+          debt[
+            GAS_IDS.DURAGAS
+          ]
+        );
+
+
+      applied[
+        GAS_IDS.KING_GAS
+      ] =
+        Math.min(
+          remainingReturned[
+            GAS_IDS.KING_GAS
+          ],
+          debt[
+            GAS_IDS.KING_GAS
+          ]
+        );
+
+
+      let capacity =
+        accountDue -
+        totalGasAmounts(
+          applied
+        );
+
+
+      /*
+        PASO B:
+        Si todavía debe tanques,
+        permitimos intercambio entre marcas.
+      */
+
+      if (
+        capacity > 0
+      ) {
+
+        const extraDuragas =
+          Math.min(
+
+            Math.max(
+              0,
+
+              remainingReturned[
+                GAS_IDS.DURAGAS
+              ]
+
+              -
+
+              applied[
+                GAS_IDS.DURAGAS
+              ]
+            ),
+
+            capacity
+          );
+
+
+        applied[
+          GAS_IDS.DURAGAS
+        ] +=
+          extraDuragas;
+
+
+        capacity -=
+          extraDuragas;
+
+      }
+
+
+      if (
+        capacity > 0
+      ) {
+
+        const extraKing =
+          Math.min(
+
+            Math.max(
+              0,
+
+              remainingReturned[
+                GAS_IDS.KING_GAS
+              ]
+
+              -
+
+              applied[
+                GAS_IDS.KING_GAS
+              ]
+            ),
+
+            capacity
+          );
+
+
+        applied[
+          GAS_IDS.KING_GAS
+        ] +=
+          extraKing;
+
+      }
+
+
+      const appliedTotal =
+        totalGasAmounts(
+          applied
+        );
+
+
+      if (
+        appliedTotal <= 0
+      ) {
+
+        continue;
+
+      }
+
+
+      const tanksDueBefore =
+        cloneData(
+          item.balance.tanksDue
+        );
+
+
+      /*
+        Reutilizamos la función normal.
+
+        Ella:
+        - recibe físicamente los vacíos;
+        - compensa la deuda;
+        - permite cambio de marca;
+        - actualiza la venta;
+        - cierra el pendiente si corresponde.
+      */
+      const result =
+        registerTankReturn({
+
+          accountId:
+            item.account.id,
+
+          duragas:
+            applied[
+              GAS_IDS.DURAGAS
+            ],
+
+          kinggas:
+            applied[
+              GAS_IDS.KING_GAS
+            ],
+
+          note:
+            normalizeText(
+              note
+            ) ||
+            `Devolución de ${routeAccount.name} - vendedor de $2`,
+
+          createdAt,
+
+        });
+
+
+      allocations.push({
+
+        pendingAccountId:
+          item.account.id,
+
+        saleId:
+          item.account.saleId,
+
+        routeTripId:
+          item.account.routeTripId ??
+          null,
+
+        returned:
+          cloneData(
+            applied
+          ),
+
+        tanksDueBefore,
+
+        tanksDueAfter:
+          cloneData(
+            result.balance.tanksDue
+          ),
+
+      });
+
+
+      GAS_ID_LIST.forEach(
+        gasId => {
+
+          remainingReturned[
+            gasId
+          ] =
+            Math.max(
+
+              0,
+
+              remainingReturned[
+                gasId
+              ]
+
+              -
+
+              applied[
+                gasId
+              ]
+
+            );
+
+        }
+      );
+
+    }
+
+
+    /*
+      Esta protección evita que un vacío
+      entre al inventario pero no quede
+      aplicado a ninguna deuda.
+    */
+    if (
+      totalGasAmounts(
+        remainingReturned
+      ) > 0
+    ) {
+
+      throw new Error(
+        'Quedaron tanques sin aplicar a las deudas del vendedor.'
+      );
+
+    }
+
+
+    routeAccount.updatedAt =
+      createdAt;
+
+
+    touchState();
+
+    saveState();
+
+
+    return {
+
+      account:
+        cloneData(
+          routeAccount
+        ),
+
+      returned:
+        cloneData(
+          returned
+        ),
+
+      totalReturned,
+
+      totalDueBefore:
+        totalDue,
+
+      totalDueAfter:
+        Math.max(
+          0,
+          totalDue -
+          totalReturned
+        ),
+
+      allocations:
+        cloneData(
+          allocations
+        ),
+
+      summary:
+        getRouteAccountSummary(
+          routeAccount.id
+        ),
+
+    };
+
+  }
+  catch (error) {
+
+    replaceState(
+      stateBefore
+    );
+
+
+    try {
+
+      saveState();
+
+    }
+    catch {
+
+      /* Estado restaurado en memoria. */
+
+    }
+
+
+    throw error;
+
+  }
+
+}
+
    /* =========================================================
    OBTENER APARTADO DEL VENDEDOR
 ========================================================= */
