@@ -215,13 +215,72 @@ export const SALE_MODES = Object.freeze({
   El cliente paga ahora y el cilindro queda reservado
   para retirarlo posteriormente.
 */
+/* =========================================================
+   MÉTODO FINANCIERO DEL DÍA
+========================================================= */
 
+/*
+  EXACT:
+  Cada marca aparta exactamente su costo real.
+
+  GENERAL:
+  Cada cilindro vendido aparta $1.70,
+  sea Duragas o King Gas.
+
+  IMPORTANTE:
+  Esto NO cambia el costo real del proveedor.
+*/
+
+export const FINANCIAL_MODES = Object.freeze({
+
+  EXACT: 'exact',
+
+  GENERAL: 'general',
+
+});
+
+
+export const FINANCIAL_MODE_LABELS = Object.freeze({
+
+  exact:
+    'Exacto por marca',
+
+  general:
+    'Bolsa general práctica',
+
+});
+
+
+/*
+  En el método de bolsa general,
+  cada cilindro vendido aparta $1.70.
+*/
+
+export const GENERAL_RESERVE_PER_UNIT =
+  1.70;
+
+
+/* =========================================================
+   VENDEDOR DE $2
+========================================================= */
+
+/*
+  El vendedor especial vende cualquier marca
+  al mismo precio.
+
+  Duragas o King Gas = $2.00.
+*/
+
+export const ROUTE_SELLER_CONFIG = Object.freeze({
+
+  unitPrice: 2.00,
+
+});
 
 
 /* =========================================================
    EXISTENCIAS DEL INVENTARIO
 ========================================================= */
-
 export const INVENTORY_BUCKETS = Object.freeze({
 
   FULL: 'full',
@@ -232,21 +291,33 @@ export const INVENTORY_BUCKETS = Object.freeze({
 
   LOANED: 'loaned',
 
+  ROUTE: 'route',
+
+  ROUTE_RESERVED:
+    'routeReserved',
+
 });
-
-
 export const INVENTORY_BUCKET_LABELS = Object.freeze({
 
-  full: 'Llenos disponibles',
+  full:
+    'Llenos disponibles',
 
-  empty: 'Vacíos',
+  empty:
+    'Vacíos',
 
-  reserved: 'Reservados',
+  reserved:
+    'Reservados de clientes',
 
-  loaned: 'Prestados',
+  loaned:
+    'Prestados',
+
+  route:
+    'Con vendedor de $2',
+
+  routeReserved:
+    'Apartados para vendedor',
 
 });
-
 
 
 /* =========================================================
@@ -327,16 +398,34 @@ export const MOVEMENT_TYPES = Object.freeze({
 
   LOAN_RETURN: 'loan_return',
 
-  EXPENSE: 'expense',
+   EXPENSE: 'expense',
 
   WALLET: 'wallet',
 
-  EXTRA_CONTRIBUTION: 'extra_contribution',
+  EXTRA_CONTRIBUTION:
+    'extra_contribution',
+
+  ROUTE_DISPATCH:
+    'route_dispatch',
+
+  ROUTE_SETTLEMENT:
+    'route_settlement',
+
+  ROUTE_RESERVE:
+    'route_reserve',
+
+  ROUTE_RELEASE:
+    'route_release',
+
+  SUPPLIER_PAYMENT:
+    'supplier_payment',
+
+  PROFIT_DISTRIBUTION:
+    'profit_distribution',
 
   CLOSING: 'closing',
 
 });
-
 
 export const MOVEMENT_LABELS = Object.freeze({
 
@@ -358,18 +447,37 @@ export const MOVEMENT_LABELS = Object.freeze({
 
   loan_return: 'Devolución de préstamo',
 
-  expense: 'Gasto',
+    expense:
+    'Gasto',
 
-  wallet: 'Movimiento de bolsa',
+  wallet:
+    'Movimiento de bolsa',
 
-  extra_contribution: 'Aporte a reposición',
+  extra_contribution:
+    'Aporte a reposición',
 
-  closing: 'Cierre',
+  route_dispatch:
+    'Salida con vendedor de $2',
+
+  route_settlement:
+    'Liquidación vendedor de $2',
+
+  route_reserve:
+    'Apartado para vendedor',
+
+  route_release:
+    'Liberación de apartado',
+
+  supplier_payment:
+    'Pago a proveedor',
+
+  profit_distribution:
+    'Reparto de ganancia',
+
+  closing:
+    'Cierre',
 
 });
-
-
-
 /* =========================================================
    MOVIMIENTOS DE LAS BOLSAS DE REPOSICIÓN
 ========================================================= */
@@ -407,7 +515,56 @@ export const WALLET_MOVEMENT_TYPES = Object.freeze({
   Saldo arrastrado o migrado al iniciar el sistema.
 */
 
+/* =========================================================
+   PAGOS DE REPOSICIÓN / PROVEEDOR
+========================================================= */
 
+export const SUPPLIER_PAYMENT_TYPES = Object.freeze({
+
+  /*
+    Duragas:
+    $0.55 por cilindro se paga
+    cuando llega el carro.
+  */
+  DURAGAS_ARRIVAL:
+    'duragas_arrival',
+
+  /*
+    Duragas:
+    $1.15 por cilindro corresponde
+    a la factura que puede pagarse después.
+  */
+  DURAGAS_INVOICE:
+    'duragas_invoice',
+
+  /*
+    King Gas:
+    $1.48 por cilindro se paga
+    completo en una sola operación.
+  */
+  KING_GAS_TOTAL:
+    'kinggas_total',
+
+  /*
+    Cilindros adicionales comprados
+    fuera de lo originalmente pedido.
+  */
+  EXTRA_CYLINDERS:
+    'extra_cylinders',
+
+});
+
+
+export const SUPPLIER_PAYMENT_STATUS =
+  Object.freeze({
+
+    PENDING:
+      'pending',
+
+    PAID:
+      'paid',
+
+  });
 
 /* =========================================================
    ORIGEN DE APORTES ADICIONALES
@@ -438,7 +595,38 @@ export const EXTRA_CONTRIBUTION_SOURCE_LABELS = Object.freeze({
 
 });
 
+/* =========================================================
+   REPARTO DE GANANCIA
+========================================================= */
 
+export const PROFIT_DISTRIBUTION_MODES =
+  Object.freeze({
+
+    NONE:
+      'none',
+
+    HALF:
+      'half',
+
+    EMPLOYEE:
+      'employee',
+
+  });
+
+
+export const PROFIT_DISTRIBUTION_LABELS =
+  Object.freeze({
+
+    none:
+      'No repartir todavía',
+
+    half:
+      'Mitad y mitad',
+
+    employee:
+      'Pago a empleado + resto para propietario',
+
+  });
 
 /* =========================================================
    AJUSTES
@@ -693,14 +881,26 @@ export const UI_CONFIG = Object.freeze({
 /* =========================================================
    VALORES PREDETERMINADOS
 ========================================================= */
-
 export const DEFAULTS = Object.freeze({
 
-  salePrice: DEFAULT_SALE_PRICE,
+  salePrice:
+    DEFAULT_SALE_PRICE,
 
-  paymentMethod: PAYMENT_METHODS.CASH,
+  paymentMethod:
+    PAYMENT_METHODS.CASH,
 
-  saleMode: SALE_MODES.NOW,
+  saleMode:
+    SALE_MODES.NOW,
+
+  /*
+    Por defecto el negocio trabaja
+    con el cálculo exacto.
+    
+    Más adelante el usuario podrá elegir
+    Bolsa general práctica al abrir el día.
+  */
+  financialMode:
+    FINANCIAL_MODES.EXACT,
 
   adjustmentDirection:
     ADJUSTMENT_DIRECTIONS.INCREASE,
@@ -712,8 +912,6 @@ export const DEFAULTS = Object.freeze({
     GAS_IDS.DURAGAS,
 
 });
-
-
 
 /* =========================================================
    FUNCIONES DE CONFIGURACIÓN
