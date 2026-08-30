@@ -1645,6 +1645,258 @@ export function getRouteAccountSummary(
 
   }
 
+
+  /* =====================================================
+     1. DEUDAS DE DINERO Y TANQUES
+  ===================================================== */
+
+  const linkedPending =
+    getRouteLinkedPendingAccounts(
+      account.id
+    );
+
+
+  let moneyDue = 0;
+
+
+  const tanksDue =
+    emptyGasMap();
+
+
+  linkedPending.forEach(
+    item => {
+
+      const balance =
+        item.balance;
+
+
+      if (!balance) {
+
+        return;
+
+      }
+
+
+      moneyDue =
+        roundMoney(
+
+          moneyDue
+
+          +
+
+          toNonNegativeNumber(
+            balance.moneyDue
+          )
+
+        );
+
+
+      GAS_ID_LIST.forEach(
+        gasId => {
+
+          tanksDue[gasId] +=
+            toNonNegativeInteger(
+              balance
+                .tanksDue?.[gasId]
+            );
+
+        }
+      );
+
+    }
+  );
+
+
+  /* =====================================================
+     2. CILINDROS QUE TODAVÍA TIENE EN RUTA
+  ===================================================== */
+
+  const route =
+    emptyGasMap();
+
+
+  const trips =
+    getRouteTripsByAccountId(
+      account.id
+    );
+
+
+  trips.forEach(
+    trip => {
+
+      const remaining =
+        getRouteTripRemaining(
+          trip.id
+        );
+
+
+      GAS_ID_LIST.forEach(
+        gasId => {
+
+          route[gasId] +=
+            toNonNegativeInteger(
+              remaining[gasId]
+            );
+
+        }
+      );
+
+    }
+  );
+
+
+  /* =====================================================
+     3. CILINDROS QUE TIENE APARTADOS
+  ===================================================== */
+
+  const reserved =
+    emptyGasMap();
+
+
+  const reservations =
+    getRouteReservationsByAccountId(
+      account.id
+    );
+
+
+  reservations.forEach(
+    reservation => {
+
+      if (
+        reservation.active ===
+        false
+      ) {
+
+        return;
+
+      }
+
+
+      const remaining =
+        normalizeGasAmounts(
+          reservation.remaining
+        );
+
+
+      GAS_ID_LIST.forEach(
+        gasId => {
+
+          reserved[gasId] +=
+            remaining[gasId];
+
+        }
+      );
+
+    }
+  );
+
+
+  /* =====================================================
+     4. TOTALES
+  ===================================================== */
+
+  const routeTotal =
+    totalGasAmounts(
+      route
+    );
+
+
+  const tanksDueTotal =
+    totalGasAmounts(
+      tanksDue
+    );
+
+
+  const reservedTotal =
+    totalGasAmounts(
+      reserved
+    );
+
+
+  const hasPending =
+
+    moneyDue > 0
+
+    ||
+
+    tanksDueTotal > 0
+
+    ||
+
+    routeTotal > 0
+
+    ||
+
+    reservedTotal > 0;
+
+
+  return {
+
+    account:
+      cloneData(
+        account
+      ),
+
+
+    moneyDue:
+      roundMoney(
+        moneyDue
+      ),
+
+
+    tanksDue:
+      cloneData(
+        tanksDue
+      ),
+
+    tanksDueTotal,
+
+
+    /*
+      Cilindros que físicamente
+      están todavía con esta persona.
+    */
+    route:
+      cloneData(
+        route
+      ),
+
+    routeTotal,
+
+
+    /*
+      Cilindros separados en bodega
+      para esta persona.
+    */
+    reserved:
+      cloneData(
+        reserved
+      ),
+
+    reservedTotal,
+
+
+    openTrips:
+      trips.filter(
+        trip =>
+          trip.active !== false
+      ).length,
+
+
+    pendingAccounts:
+      linkedPending.filter(
+        item =>
+          item.account.status ===
+          ACCOUNT_STATUS.OPEN
+      ).length,
+
+
+    hasPending,
+
+  };
+
+}
+
 /* =========================================================
    ABONAR DINERO A CUENTA DEL VENDEDOR DE $2
 ========================================================= */
@@ -2830,256 +3082,7 @@ export function releaseRouteReservation({
   }
 
 }
-  /* =====================================================
-     1. DEUDAS DE DINERO Y TANQUES
-  ===================================================== */
 
-  const linkedPending =
-    getRouteLinkedPendingAccounts(
-      account.id
-    );
-
-
-  let moneyDue = 0;
-
-
-  const tanksDue =
-    emptyGasMap();
-
-
-  linkedPending.forEach(
-    item => {
-
-      const balance =
-        item.balance;
-
-
-      if (!balance) {
-
-        return;
-
-      }
-
-
-      moneyDue =
-        roundMoney(
-
-          moneyDue
-
-          +
-
-          toNonNegativeNumber(
-            balance.moneyDue
-          )
-
-        );
-
-
-      GAS_ID_LIST.forEach(
-        gasId => {
-
-          tanksDue[gasId] +=
-            toNonNegativeInteger(
-              balance
-                .tanksDue?.[gasId]
-            );
-
-        }
-      );
-
-    }
-  );
-
-
-  /* =====================================================
-     2. CILINDROS QUE TODAVÍA TIENE EN RUTA
-  ===================================================== */
-
-  const route =
-    emptyGasMap();
-
-
-  const trips =
-    getRouteTripsByAccountId(
-      account.id
-    );
-
-
-  trips.forEach(
-    trip => {
-
-      const remaining =
-        getRouteTripRemaining(
-          trip.id
-        );
-
-
-      GAS_ID_LIST.forEach(
-        gasId => {
-
-          route[gasId] +=
-            toNonNegativeInteger(
-              remaining[gasId]
-            );
-
-        }
-      );
-
-    }
-  );
-
-
-  /* =====================================================
-     3. CILINDROS QUE TIENE APARTADOS
-  ===================================================== */
-
-  const reserved =
-    emptyGasMap();
-
-
-  const reservations =
-    getRouteReservationsByAccountId(
-      account.id
-    );
-
-
-  reservations.forEach(
-    reservation => {
-
-      if (
-        reservation.active ===
-        false
-      ) {
-
-        return;
-
-      }
-
-
-      const remaining =
-        normalizeGasAmounts(
-          reservation.remaining
-        );
-
-
-      GAS_ID_LIST.forEach(
-        gasId => {
-
-          reserved[gasId] +=
-            remaining[gasId];
-
-        }
-      );
-
-    }
-  );
-
-
-  /* =====================================================
-     4. TOTALES
-  ===================================================== */
-
-  const routeTotal =
-    totalGasAmounts(
-      route
-    );
-
-
-  const tanksDueTotal =
-    totalGasAmounts(
-      tanksDue
-    );
-
-
-  const reservedTotal =
-    totalGasAmounts(
-      reserved
-    );
-
-
-  const hasPending =
-
-    moneyDue > 0
-
-    ||
-
-    tanksDueTotal > 0
-
-    ||
-
-    routeTotal > 0
-
-    ||
-
-    reservedTotal > 0;
-
-
-  return {
-
-    account:
-      cloneData(
-        account
-      ),
-
-
-    moneyDue:
-      roundMoney(
-        moneyDue
-      ),
-
-
-    tanksDue:
-      cloneData(
-        tanksDue
-      ),
-
-    tanksDueTotal,
-
-
-    /*
-      Cilindros que físicamente
-      están todavía con esta persona.
-    */
-    route:
-      cloneData(
-        route
-      ),
-
-    routeTotal,
-
-
-    /*
-      Cilindros separados en bodega
-      para esta persona.
-    */
-    reserved:
-      cloneData(
-        reserved
-      ),
-
-    reservedTotal,
-
-
-    openTrips:
-      trips.filter(
-        trip =>
-          trip.active !== false
-      ).length,
-
-
-    pendingAccounts:
-      linkedPending.filter(
-        item =>
-          item.account.status ===
-          ACCOUNT_STATUS.OPEN
-      ).length,
-
-
-    hasPending,
-
-  };
-
-}
 /* =========================================================
    COMPROBAR QUE LA CUENTA ESTÉ ABIERTA
 ========================================================= */
