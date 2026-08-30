@@ -1035,24 +1035,119 @@ export function settleRouteTrip({
     );
 
 
-    /*
-      Por operación no pueden entrar más
-      vacíos que cilindros realmente vendidos.
+/*
+  El vendedor puede traer más vacíos que
+  cilindros vendidos en ESTA rendición
+  si ya tenía una deuda anterior de tanques.
+*/
+const priorTankDue =
+  getRouteLinkedPendingAccounts(
+    account.id
+  )
+    .reduce(
+      (
+        total,
+        item
+      ) => {
 
-      Las devoluciones de deudas anteriores
-      se registrarán aparte en la cuenta.
-    */
+        return (
+
+          total
+
+          +
+
+          totalGasAmounts(
+            item.balance?.tanksDue
+          )
+
+        );
+
+      },
+      0
+    );
+
+
+const maxEmptiesAllowed =
+  totalSold +
+  priorTankDue;
+
+
+if (
+  totalEmpties >
+  maxEmptiesAllowed
+) {
+
+  throw new Error(
+    `Puede entregar máximo ${maxEmptiesAllowed} tanque(s): ${totalSold} de esta rendición + ${priorTankDue} de deuda anterior.`
+  );
+
+}
+
+
+const saleEmptyReceived =
+  emptyGasMap();
+
+
+const extraEmptyReceived =
+  cloneData(
+    emptyReceived
+  );
+
+
+let currentSaleCapacity =
+  totalSold;
+
+
+GAS_ID_LIST.forEach(
+  gasId => {
+
     if (
-      totalEmpties >
-      totalSold
+      currentSaleCapacity <= 0
     ) {
 
-      throw new Error(
-        `Vendió ${totalSold} cilindro(s), por lo que en esta rendición no puedes registrar más de ${totalSold} vacío(s).`
-      );
+      return;
 
     }
 
+
+    const applied =
+      Math.min(
+        extraEmptyReceived[
+          gasId
+        ],
+        currentSaleCapacity
+      );
+
+
+    saleEmptyReceived[
+      gasId
+    ] =
+      applied;
+
+
+    extraEmptyReceived[
+      gasId
+    ] =
+      Math.max(
+        0,
+        extraEmptyReceived[
+          gasId
+        ] -
+        applied
+      );
+
+
+    currentSaleCapacity -=
+      applied;
+
+  }
+);
+
+
+const extraOldDebtTotal =
+  totalGasAmounts(
+    extraEmptyReceived
+  );
 
     const expectedMoney =
       roundMoney(
@@ -1061,45 +1156,40 @@ export function settleRouteTrip({
       );
 
 
-    const payment =
-      roundMoney(
-        toNonNegativeNumber(
-          moneyPaid
-        )
-      );
+   const payment =
+  roundMoney(
+    toNonNegativeNumber(
+      moneyPaid
+    )
+  );
 
 
-    if (
-      payment >
-      expectedMoney + 0.005
-    ) {
+if (
+  payment >
+  expectedMoney + 0.005
+) {
 
-      throw new Error(
-        `Por esta venta corresponden $${expectedMoney.toFixed(2)}. Si entrega dinero de una deuda anterior, regístralo después como abono de su cuenta.`
-      );
+  throw new Error(
+    `Por esta venta corresponden $${expectedMoney.toFixed(2)}. Si entrega dinero de una deuda anterior, regístralo después como abono de su cuenta.`
+  );
 
-    }
-
-
-    if (
-      totalSold === 0 &&
-      (
-        payment > 0 ||
-        totalEmpties > 0
-      )
-    ) {
-
-      throw new Error(
-        'Si no vendió cilindros en esta rendición, no registres dinero ni vacíos como venta.'
-      );
-
-    }
+}
 
 
-    const settlementId =
-      uid('route-settlement');
+if (
+  totalSold === 0 &&
+  payment > 0
+) {
+
+  throw new Error(
+    'Si no vendió cilindros en esta rendición, el dinero de una deuda anterior debe registrarse como abono de su cuenta.'
+  );
+
+}
 
 
+const settlementId =
+  uid('route-settlement');
     /*
       IMPORTANTE:
 
@@ -1182,7 +1272,7 @@ export function settleRouteTrip({
             sold,
 
           emptyReceived:
-            emptyReceived,
+  saleEmptyReceived,
 
           price:
             ROUTE_SELLER_CONFIG
@@ -1289,7 +1379,43 @@ export function settleRouteTrip({
         }
 
       }
+/*
+  Si sobraron vacíos después de cubrir
+  la venta actual, pertenecen a deudas
+  anteriores de ESTE vendedor.
+*/
+let oldTankReturnResult =
+  null;
 
+
+if (
+  extraOldDebtTotal > 0
+) {
+
+  oldTankReturnResult =
+    registerRouteTankReturn({
+
+      accountId:
+        account.id,
+
+      duragas:
+        extraEmptyReceived[
+          GAS_IDS.DURAGAS
+        ],
+
+      kinggas:
+        extraEmptyReceived[
+          GAS_IDS.KING_GAS
+        ],
+
+      note:
+        `Vacíos aplicados a deuda anterior durante rendición de viaje ${trip.id}`,
+
+      createdAt,
+
+    });
+
+}
     }
 
 
