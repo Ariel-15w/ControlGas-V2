@@ -45,10 +45,23 @@ export function createEmptyGasInventory() {
 
     loaned: 0,
 
+    /*
+      Cilindros que están físicamente
+      con el vendedor de $2.
+
+      Todavía NO son ventas.
+    */
+    route: 0,
+
+    /*
+      Cilindros apartados para el vendedor
+      pero que todavía siguen en bodega.
+    */
+    routeReserved: 0,
+
   };
 
 }
-
 
 
 export function createEmptyInventory() {
@@ -170,8 +183,14 @@ export function createInitialState() {
     wallets:
       createEmptyWallets(),
 
+/*
+  Bolsa única del método práctico.
 
-
+  En este método se apartan $1.70
+  por cada cilindro vendido,
+  sin importar si es Duragas o King Gas.
+*/
+generalWallet: 0,
     /* =====================================================
        JORNADAS
     ===================================================== */
@@ -204,7 +223,15 @@ export function createInitialState() {
 
     accountBalances: [],
 
+/* =====================================================
+   VENDEDOR DE $2
+===================================================== */
 
+routeAccounts: [],
+
+routeTrips: [],
+
+routeReservations: [],
 
     /* =====================================================
        REPOSICIONES
@@ -212,7 +239,16 @@ export function createInitialState() {
 
     replenishments: [],
 
+/*
+  Pagos y obligaciones generadas
+  por las reposiciones.
 
+  Ejemplos:
+  - Duragas $0.55 pagado al llegar.
+  - Duragas $1.15 pendiente de factura.
+  - King Gas $1.48 pagado completo.
+*/
+supplierPayments: [],
 
     /* =====================================================
        MOVIMIENTOS DE LAS BOLSAS
@@ -296,8 +332,6 @@ export function createInitialState() {
 
 let state =
   createInitialState();
-
-
 
 /* =========================================================
    OBTENER ESTADO
@@ -617,7 +651,100 @@ export function getAccountBySaleId(
 
 }
 
+/* =========================================================
+   CUENTAS DEL VENDEDOR DE $2
+========================================================= */
 
+export function getRouteAccountById(
+  accountId
+) {
+
+  if (!accountId) {
+
+    return null;
+
+  }
+
+
+  return (
+    state.routeAccounts.find(
+      account =>
+        account.id ===
+        accountId
+    ) ?? null
+  );
+
+}
+
+
+/* =========================================================
+   VIAJES DEL VENDEDOR DE $2
+========================================================= */
+
+export function getRouteTripById(
+  tripId
+) {
+
+  if (!tripId) {
+
+    return null;
+
+  }
+
+
+  return (
+    state.routeTrips.find(
+      trip =>
+        trip.id ===
+        tripId
+    ) ?? null
+  );
+
+}
+
+
+export function getRouteTripsByAccountId(
+  accountId
+) {
+
+  if (!accountId) {
+
+    return [];
+
+  }
+
+
+  return state.routeTrips.filter(
+    trip =>
+      trip.accountId ===
+      accountId
+  );
+
+}
+
+
+/* =========================================================
+   APARTADOS DEL VENDEDOR DE $2
+========================================================= */
+
+export function getRouteReservationsByAccountId(
+  accountId
+) {
+
+  if (!accountId) {
+
+    return [];
+
+  }
+
+
+  return state.routeReservations.filter(
+    reservation =>
+      reservation.accountId ===
+      accountId
+  );
+
+}
 
 /* =========================================================
    REPOSICIÓN
@@ -637,7 +764,59 @@ export function getReplenishmentById(
 
 }
 
+/* =========================================================
+   PAGOS / OBLIGACIONES DEL PROVEEDOR
+========================================================= */
 
+export function getSupplierPaymentById(
+  paymentId
+) {
+
+  if (!paymentId) {
+
+    return null;
+
+  }
+
+
+  return (
+    state.supplierPayments.find(
+      payment =>
+        payment.id ===
+        paymentId
+    ) ?? null
+  );
+
+}
+
+
+/*
+  Permite obtener todos los pagos
+  pertenecientes a una reposición.
+
+  Una reposición Duragas podrá tener:
+
+  1. pago de llegada $0.55;
+  2. factura $1.15 pendiente o pagada.
+*/
+export function getSupplierPaymentsByReplenishmentId(
+  replenishmentId
+) {
+
+  if (!replenishmentId) {
+
+    return [];
+
+  }
+
+
+  return state.supplierPayments.filter(
+    payment =>
+      payment.replenishmentId ===
+      replenishmentId
+  );
+
+}
 
 /* =========================================================
    CIERRE
@@ -690,12 +869,21 @@ export function getWalletBalance(
 
 }
 
+/* =========================================================
+   BOLSA GENERAL PRÁCTICA
+========================================================= */
 
+export function getGeneralWalletBalance() {
+
+  return roundMoney(
+    state.generalWallet ?? 0
+  );
+
+}
 
 /* =========================================================
    NORMALIZAR INVENTARIO
 ========================================================= */
-
 function normalizeGasInventory(
   value
 ) {
@@ -726,11 +914,19 @@ function normalizeGasInventory(
         source.loaned
       ),
 
+    route:
+      toNonNegativeInteger(
+        source.route
+      ),
+
+    routeReserved:
+      toNonNegativeInteger(
+        source.routeReserved
+      ),
+
   };
 
 }
-
-
 
 function normalizeInventory(
   value
@@ -760,8 +956,21 @@ function normalizeInventory(
 
 }
 
+/* =========================================================
+   NORMALIZAR BOLSA GENERAL
+========================================================= */
 
+function normalizeGeneralWallet(
+  value
+) {
 
+  return roundMoney(
+    toNonNegativeNumber(
+      value
+    )
+  );
+
+}
 /* =========================================================
    NORMALIZAR BOLSAS
 ========================================================= */
@@ -903,9 +1112,13 @@ export function normalizeStateShape(
       normalizeWallets(
         source.wallets
       ),
+     
+generalWallet:
+  normalizeGeneralWallet(
+    source.generalWallet
+  ),
 
-
-    days:
+     days:
       ensureArray(
         source.days
       ),
@@ -933,13 +1146,32 @@ export function normalizeStateShape(
       ensureArray(
         source.accountBalances
       ),
+routeAccounts:
+  ensureArray(
+    source.routeAccounts
+  ),
 
+
+routeTrips:
+  ensureArray(
+    source.routeTrips
+  ),
+
+
+routeReservations:
+  ensureArray(
+    source.routeReservations
+  ),
 
     replenishments:
       ensureArray(
         source.replenishments
       ),
-
+     
+supplierPayments:
+  ensureArray(
+    source.supplierPayments
+  ),
 
     walletMovements:
       ensureArray(
@@ -1030,12 +1262,28 @@ export function createDayRecord({
 
   openingWallets,
 
+  /*
+    Saldo que tenía la Bolsa General
+    al comenzar la jornada.
+  */
+  openingGeneralWallet = 0,
+
+  /*
+    Método financiero utilizado durante
+    toda esta jornada.
+
+    exact   = cálculo real por marca
+    general = una sola bolsa a $1.70
+              por cilindro vendido
+  */
+  financialMode =
+    DEFAULTS.financialMode,
+
   openingCashFund = 0,
 
   note = '',
 
 }) {
-
   return {
 
     id,
@@ -1049,7 +1297,7 @@ export function createDayRecord({
 
     closedAt:
       null,
-
+financialMode,
 
     opening: {
 
@@ -1062,7 +1310,12 @@ export function createDayRecord({
         cloneData(
           openingWallets
         ),
-
+generalWallet:
+  roundMoney(
+    toNonNegativeNumber(
+      openingGeneralWallet
+    )
+  ),
       cashFund:
         roundMoney(
           openingCashFund
@@ -1107,7 +1360,484 @@ export function createAccountBalanceRecord(
 
 }
 
+/* =========================================================
+   ESTRUCTURA BASE DE CUENTA DEL VENDEDOR DE $2
+========================================================= */
 
+export function createRouteAccountRecord({
+
+  id,
+
+  name = '',
+
+  reference = '',
+
+  createdAt,
+
+}) {
+
+  return {
+
+    id,
+
+    name:
+      String(
+        name ?? ''
+      ).trim(),
+
+    reference:
+      String(
+        reference ?? ''
+      ).trim(),
+
+    active: true,
+
+    createdAt,
+
+    updatedAt:
+      createdAt,
+
+  };
+
+}
+/* =========================================================
+   ESTRUCTURA DE VIAJE DEL VENDEDOR DE $2
+========================================================= */
+
+export function createRouteTripRecord({
+
+  id,
+
+  accountId,
+
+  dayId,
+
+  createdAt,
+
+  dispatched = {},
+
+  note = '',
+
+}) {
+
+  const quantities =
+    ensureObject(
+      dispatched
+    );
+
+
+  return {
+
+    id,
+
+    accountId,
+
+    dayId,
+
+    /*
+      El vendedor vende cualquier marca
+      a $2.00 por cilindro.
+    */
+    unitPrice:
+      ROUTE_SELLER_CONFIG.unitPrice,
+
+
+    /*
+      Cilindros que salieron originalmente
+      de la bodega con el vendedor.
+    */
+    dispatched: {
+
+      [GAS_IDS.DURAGAS]:
+        toNonNegativeInteger(
+          quantities[
+            GAS_IDS.DURAGAS
+          ]
+        ),
+
+      [GAS_IDS.KING_GAS]:
+        toNonNegativeInteger(
+          quantities[
+            GAS_IDS.KING_GAS
+          ]
+        ),
+
+    },
+
+
+    /*
+      Aquí se registrarán las veces
+      que el vendedor regrese a rendir.
+    */
+    settlements: [],
+
+
+    createdAt,
+
+    closedAt:
+      null,
+
+    active:
+      true,
+
+    note:
+      String(
+        note ?? ''
+      ).trim(),
+
+  };
+
+}
+
+/* =========================================================
+   RENDICIÓN DE UN VIAJE DEL VENDEDOR DE $2
+========================================================= */
+
+export function createRouteSettlementRecord({
+
+  id,
+
+  tripId,
+
+  dayId,
+
+  createdAt,
+
+  sold = {},
+
+  returnedFull = {},
+
+  emptiesReceived = {},
+
+  moneyPaid = 0,
+
+  note = '',
+
+}) {
+
+  const soldSource =
+    ensureObject(
+      sold
+    );
+
+
+  const returnedSource =
+    ensureObject(
+      returnedFull
+    );
+
+
+  const emptySource =
+    ensureObject(
+      emptiesReceived
+    );
+
+
+  const soldQuantities = {
+
+    [GAS_IDS.DURAGAS]:
+      toNonNegativeInteger(
+        soldSource[
+          GAS_IDS.DURAGAS
+        ]
+      ),
+
+    [GAS_IDS.KING_GAS]:
+      toNonNegativeInteger(
+        soldSource[
+          GAS_IDS.KING_GAS
+        ]
+      ),
+
+  };
+
+
+  const returnedQuantities = {
+
+    [GAS_IDS.DURAGAS]:
+      toNonNegativeInteger(
+        returnedSource[
+          GAS_IDS.DURAGAS
+        ]
+      ),
+
+    [GAS_IDS.KING_GAS]:
+      toNonNegativeInteger(
+        returnedSource[
+          GAS_IDS.KING_GAS
+        ]
+      ),
+
+  };
+
+
+  const emptyQuantities = {
+
+    [GAS_IDS.DURAGAS]:
+      toNonNegativeInteger(
+        emptySource[
+          GAS_IDS.DURAGAS
+        ]
+      ),
+
+    [GAS_IDS.KING_GAS]:
+      toNonNegativeInteger(
+        emptySource[
+          GAS_IDS.KING_GAS
+        ]
+      ),
+
+  };
+
+
+  const totalSold =
+    soldQuantities[
+      GAS_IDS.DURAGAS
+    ] +
+    soldQuantities[
+      GAS_IDS.KING_GAS
+    ];
+
+
+  const expectedMoney =
+    roundMoney(
+      totalSold *
+      ROUTE_SELLER_CONFIG.unitPrice
+    );
+
+
+  return {
+
+    id,
+
+    tripId,
+
+    dayId,
+
+    sold:
+      soldQuantities,
+
+    /*
+      Cilindros llenos que no vendió
+      y que físicamente regresaron
+      a la bodega.
+    */
+    returnedFull:
+      returnedQuantities,
+
+    /*
+      Vacíos que realmente entregó.
+      Pueden ser de cualquiera de las
+      dos marcas.
+    */
+    emptiesReceived:
+      emptyQuantities,
+
+    totalSold,
+
+    expectedMoney,
+
+    /*
+      Dinero que realmente entregó.
+
+      Si entrega menos que expectedMoney,
+      después quedará saldo pendiente
+      solamente de esta cuenta.
+    */
+    moneyPaid:
+      roundMoney(
+        toNonNegativeNumber(
+          moneyPaid
+        )
+      ),
+
+    createdAt,
+
+    note:
+      String(
+        note ?? ''
+      ).trim(),
+
+  };
+
+}
+/* =========================================================
+   APARTADO PARA VENDEDOR DE $2
+========================================================= */
+
+export function createRouteReservationRecord({
+
+  id,
+
+  accountId,
+
+  dayId,
+
+  createdAt,
+
+  quantities = {},
+
+  note = '',
+
+}) {
+
+  const source =
+    ensureObject(
+      quantities
+    );
+
+
+  const reservedQuantities = {
+
+    [GAS_IDS.DURAGAS]:
+      toNonNegativeInteger(
+        source[
+          GAS_IDS.DURAGAS
+        ]
+      ),
+
+    [GAS_IDS.KING_GAS]:
+      toNonNegativeInteger(
+        source[
+          GAS_IDS.KING_GAS
+        ]
+      ),
+
+  };
+
+
+  return {
+
+    id,
+
+    accountId,
+
+    dayId,
+
+    /*
+      Cantidad originalmente apartada
+      para este vendedor.
+    */
+    quantities:
+      cloneData(
+        reservedQuantities
+      ),
+
+    /*
+      Cantidad que todavía sigue
+      apartada y falta retirar.
+
+      Permite retirar solo una parte
+      sin perder el resto del apartado.
+    */
+    remaining:
+      cloneData(
+        reservedQuantities
+      ),
+
+    createdAt,
+
+    completedAt:
+      null,
+
+    active:
+      true,
+
+    note:
+      String(
+        note ?? ''
+      ).trim(),
+
+  };
+
+}
+/* =========================================================
+   ESTRUCTURA DE PAGO / OBLIGACIÓN DEL PROVEEDOR
+========================================================= */
+
+export function createSupplierPaymentRecord({
+
+  id,
+
+  replenishmentId,
+
+  dayId,
+
+  gasId,
+
+  type,
+
+  status,
+
+  quantity = 0,
+
+  unitCost = 0,
+
+  amount = 0,
+
+  createdAt,
+
+  paidAt = null,
+
+  note = '',
+
+}) {
+
+  return {
+
+    id,
+
+    replenishmentId,
+
+    dayId,
+
+    gasId,
+
+    /*
+      Ejemplos:
+      duragas_arrival
+      duragas_invoice
+      kinggas_total
+      extra_cylinders
+    */
+    type,
+
+    /*
+      pending / paid
+    */
+    status,
+
+    quantity:
+      toNonNegativeInteger(
+        quantity
+      ),
+
+    unitCost:
+      roundMoney(
+        toNonNegativeNumber(
+          unitCost
+        )
+      ),
+
+    amount:
+      roundMoney(
+        toNonNegativeNumber(
+          amount
+        )
+      ),
+
+    createdAt,
+
+    paidAt,
+
+    note:
+      String(
+        note ?? ''
+      ).trim(),
+
+  };
+
+}
 
 /* =========================================================
    ESTRUCTURA BASE DE MOVIMIENTO
