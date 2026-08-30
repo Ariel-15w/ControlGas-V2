@@ -1092,7 +1092,77 @@ function normalizeUi(
 }
 
 
+/* =========================================================
+   NORMALIZAR JORNADA
+========================================================= */
 
+function normalizeDay(
+  value
+) {
+
+  const source =
+    ensureObject(value);
+
+  const opening =
+    ensureObject(
+      source.opening
+    );
+
+
+  return {
+
+    ...source,
+
+    /*
+      Los días viejos que no tenían método
+      financiero se consideran EXACTOS,
+      que era la lógica original del sistema.
+    */
+    financialMode:
+      source.financialMode ??
+      DEFAULTS.financialMode,
+
+    opening: {
+
+      ...opening,
+
+      inventory:
+        normalizeInventory(
+          opening.inventory
+        ),
+
+      wallets:
+        normalizeWallets(
+          opening.wallets
+        ),
+
+      /*
+        Los días antiguos no tenían
+        Bolsa General, por lo tanto empiezan
+        históricamente en $0.00.
+      */
+      generalWallet:
+        normalizeGeneralWallet(
+          opening.generalWallet
+        ),
+
+      cashFund:
+        roundMoney(
+          toNonNegativeNumber(
+            opening.cashFund
+          )
+        ),
+
+      note:
+        String(
+          opening.note ?? ''
+        ),
+
+    },
+
+  };
+
+}
 /* =========================================================
    NORMALIZAR ESTADO COMPLETO
 ========================================================= */
@@ -1164,11 +1234,13 @@ generalWallet:
     source.generalWallet
   ),
 
-     days:
-      ensureArray(
-        source.days
-      ),
-
+     dadays:
+  ensureArray(
+    source.days
+  ).map(
+    day =>
+      normalizeDay(day)
+  ),
 
     sales:
       ensureArray(
