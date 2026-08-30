@@ -26,7 +26,6 @@
    - NO crea una segunda venta
    - solo disminuye "reserved"
 ========================================================= */
-
 import {
   ACCOUNT_STATUS,
   ACCOUNT_TYPES,
@@ -34,9 +33,9 @@ import {
   GAS_ID_LIST,
   MOVEMENT_TYPES,
   PAYMENT_METHODS,
+  ROUTE_SELLER_CONFIG,
   SALE_STATUS,
 } from './config.js';
-
 
 import {
   getState,
@@ -45,22 +44,43 @@ import {
   getAccountBalance,
   getSaleById,
   getSaleLines,
+
+  getRouteAccountById,
+  getRouteTripById,
+  getRouteTripsByAccountId,
+  getRouteReservationsByAccountId,
+
+  createRouteAccountRecord,
+  createRouteTripRecord,
+  createRouteSettlementRecord,
+  createRouteReservationRecord,
+
   createMovementBase,
   replaceState,
   touchState,
 } from './state.js';
 
-
 import {
   receiveEmptyCylinders,
   pickupReservedCylinders,
-} from './inventory.js';
 
+  dispatchRouteCylinders,
+  settleRouteInventory,
+
+  reserveRouteCylinders,
+  releaseRouteReservedCylinders,
+  pickupRouteReservedCylinders,
+
+  calculateTankDebtByGas,
+} from './inventory.js';
 
 import {
   fundSaleReplacementReserve,
 } from './finance.js';
 
+import {
+  registerSale,
+} from './sales.js';
 
 import {
   saveState,
@@ -257,8 +277,2809 @@ function requireAccount(
 
 }
 
+/* =========================================================
+   OBTENER CUENTA DEL VENDEDOR DE $2
+========================================================= */
+
+function requireRouteAccount(
+  accountId
+) {
+
+  const account =
+    getRouteAccountById(
+      accountId
+    );
 
 
+  if (!account) {
+
+    throw new Error(
+      'No se encontró la cuenta del vendedor de $2.'
+    );
+
+  }
+
+
+  return account;
+
+}
+
+
+/* =========================================================
+   CREAR CUENTA DEL VENDEDOR DE $2
+========================================================= */
+
+export function createRouteAccount({
+
+  name,
+
+  reference = '',
+
+  createdAt =
+    nowIso(),
+
+}) {
+
+  const cleanName =
+    normalizeText(
+      name
+    );
+
+
+  const cleanReference =
+    normalizeText(
+      reference
+    );
+
+
+  if (!cleanName) {
+
+    throw new Error(
+      'Debes indicar el nombre de la cuenta.'
+    );
+
+  }
+
+
+  const account =
+    createRouteAccountRecord({
+
+      id:
+        uid('route-account'),
+
+      name:
+        cleanName,
+
+      reference:
+        cleanReference,
+
+      createdAt,
+
+    });
+
+
+  getState()
+    .routeAccounts
+    .push(
+      account
+    );
+
+
+  touchState();
+
+  saveState();
+
+
+  return cloneData(
+    account
+  );
+
+}
+
+
+/* =========================================================
+   BUSCAR CUENTAS DEL VENDEDOR DE $2
+========================================================= */
+
+export function searchRouteAccounts(
+  search = ''
+) {
+
+  const query =
+    normalizeText(
+      search
+    ).toLowerCase();
+
+
+  const accounts =
+    getState()
+      .routeAccounts
+      .filter(
+        account =>
+          account.active !== false
+      );
+
+
+  /*
+    Si no escribió nada,
+    mostramos todas las cuentas activas.
+  */
+  if (!query) {
+
+    return sortNewestFirst(
+      accounts.map(
+        account =>
+          cloneData(
+            account
+          )
+      ),
+      account =>
+        account.createdAt
+    );
+
+  }
+
+
+  return sortNewestFirst(
+
+    accounts
+
+      .filter(
+        account => {
+
+          const name =
+            normalizeText(
+              account.name
+            ).toLowerCase();
+
+
+          const reference =
+            normalizeText(
+              account.reference
+            ).toLowerCase();
+
+
+          return (
+            name.includes(
+              query
+            )
+
+            ||
+
+            reference.includes(
+              query
+            )
+          );
+
+        }
+      )
+
+      .map(
+        account =>
+          cloneData(
+            account
+          )
+      ),
+
+    account =>
+      account.createdAt
+
+  );
+
+}
+/* =========================================================
+   BUSCAR CUENTAS + MOSTRAR SALDO EXACTO
+========================================================= */
+
+export function searchRouteAccountSummaries(
+  search = ''
+) {
+
+  const accounts =
+    searchRouteAccounts(
+      search
+    );
+
+
+  return accounts
+
+    .map(
+      account =>
+        getRouteAccountSummary(
+          account.id
+        )
+    )
+
+    .filter(
+      Boolean
+    );
+
+}
+/* =========================================================
+   INICIAR VIAJE DEL VENDEDOR DE $2
+========================================================= */
+
+export function startRouteTrip({
+
+  accountId,
+
+  duragas = 0,
+
+  kinggas = 0,
+
+  note = '',
+
+  createdAt =
+    nowIso(),
+
+}) {
+
+  const stateBefore =
+    cloneData(
+      getState()
+    );
+
+
+  try {
+
+    const day =
+      requireActiveDay();
+
+
+    const account =
+      requireRouteAccount(
+        accountId
+      );
+
+
+    if (
+      account.active === false
+    ) {
+
+      throw new Error(
+        'Esta cuenta del vendedor está desactivada.'
+      );
+
+    }
+
+
+    const quantities = {
+
+      [GAS_IDS.DURAGAS]:
+        toNonNegativeInteger(
+          duragas
+        ),
+
+      [GAS_IDS.KING_GAS]:
+        toNonNegativeInteger(
+          kinggas
+        ),
+
+    };
+
+
+    const total =
+      totalGasAmounts(
+        quantities
+      );
+
+
+    if (
+      total <= 0
+    ) {
+
+      throw new Error(
+        'Debes indicar al menos un cilindro para iniciar el viaje.'
+      );
+
+    }
+
+
+    /*
+      Mueve:
+
+      full  -> route
+
+      Todavía NO registra ninguna venta.
+    */
+    const inventoryMovement =
+      dispatchRouteCylinders(
+        quantities
+      );
+
+
+    const trip =
+      createRouteTripRecord({
+
+        id:
+          uid('route-trip'),
+
+        accountId:
+          account.id,
+
+        dayId:
+          day.id,
+
+        createdAt,
+
+        dispatched:
+          quantities,
+
+        note:
+          normalizeText(
+            note
+          ),
+
+      });
+
+
+    getState()
+      .routeTrips
+      .push(
+        trip
+      );
+
+
+    /*
+      Registrar la salida en el historial.
+    */
+    const movement =
+      createMovementBase({
+
+        id:
+          uid('mov'),
+
+        dayId:
+          day.id,
+
+        type:
+          MOVEMENT_TYPES
+            .ROUTE_DISPATCH,
+
+        createdAt,
+
+        referenceId:
+          trip.id,
+
+        reference:
+          account.name ||
+          'Vendedor de $2',
+
+        detail:
+          `Salida con vendedor de $2: ${
+            quantities[
+              GAS_IDS.DURAGAS
+            ]
+          } Duragas + ${
+            quantities[
+              GAS_IDS.KING_GAS
+            ]
+          } King Gas`,
+
+        value: 0,
+
+        metadata: {
+
+          routeAccountId:
+            account.id,
+
+          tripId:
+            trip.id,
+
+          quantities:
+            cloneData(
+              quantities
+            ),
+
+          totalCylinders:
+            total,
+
+          unitPrice:
+            ROUTE_SELLER_CONFIG
+              .unitPrice,
+
+          noSaleYet:
+            true,
+
+        },
+
+      });
+
+
+    getState()
+      .movements
+      .push(
+        movement
+      );
+
+
+    account.updatedAt =
+      createdAt;
+
+
+    touchState();
+
+    saveState();
+
+
+    return {
+
+      account:
+        cloneData(
+          account
+        ),
+
+      trip:
+        cloneData(
+          trip
+        ),
+
+      quantities:
+        cloneData(
+          quantities
+        ),
+
+      inventoryMovement:
+        cloneData(
+          inventoryMovement
+        ),
+
+      movement:
+        cloneData(
+          movement
+        ),
+
+    };
+
+  }
+  catch (error) {
+
+    /*
+      Si cualquier parte falla,
+      restauramos absolutamente todo.
+    */
+    replaceState(
+      stateBefore
+    );
+
+
+    try {
+
+      saveState();
+
+    }
+    catch {
+
+      /* Estado restaurado en memoria. */
+
+    }
+
+
+    throw error;
+
+  }
+
+}
+
+/* =========================================================
+   SALDO DE CILINDROS DE UN VIAJE
+========================================================= */
+
+export function getRouteTripRemaining(
+  tripId
+) {
+
+  const trip =
+    getRouteTripById(
+      tripId
+    );
+
+
+  if (!trip) {
+
+    return emptyGasMap();
+
+  }
+
+
+  const remaining =
+    normalizeGasAmounts(
+      trip.dispatched
+    );
+
+
+  const settlements =
+    Array.isArray(
+      trip.settlements
+    )
+      ? trip.settlements
+      : [];
+
+
+  settlements.forEach(
+    settlement => {
+
+      const sold =
+        normalizeGasAmounts(
+          settlement.sold
+        );
+
+
+      const returned =
+        normalizeGasAmounts(
+          settlement.returnedFull
+        );
+
+
+      GAS_ID_LIST.forEach(
+        gasId => {
+
+          remaining[gasId] =
+            Math.max(
+              0,
+
+              remaining[gasId]
+
+              -
+
+              sold[gasId]
+
+              -
+
+              returned[gasId]
+            );
+
+        }
+      );
+
+    }
+  );
+
+
+  return remaining;
+
+}
+
+/* =========================================================
+   RENDIR VIAJE DEL VENDEDOR DE $2
+========================================================= */
+
+export function settleRouteTrip({
+
+  tripId,
+
+  soldDuragas = 0,
+
+  soldKinggas = 0,
+
+  returnedDuragas = 0,
+
+  returnedKinggas = 0,
+
+  emptyDuragas = 0,
+
+  emptyKinggas = 0,
+
+  moneyPaid = 0,
+
+  note = '',
+
+  createdAt =
+    nowIso(),
+
+}) {
+
+  const stateBefore =
+    cloneData(
+      getState()
+    );
+
+
+  try {
+
+    const day =
+      requireActiveDay();
+
+
+    const trip =
+      getRouteTripById(
+        tripId
+      );
+
+
+    if (!trip) {
+
+      throw new Error(
+        'No se encontró el viaje del vendedor.'
+      );
+
+    }
+
+
+    if (
+      trip.active === false
+    ) {
+
+      throw new Error(
+        'Este viaje ya fue terminado.'
+      );
+
+    }
+
+
+    const account =
+      requireRouteAccount(
+        trip.accountId
+      );
+
+
+    const sold = {
+
+      [GAS_IDS.DURAGAS]:
+        toNonNegativeInteger(
+          soldDuragas
+        ),
+
+      [GAS_IDS.KING_GAS]:
+        toNonNegativeInteger(
+          soldKinggas
+        ),
+
+    };
+
+
+    const returnedFull = {
+
+      [GAS_IDS.DURAGAS]:
+        toNonNegativeInteger(
+          returnedDuragas
+        ),
+
+      [GAS_IDS.KING_GAS]:
+        toNonNegativeInteger(
+          returnedKinggas
+        ),
+
+    };
+
+
+    const emptyReceived = {
+
+      [GAS_IDS.DURAGAS]:
+        toNonNegativeInteger(
+          emptyDuragas
+        ),
+
+      [GAS_IDS.KING_GAS]:
+        toNonNegativeInteger(
+          emptyKinggas
+        ),
+
+    };
+
+
+    const totalSold =
+      totalGasAmounts(
+        sold
+      );
+
+
+    const totalReturned =
+      totalGasAmounts(
+        returnedFull
+      );
+
+
+    const totalEmpties =
+      totalGasAmounts(
+        emptyReceived
+      );
+
+
+    if (
+      totalSold +
+      totalReturned <= 0
+    ) {
+
+      throw new Error(
+        'Debes indicar lo que vendió o los cilindros llenos que devolvió.'
+      );
+
+    }
+
+
+    /*
+      Verificamos el saldo DEL VIAJE,
+      no solamente el inventario general.
+    */
+    const remainingBefore =
+      getRouteTripRemaining(
+        trip.id
+      );
+
+
+    GAS_ID_LIST.forEach(
+      gasId => {
+
+        const accounted =
+
+          sold[gasId]
+
+          +
+
+          returnedFull[gasId];
+
+
+        if (
+          accounted >
+          remainingBefore[gasId]
+        ) {
+
+          const gasName =
+
+            gasId ===
+              GAS_IDS.DURAGAS
+
+              ? 'Duragas'
+
+              : 'King Gas';
+
+
+          throw new Error(
+            `${gasName}: este viaje solo tiene ${remainingBefore[gasId]} cilindro(s) pendientes de rendir.`
+          );
+
+        }
+
+      }
+    );
+
+
+    /*
+      Por operación no pueden entrar más
+      vacíos que cilindros realmente vendidos.
+
+      Las devoluciones de deudas anteriores
+      se registrarán aparte en la cuenta.
+    */
+    if (
+      totalEmpties >
+      totalSold
+    ) {
+
+      throw new Error(
+        `Vendió ${totalSold} cilindro(s), por lo que en esta rendición no puedes registrar más de ${totalSold} vacío(s).`
+      );
+
+    }
+
+
+    const expectedMoney =
+      roundMoney(
+        totalSold *
+        ROUTE_SELLER_CONFIG.unitPrice
+      );
+
+
+    const payment =
+      roundMoney(
+        toNonNegativeNumber(
+          moneyPaid
+        )
+      );
+
+
+    if (
+      payment >
+      expectedMoney + 0.005
+    ) {
+
+      throw new Error(
+        `Por esta venta corresponden $${expectedMoney.toFixed(2)}. Si entrega dinero de una deuda anterior, regístralo después como abono de su cuenta.`
+      );
+
+    }
+
+
+    if (
+      totalSold === 0 &&
+      (
+        payment > 0 ||
+        totalEmpties > 0
+      )
+    ) {
+
+      throw new Error(
+        'Si no vendió cilindros en esta rendición, no registres dinero ni vacíos como venta.'
+      );
+
+    }
+
+
+    const settlementId =
+      uid('route-settlement');
+
+
+    /*
+      IMPORTANTE:
+
+      Los cilindros vendidos ya estaban en ROUTE,
+      mientras que registerSale() trabaja desde FULL.
+
+      Primero devolvemos temporalmente a FULL:
+      - los que realmente vendió;
+      - los que físicamente regresó.
+
+      Después registerSale() descuenta solamente
+      los vendidos.
+
+      El resultado final queda correcto:
+
+      vendido       -> sale del negocio
+      devuelto lleno -> queda en full
+      no rendido    -> continúa en route
+    */
+    const accountedToWarehouse =
+      emptyGasMap();
+
+
+    GAS_ID_LIST.forEach(
+      gasId => {
+
+        accountedToWarehouse[gasId] =
+
+          sold[gasId]
+
+          +
+
+          returnedFull[gasId];
+
+      }
+    );
+
+
+    settleRouteInventory({
+
+      sold:
+        emptyGasMap(),
+
+      returnedFull:
+        accountedToWarehouse,
+
+      emptiesReceived:
+        emptyGasMap(),
+
+    });
+
+
+    let saleResult =
+      null;
+
+
+    let sale =
+      null;
+
+
+    let pendingAccount =
+      null;
+
+
+    /*
+      Si realmente vendió algo,
+      recién AHORA creamos la venta.
+    */
+    if (
+      totalSold > 0
+    ) {
+
+      saleResult =
+        registerSale({
+
+          customer:
+            account.name,
+
+          quantities:
+            sold,
+
+          emptyReceived:
+            emptyReceived,
+
+          price:
+            ROUTE_SELLER_CONFIG
+              .unitPrice,
+
+          paymentMethod:
+            PAYMENT_METHODS.CASH,
+
+          received:
+            payment,
+
+          note:
+            normalizeText(
+              note
+            ) ||
+            'Venta correspondiente a vendedor de $2',
+
+          createdAt,
+
+        });
+
+
+      sale =
+        getSaleById(
+          saleResult.sale.id
+        );
+
+
+      if (sale) {
+
+        /*
+          Enlazamos la venta con su
+          cuenta/viaje/rendición especial.
+        */
+        sale.routeAccountId =
+          account.id;
+
+        sale.routeTripId =
+          trip.id;
+
+        sale.routeSettlementId =
+          settlementId;
+
+        sale.source =
+          'route_seller';
+
+
+        /*
+          Para historial dejamos el inventario
+          realmente existente antes y después
+          de TODA la rendición, no el estado
+          temporal utilizado internamente.
+        */
+        sale.inventoryBefore =
+          cloneData(
+            stateBefore.inventory
+          );
+
+        sale.inventoryAfter =
+          cloneData(
+            getState().inventory
+          );
+
+
+        if (
+          sale.accountId
+        ) {
+
+          pendingAccount =
+            getAccountById(
+              sale.accountId
+            );
+
+
+          if (
+            pendingAccount
+          ) {
+
+            /*
+              Esta sigue siendo una cuenta
+              normal técnicamente para poder
+              usar toda la lógica ya existente
+              de abonos y tanques.
+
+              Pero queda ligada al vendedor,
+              de manera que después podremos
+              mostrarla agrupada únicamente
+              dentro de su cuenta.
+            */
+            pendingAccount.routeAccountId =
+              account.id;
+
+            pendingAccount.routeTripId =
+              trip.id;
+
+            pendingAccount.routeSettlementId =
+              settlementId;
+
+            pendingAccount.isRouteSellerAccount =
+              true;
+
+          }
+
+        }
+
+      }
+
+    }
+
+
+    const settlement =
+      createRouteSettlementRecord({
+
+        id:
+          settlementId,
+
+        tripId:
+          trip.id,
+
+        dayId:
+          day.id,
+
+        createdAt,
+
+        sold,
+
+        returnedFull,
+
+        emptiesReceived:
+          emptyReceived,
+
+        moneyPaid:
+          payment,
+
+        note:
+          normalizeText(
+            note
+          ),
+
+      });
+
+
+    /*
+      Información adicional para relacionarlo
+      con la venta real y su pendiente.
+    */
+    settlement.saleId =
+      sale?.id ??
+      null;
+
+    settlement.pendingAccountId =
+      sale?.accountId ??
+      null;
+
+    settlement.moneyDue =
+      roundMoney(
+        sale?.moneyDue ??
+        0
+      );
+
+    settlement.tanksDue =
+      cloneData(
+        sale?.tanksDue ??
+        emptyGasMap()
+      );
+
+
+    if (
+      !Array.isArray(
+        trip.settlements
+      )
+    ) {
+
+      trip.settlements = [];
+
+    }
+
+
+    trip.settlements.push(
+      settlement
+    );
+
+
+    /*
+      Comprobar qué quedó todavía
+      con el vendedor de ESTE viaje.
+    */
+    const remainingAfter =
+      getRouteTripRemaining(
+        trip.id
+      );
+
+
+    const totalRemaining =
+      totalGasAmounts(
+        remainingAfter
+      );
+
+
+    if (
+      totalRemaining === 0
+    ) {
+
+      trip.active =
+        false;
+
+      trip.closedAt =
+        createdAt;
+
+    }
+    else {
+
+      trip.active =
+        true;
+
+      trip.closedAt =
+        null;
+
+    }
+
+
+    account.updatedAt =
+      createdAt;
+
+
+    /*
+      Movimiento específico de rendición.
+      value = 0 para no duplicar ingreso:
+      la venta ya tiene su propio movimiento.
+    */
+    const movement =
+      createMovementBase({
+
+        id:
+          uid('mov'),
+
+        dayId:
+          day.id,
+
+        type:
+          MOVEMENT_TYPES
+            .ROUTE_SETTLEMENT,
+
+        createdAt,
+
+        referenceId:
+          settlement.id,
+
+        reference:
+          account.name ||
+          'Vendedor de $2',
+
+        detail:
+          `Rindió viaje: vendió ${totalSold}, devolvió ${totalReturned} lleno(s), entregó $${payment.toFixed(2)}`,
+
+        value: 0,
+
+        metadata: {
+
+          routeAccountId:
+            account.id,
+
+          tripId:
+            trip.id,
+
+          settlementId:
+            settlement.id,
+
+          saleId:
+            sale?.id ??
+            null,
+
+          sold:
+            cloneData(
+              sold
+            ),
+
+          returnedFull:
+            cloneData(
+              returnedFull
+            ),
+
+          emptyReceived:
+            cloneData(
+              emptyReceived
+            ),
+
+          expectedMoney,
+
+          moneyPaid:
+            payment,
+
+          moneyDue:
+            settlement.moneyDue,
+
+          tanksDue:
+            cloneData(
+              settlement.tanksDue
+            ),
+
+          remainingAfter:
+            cloneData(
+              remainingAfter
+            ),
+
+        },
+
+      });
+
+
+    getState()
+      .movements
+      .push(
+        movement
+      );
+
+
+    touchState();
+
+    saveState();
+
+
+    return {
+
+      account:
+        cloneData(
+          account
+        ),
+
+      trip:
+        cloneData(
+          trip
+        ),
+
+      settlement:
+        cloneData(
+          settlement
+        ),
+
+      sale:
+        sale
+          ? cloneData(
+              sale
+            )
+          : null,
+
+      pendingAccount:
+        pendingAccount
+          ? cloneData(
+              pendingAccount
+            )
+          : null,
+
+      remaining:
+        cloneData(
+          remainingAfter
+        ),
+
+      movement:
+        cloneData(
+          movement
+        ),
+
+    };
+
+  }
+  catch (error) {
+
+    replaceState(
+      stateBefore
+    );
+
+
+    try {
+
+      saveState();
+
+    }
+    catch {
+
+      /* Estado restaurado en memoria. */
+
+    }
+
+
+    throw error;
+
+  }
+
+}
+
+/* =========================================================
+   PENDIENTES NORMALES LIGADOS A VENDEDOR DE $2
+========================================================= */
+
+function getRouteLinkedPendingAccounts(
+  routeAccountId
+) {
+
+  if (!routeAccountId) {
+
+    return [];
+
+  }
+
+
+  const state =
+    getState();
+
+
+  return state.accounts
+
+    .filter(
+      account =>
+        account.routeAccountId ===
+        routeAccountId
+    )
+
+    .map(
+      account => {
+
+        const balance =
+          state.accountBalances.find(
+            item =>
+              item.accountId ===
+              account.id
+          );
+
+
+        return {
+
+          account,
+
+          balance:
+            balance ?? null,
+
+        };
+
+      }
+    );
+
+}
+/* =========================================================
+   RESUMEN DE UNA CUENTA DEL VENDEDOR DE $2
+========================================================= */
+
+export function getRouteAccountSummary(
+  accountId
+) {
+
+  const account =
+    getRouteAccountById(
+      accountId
+    );
+
+
+  if (!account) {
+
+    return null;
+
+  }
+
+/* =========================================================
+   ABONAR DINERO A CUENTA DEL VENDEDOR DE $2
+========================================================= */
+
+export function registerRouteAccountPayment({
+
+  accountId,
+
+  amount,
+
+  note = '',
+
+  createdAt =
+    nowIso(),
+
+}) {
+
+  const stateBefore =
+    cloneData(
+      getState()
+    );
+
+
+  try {
+
+    requireActiveDay();
+
+
+    const routeAccount =
+      requireRouteAccount(
+        accountId
+      );
+
+
+    const payment =
+      roundMoney(
+        toNonNegativeNumber(
+          amount
+        )
+      );
+
+
+    if (
+      payment <= 0
+    ) {
+
+      throw new Error(
+        'El abono debe ser mayor que cero.'
+      );
+
+    }
+
+
+    /*
+      Buscamos solamente las deudas de dinero
+      relacionadas con ESTE vendedor.
+    */
+    const pendingAccounts =
+      getRouteLinkedPendingAccounts(
+        routeAccount.id
+      )
+
+        .filter(
+          item => {
+
+            return (
+
+              item.account.status ===
+                ACCOUNT_STATUS.OPEN
+
+              &&
+
+              roundMoney(
+                toNonNegativeNumber(
+                  item.balance?.moneyDue
+                )
+              ) > 0
+
+            );
+
+          }
+        )
+
+        /*
+          Se pagan primero las deudas
+          más antiguas.
+
+          Ejemplo:
+
+          Viaje 1 debe $2
+          Viaje 2 debe $4
+          Abona $4
+
+          Resultado:
+          Viaje 1 -> $0
+          Viaje 2 -> $2
+        */
+        .sort(
+          (a, b) => {
+
+            return new Date(
+              a.account.createdAt ?? 0
+            ).getTime()
+
+            -
+
+            new Date(
+              b.account.createdAt ?? 0
+            ).getTime();
+
+          }
+        );
+
+
+    const totalDue =
+      roundMoney(
+
+        pendingAccounts.reduce(
+          (
+            total,
+            item
+          ) => {
+
+            return (
+
+              total
+
+              +
+
+              toNonNegativeNumber(
+                item.balance?.moneyDue
+              )
+
+            );
+
+          },
+          0
+        )
+
+      );
+
+
+    if (
+      totalDue <= 0
+    ) {
+
+      throw new Error(
+        'Esta cuenta del vendedor no tiene dinero pendiente.'
+      );
+
+    }
+
+
+    if (
+      payment >
+      totalDue + 0.005
+    ) {
+
+      throw new Error(
+        `Esta persona debe $${totalDue.toFixed(2)}. No puedes registrar un abono mayor.`
+      );
+
+    }
+
+
+    let remaining =
+      payment;
+
+
+    const allocations = [];
+
+
+    /*
+      Repartimos el dinero entre las
+      deudas de esta misma persona.
+    */
+    for (
+      const item
+      of pendingAccounts
+    ) {
+
+      if (
+        remaining <= 0.005
+      ) {
+
+        break;
+
+      }
+
+
+      const dueBefore =
+        roundMoney(
+          toNonNegativeNumber(
+            item.balance.moneyDue
+          )
+        );
+
+
+      if (
+        dueBefore <= 0
+      ) {
+
+        continue;
+
+      }
+
+
+      const applied =
+        roundMoney(
+          Math.min(
+            dueBefore,
+            remaining
+          )
+        );
+
+
+      const result =
+        registerAccountPayment({
+
+          accountId:
+            item.account.id,
+
+          amount:
+            applied,
+
+          paymentMethod:
+            PAYMENT_METHODS.CASH,
+
+          note:
+            normalizeText(
+              note
+            ) ||
+            `Abono de ${routeAccount.name} - vendedor de $2`,
+
+          createdAt,
+
+        });
+
+
+      allocations.push({
+
+        pendingAccountId:
+          item.account.id,
+
+        saleId:
+          item.account.saleId,
+
+        routeTripId:
+          item.account.routeTripId ??
+          null,
+
+        amount:
+          applied,
+
+        moneyDueBefore:
+          dueBefore,
+
+        moneyDueAfter:
+          roundMoney(
+            result.balance.moneyDue
+          ),
+
+      });
+
+
+      remaining =
+        roundMoney(
+          remaining -
+          applied
+        );
+
+    }
+
+
+    /*
+      Por seguridad, no debe quedar dinero
+      sin aplicar después de haber validado
+      el total pendiente.
+    */
+    if (
+      remaining > 0.005
+    ) {
+
+      throw new Error(
+        `Quedaron $${remaining.toFixed(2)} sin aplicar al pendiente.`
+      );
+
+    }
+
+
+    routeAccount.updatedAt =
+      createdAt;
+
+
+    touchState();
+
+    saveState();
+
+
+    return {
+
+      account:
+        cloneData(
+          routeAccount
+        ),
+
+      payment,
+
+      totalDueBefore:
+        totalDue,
+
+      totalDueAfter:
+        roundMoney(
+          Math.max(
+            0,
+            totalDue -
+            payment
+          )
+        ),
+
+      allocations:
+        cloneData(
+          allocations
+        ),
+
+      summary:
+        getRouteAccountSummary(
+          routeAccount.id
+        ),
+
+    };
+
+  }
+  catch (error) {
+
+    /*
+      Si falla una de las aplicaciones,
+      volvemos al estado previo completo.
+    */
+    replaceState(
+      stateBefore
+    );
+
+
+    try {
+
+      saveState();
+
+    }
+    catch {
+
+      /* Estado restaurado en memoria. */
+
+    }
+
+
+    throw error;
+
+  }
+
+}
+
+   /* =========================================================
+   OBTENER APARTADO DEL VENDEDOR
+========================================================= */
+
+function requireRouteReservation(
+  reservationId
+) {
+
+  const reservation =
+    getState()
+      .routeReservations
+      .find(
+        item =>
+          item.id ===
+          reservationId
+      );
+
+
+  if (!reservation) {
+
+    throw new Error(
+      'No se encontró el apartado del vendedor.'
+    );
+
+  }
+
+
+  return reservation;
+
+}
+   /* =========================================================
+   APARTAR CILINDROS PARA VENDEDOR DE $2
+========================================================= */
+
+export function createRouteReservation({
+
+  accountId,
+
+  duragas = 0,
+
+  kinggas = 0,
+
+  note = '',
+
+  createdAt =
+    nowIso(),
+
+}) {
+
+  const stateBefore =
+    cloneData(
+      getState()
+    );
+
+
+  try {
+
+    const day =
+      requireActiveDay();
+
+
+    const account =
+      requireRouteAccount(
+        accountId
+      );
+
+
+    const quantities = {
+
+      [GAS_IDS.DURAGAS]:
+        toNonNegativeInteger(
+          duragas
+        ),
+
+      [GAS_IDS.KING_GAS]:
+        toNonNegativeInteger(
+          kinggas
+        ),
+
+    };
+
+
+    const total =
+      totalGasAmounts(
+        quantities
+      );
+
+
+    if (
+      total <= 0
+    ) {
+
+      throw new Error(
+        'Debes indicar al menos un cilindro para apartar.'
+      );
+
+    }
+
+
+    /*
+      Inventario:
+
+      full
+        ↓
+      routeReserved
+
+      Sigue dentro de la bodega.
+    */
+    const inventoryMovement =
+      reserveRouteCylinders(
+        quantities
+      );
+
+
+    const reservation =
+      createRouteReservationRecord({
+
+        id:
+          uid('route-reservation'),
+
+        accountId:
+          account.id,
+
+        dayId:
+          day.id,
+
+        createdAt,
+
+        quantities,
+
+        note:
+          normalizeText(
+            note
+          ),
+
+      });
+
+
+    getState()
+      .routeReservations
+      .push(
+        reservation
+      );
+
+
+    const movement =
+      createMovementBase({
+
+        id:
+          uid('mov'),
+
+        dayId:
+          day.id,
+
+        type:
+          MOVEMENT_TYPES
+            .ROUTE_RESERVE,
+
+        createdAt,
+
+        referenceId:
+          reservation.id,
+
+        reference:
+          account.name ||
+          'Vendedor de $2',
+
+        detail:
+          `Apartado para vendedor: ${
+            quantities[GAS_IDS.DURAGAS]
+          } Duragas + ${
+            quantities[GAS_IDS.KING_GAS]
+          } King Gas`,
+
+        value: 0,
+
+        metadata: {
+
+          routeAccountId:
+            account.id,
+
+          reservationId:
+            reservation.id,
+
+          quantities:
+            cloneData(
+              quantities
+            ),
+
+          totalCylinders:
+            total,
+
+          noSale:
+            true,
+
+        },
+
+      });
+
+
+    getState()
+      .movements
+      .push(
+        movement
+      );
+
+
+    account.updatedAt =
+      createdAt;
+
+
+    touchState();
+
+    saveState();
+
+
+    return {
+
+      account:
+        cloneData(
+          account
+        ),
+
+      reservation:
+        cloneData(
+          reservation
+        ),
+
+      inventory:
+        cloneData(
+          inventoryMovement
+        ),
+
+      movement:
+        cloneData(
+          movement
+        ),
+
+    };
+
+  }
+  catch (error) {
+
+    replaceState(
+      stateBefore
+    );
+
+
+    try {
+      saveState();
+    }
+    catch {
+      /* Estado restaurado. */
+    }
+
+
+    throw error;
+
+  }
+
+}
+   /* =========================================================
+   RETIRAR APARTADO Y ENVIARLO A RUTA
+========================================================= */
+
+export function pickupRouteReservation({
+
+  reservationId,
+
+  duragas = 0,
+
+  kinggas = 0,
+
+  note = '',
+
+  createdAt =
+    nowIso(),
+
+}) {
+
+  const stateBefore =
+    cloneData(
+      getState()
+    );
+
+
+  try {
+
+    const day =
+      requireActiveDay();
+
+
+    const reservation =
+      requireRouteReservation(
+        reservationId
+      );
+
+
+    if (
+      reservation.active === false
+    ) {
+
+      throw new Error(
+        'Este apartado ya está completado.'
+      );
+
+    }
+
+
+    const account =
+      requireRouteAccount(
+        reservation.accountId
+      );
+
+
+    const pickup = {
+
+      [GAS_IDS.DURAGAS]:
+        toNonNegativeInteger(
+          duragas
+        ),
+
+      [GAS_IDS.KING_GAS]:
+        toNonNegativeInteger(
+          kinggas
+        ),
+
+    };
+
+
+    if (
+      totalGasAmounts(
+        pickup
+      ) <= 0
+    ) {
+
+      throw new Error(
+        'Debes indicar al menos un cilindro para retirar.'
+      );
+
+    }
+
+
+    const remaining =
+      normalizeGasAmounts(
+        reservation.remaining
+      );
+
+
+    GAS_ID_LIST.forEach(
+      gasId => {
+
+        if (
+          pickup[gasId] >
+          remaining[gasId]
+        ) {
+
+          const name =
+            gasId ===
+            GAS_IDS.DURAGAS
+              ? 'Duragas'
+              : 'King Gas';
+
+
+          throw new Error(
+            `Solo quedan ${remaining[gasId]} ${name} apartado(s).`
+          );
+
+        }
+
+      }
+    );
+
+
+    /*
+      routeReserved
+          ↓
+        route
+
+      No toca full.
+    */
+    const inventoryMovement =
+      pickupRouteReservedCylinders(
+        pickup
+      );
+
+
+    GAS_ID_LIST.forEach(
+      gasId => {
+
+        reservation.remaining[gasId] =
+          Math.max(
+            0,
+            remaining[gasId] -
+            pickup[gasId]
+          );
+
+      }
+    );
+
+
+    /*
+      Los cilindros retirados forman
+      un viaje nuevo.
+    */
+    const trip =
+      createRouteTripRecord({
+
+        id:
+          uid('route-trip'),
+
+        accountId:
+          account.id,
+
+        dayId:
+          day.id,
+
+        createdAt,
+
+        dispatched:
+          pickup,
+
+        note:
+          normalizeText(
+            note
+          ) ||
+          'Retiro de cilindros previamente apartados',
+
+      });
+
+
+    getState()
+      .routeTrips
+      .push(
+        trip
+      );
+
+
+    if (
+      totalGasAmounts(
+        reservation.remaining
+      ) === 0
+    ) {
+
+      reservation.active =
+        false;
+
+      reservation.completedAt =
+        createdAt;
+
+    }
+
+
+    const movement =
+      createMovementBase({
+
+        id:
+          uid('mov'),
+
+        dayId:
+          day.id,
+
+        type:
+          MOVEMENT_TYPES
+            .ROUTE_DISPATCH,
+
+        createdAt,
+
+        referenceId:
+          trip.id,
+
+        reference:
+          account.name ||
+          'Vendedor de $2',
+
+        detail:
+          `Retiró apartado: ${
+            pickup[GAS_IDS.DURAGAS]
+          } Duragas + ${
+            pickup[GAS_IDS.KING_GAS]
+          } King Gas`,
+
+        value: 0,
+
+        metadata: {
+
+          routeAccountId:
+            account.id,
+
+          reservationId:
+            reservation.id,
+
+          tripId:
+            trip.id,
+
+          quantities:
+            cloneData(
+              pickup
+            ),
+
+          fromReservation:
+            true,
+
+          noSaleYet:
+            true,
+
+        },
+
+      });
+
+
+    getState()
+      .movements
+      .push(
+        movement
+      );
+
+
+    account.updatedAt =
+      createdAt;
+
+
+    touchState();
+
+    saveState();
+
+
+    return {
+
+      reservation:
+        cloneData(
+          reservation
+        ),
+
+      trip:
+        cloneData(
+          trip
+        ),
+
+      inventory:
+        cloneData(
+          inventoryMovement
+        ),
+
+      movement:
+        cloneData(
+          movement
+        ),
+
+    };
+
+  }
+  catch (error) {
+
+    replaceState(
+      stateBefore
+    );
+
+
+    try {
+      saveState();
+    }
+    catch {
+      /* Estado restaurado. */
+    }
+
+
+    throw error;
+
+  }
+
+}
+   /* =========================================================
+   LIBERAR APARTADO DEL VENDEDOR
+========================================================= */
+
+export function releaseRouteReservation({
+
+  reservationId,
+
+  duragas = 0,
+
+  kinggas = 0,
+
+  note = '',
+
+  createdAt =
+    nowIso(),
+
+}) {
+
+  const stateBefore =
+    cloneData(
+      getState()
+    );
+
+
+  try {
+
+    const day =
+      requireActiveDay();
+
+
+    const reservation =
+      requireRouteReservation(
+        reservationId
+      );
+
+
+    if (
+      reservation.active === false
+    ) {
+
+      throw new Error(
+        'Este apartado ya está completado.'
+      );
+
+    }
+
+
+    const account =
+      requireRouteAccount(
+        reservation.accountId
+      );
+
+
+    const release = {
+
+      [GAS_IDS.DURAGAS]:
+        toNonNegativeInteger(
+          duragas
+        ),
+
+      [GAS_IDS.KING_GAS]:
+        toNonNegativeInteger(
+          kinggas
+        ),
+
+    };
+
+
+    if (
+      totalGasAmounts(
+        release
+      ) <= 0
+    ) {
+
+      throw new Error(
+        'Debes indicar al menos un cilindro para liberar.'
+      );
+
+    }
+
+
+    const remaining =
+      normalizeGasAmounts(
+        reservation.remaining
+      );
+
+
+    GAS_ID_LIST.forEach(
+      gasId => {
+
+        if (
+          release[gasId] >
+          remaining[gasId]
+        ) {
+
+          throw new Error(
+            'No puedes liberar más cilindros de los que siguen apartados.'
+          );
+
+        }
+
+      }
+    );
+
+
+    /*
+      routeReserved
+          ↓
+        full
+    */
+    const inventoryMovement =
+      releaseRouteReservedCylinders(
+        release
+      );
+
+
+    GAS_ID_LIST.forEach(
+      gasId => {
+
+        reservation.remaining[gasId] =
+          Math.max(
+            0,
+            remaining[gasId] -
+            release[gasId]
+          );
+
+      }
+    );
+
+
+    if (
+      totalGasAmounts(
+        reservation.remaining
+      ) === 0
+    ) {
+
+      reservation.active =
+        false;
+
+      reservation.completedAt =
+        createdAt;
+
+    }
+
+
+    const movement =
+      createMovementBase({
+
+        id:
+          uid('mov'),
+
+        dayId:
+          day.id,
+
+        type:
+          MOVEMENT_TYPES
+            .ROUTE_RELEASE,
+
+        createdAt,
+
+        referenceId:
+          reservation.id,
+
+        reference:
+          account.name ||
+          'Vendedor de $2',
+
+        detail:
+          `Liberó apartado: ${
+            release[GAS_IDS.DURAGAS]
+          } Duragas + ${
+            release[GAS_IDS.KING_GAS]
+          } King Gas`,
+
+        value: 0,
+
+        metadata: {
+
+          routeAccountId:
+            account.id,
+
+          reservationId:
+            reservation.id,
+
+          quantities:
+            cloneData(
+              release
+            ),
+
+        },
+
+      });
+
+
+    getState()
+      .movements
+      .push(
+        movement
+      );
+
+
+    account.updatedAt =
+      createdAt;
+
+
+    touchState();
+
+    saveState();
+
+
+    return {
+
+      reservation:
+        cloneData(
+          reservation
+        ),
+
+      inventory:
+        cloneData(
+          inventoryMovement
+        ),
+
+      movement:
+        cloneData(
+          movement
+        ),
+
+    };
+
+  }
+  catch (error) {
+
+    replaceState(
+      stateBefore
+    );
+
+
+    try {
+      saveState();
+    }
+    catch {
+      /* Estado restaurado. */
+    }
+
+
+    throw error;
+
+  }
+
+}
+  /* =====================================================
+     1. DEUDAS DE DINERO Y TANQUES
+  ===================================================== */
+
+  const linkedPending =
+    getRouteLinkedPendingAccounts(
+      account.id
+    );
+
+
+  let moneyDue = 0;
+
+
+  const tanksDue =
+    emptyGasMap();
+
+
+  linkedPending.forEach(
+    item => {
+
+      const balance =
+        item.balance;
+
+
+      if (!balance) {
+
+        return;
+
+      }
+
+
+      moneyDue =
+        roundMoney(
+
+          moneyDue
+
+          +
+
+          toNonNegativeNumber(
+            balance.moneyDue
+          )
+
+        );
+
+
+      GAS_ID_LIST.forEach(
+        gasId => {
+
+          tanksDue[gasId] +=
+            toNonNegativeInteger(
+              balance
+                .tanksDue?.[gasId]
+            );
+
+        }
+      );
+
+    }
+  );
+
+
+  /* =====================================================
+     2. CILINDROS QUE TODAVÍA TIENE EN RUTA
+  ===================================================== */
+
+  const route =
+    emptyGasMap();
+
+
+  const trips =
+    getRouteTripsByAccountId(
+      account.id
+    );
+
+
+  trips.forEach(
+    trip => {
+
+      const remaining =
+        getRouteTripRemaining(
+          trip.id
+        );
+
+
+      GAS_ID_LIST.forEach(
+        gasId => {
+
+          route[gasId] +=
+            toNonNegativeInteger(
+              remaining[gasId]
+            );
+
+        }
+      );
+
+    }
+  );
+
+
+  /* =====================================================
+     3. CILINDROS QUE TIENE APARTADOS
+  ===================================================== */
+
+  const reserved =
+    emptyGasMap();
+
+
+  const reservations =
+    getRouteReservationsByAccountId(
+      account.id
+    );
+
+
+  reservations.forEach(
+    reservation => {
+
+      if (
+        reservation.active ===
+        false
+      ) {
+
+        return;
+
+      }
+
+
+      const remaining =
+        normalizeGasAmounts(
+          reservation.remaining
+        );
+
+
+      GAS_ID_LIST.forEach(
+        gasId => {
+
+          reserved[gasId] +=
+            remaining[gasId];
+
+        }
+      );
+
+    }
+  );
+
+
+  /* =====================================================
+     4. TOTALES
+  ===================================================== */
+
+  const routeTotal =
+    totalGasAmounts(
+      route
+    );
+
+
+  const tanksDueTotal =
+    totalGasAmounts(
+      tanksDue
+    );
+
+
+  const reservedTotal =
+    totalGasAmounts(
+      reserved
+    );
+
+
+  const hasPending =
+
+    moneyDue > 0
+
+    ||
+
+    tanksDueTotal > 0
+
+    ||
+
+    routeTotal > 0
+
+    ||
+
+    reservedTotal > 0;
+
+
+  return {
+
+    account:
+      cloneData(
+        account
+      ),
+
+
+    moneyDue:
+      roundMoney(
+        moneyDue
+      ),
+
+
+    tanksDue:
+      cloneData(
+        tanksDue
+      ),
+
+    tanksDueTotal,
+
+
+    /*
+      Cilindros que físicamente
+      están todavía con esta persona.
+    */
+    route:
+      cloneData(
+        route
+      ),
+
+    routeTotal,
+
+
+    /*
+      Cilindros separados en bodega
+      para esta persona.
+    */
+    reserved:
+      cloneData(
+        reserved
+      ),
+
+    reservedTotal,
+
+
+    openTrips:
+      trips.filter(
+        trip =>
+          trip.active !== false
+      ).length,
+
+
+    pendingAccounts:
+      linkedPending.filter(
+        item =>
+          item.account.status ===
+          ACCOUNT_STATUS.OPEN
+      ).length,
+
+
+    hasPending,
+
+  };
+
+}
 /* =========================================================
    COMPROBAR QUE LA CUENTA ESTÉ ABIERTA
 ========================================================= */
