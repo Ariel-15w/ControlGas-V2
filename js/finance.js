@@ -294,18 +294,16 @@ export function getWalletEquivalentUnits(
   distinguimos el origen del dinero:
 
   1. Saldo que ya existía al abrir el día.
-  2. Reserva generada durante el día.
-  3. Aportes adicionales del día.
+  2. Aportes adicionales del día.
+  3. Reserva generada durante el día.
 
   REGLA DE CONSUMO:
 
-  Al pagar una reposición se considera que
-  primero se utiliza el saldo anterior.
+  Al pagar una reposición se utiliza:
 
-  Solo cuando ese saldo se termina,
-  se utiliza la reserva generada hoy.
-
-  Los aportes adicionales quedan al final.
+  1. Primero el saldo anterior.
+  2. Después los aportes adicionales.
+  3. Finalmente la reserva generada hoy.
 */
 export function getWalletDayBreakdown(
 
@@ -1814,7 +1812,250 @@ export function calculateReplacementCost(
 
 }
 
+/* =========================================================
+   PLAN DE PAGO AL PROVEEDOR
+========================================================= */
 
+export function calculateSupplierPaymentPlan({
+
+  gasId,
+
+  quantity,
+
+}) {
+
+  assertGasType(
+    gasId
+  );
+
+
+  const qty =
+    toNonNegativeInteger(
+      quantity
+    );
+
+
+  const gasConfig =
+    GAS_TYPES[
+      gasId
+    ] ?? {};
+
+
+  const totalCost =
+    calculateReplacementCost(
+      gasId,
+      qty
+    );
+
+
+  /*
+    =====================================================
+    DURAGAS
+
+    $0.55 se paga cuando llega el carro.
+    $1.15 queda comprometido para la factura.
+    =====================================================
+  */
+
+  if (
+    gasId ===
+    GAS_IDS.DURAGAS
+  ) {
+
+    const arrivalUnitCost =
+      roundMoney(
+        toNonNegativeNumber(
+          gasConfig.arrivalCost
+        )
+      );
+
+
+    const invoiceUnitCost =
+      roundMoney(
+        toNonNegativeNumber(
+          gasConfig.invoiceCost
+        )
+      );
+
+
+    const arrivalAmount =
+      roundMoney(
+        qty *
+        arrivalUnitCost
+      );
+
+
+    const invoiceAmount =
+      roundMoney(
+        qty *
+        invoiceUnitCost
+      );
+
+
+    return {
+
+      gasId,
+
+      quantity:
+        qty,
+
+      totalCost,
+
+      paidNow: {
+
+        unitCost:
+          arrivalUnitCost,
+
+        amount:
+          arrivalAmount,
+
+      },
+
+      pending: {
+
+        unitCost:
+          invoiceUnitCost,
+
+        amount:
+          invoiceAmount,
+
+      },
+
+      committedAmount:
+        invoiceAmount,
+
+    };
+
+  }
+
+
+  /*
+    =====================================================
+    KING GAS
+
+    Se paga completo en una sola operación.
+    =====================================================
+  */
+
+  const singlePaymentUnitCost =
+    roundMoney(
+      toNonNegativeNumber(
+        gasConfig.singlePaymentCost ??
+        getReplacementCost(
+          gasId
+        )
+      )
+    );
+
+
+  const singlePaymentAmount =
+    roundMoney(
+      qty *
+      singlePaymentUnitCost
+    );
+
+
+  return {
+
+    gasId,
+
+    quantity:
+      qty,
+
+    totalCost,
+
+    paidNow: {
+
+      unitCost:
+        singlePaymentUnitCost,
+
+      amount:
+        singlePaymentAmount,
+
+    },
+
+    pending: {
+
+      unitCost:
+        0,
+
+      amount:
+        0,
+
+    },
+
+    committedAmount:
+      0,
+
+  };
+
+}
+
+/* =========================================================
+   DINERO COMPROMETIDO CON EL PROVEEDOR
+========================================================= */
+
+export function getSupplierCommittedAmount({
+  gasId = null,
+} = {}) {
+
+  if (gasId !== null) {
+
+    assertGasType(
+      gasId
+    );
+
+  }
+
+
+  const state =
+    getState();
+
+
+  const pendingPayments =
+    (
+      state.supplierPayments ??
+      []
+    ).filter(
+      payment => {
+
+        if (
+          payment.status !==
+          'pending'
+        ) {
+
+          return false;
+
+        }
+
+
+        if (
+          gasId &&
+          payment.gasId !==
+          gasId
+        ) {
+
+          return false;
+
+        }
+
+
+        return true;
+
+      }
+    );
+
+
+  return roundMoney(
+    sumBy(
+      pendingPayments,
+      payment =>
+        payment.amount ??
+        0
+    )
+  );
+
+}
 
 /* =========================================================
    GANANCIA UNITARIA
@@ -1907,13 +2148,18 @@ const reserve =
       dayId
     )
   );
-      const profit =
-        roundMoney(
-          revenue -
-          reserve
-        );
+  const realReplacementCost =
+  calculateReplacementCost(
+    gasId,
+    quantity
+  );
 
 
+const profit =
+  roundMoney(
+    revenue -
+    realReplacementCost
+  );
       byGas[gasId] = {
 
         quantity,
@@ -2667,44 +2913,98 @@ export function registerExtraContribution({
 
     source ===
       EXTRA_CONTRIBUTION_SOURCES.PROFIT;
+const effectiveDayId =
+  dayId ??
+  getActiveDay()?.id ??
+  null;
 
 
-  const walletMovement =
-    addMoneyToWallet({
-
-      gasId,
-
-      amount:
-        value,
-
-      type:
-        WALLET_MOVEMENT_TYPES
-          .EXTRA_CONTRIBUTION,
-
-      dayId,
-
-      referenceId,
-
-      note:
-        note ||
-        `Aporte adicional para reposición de ${getGasName(gasId)}`,
-
-      source,
-
-      impactsCash,
-
-      metadata: {
-
-        extraContribution:
-          true,
-
-      },
-
-      createdAt,
-
-    });
+const financialMode =
+  getFinancialMode(
+    effectiveDayId
+  );
 
 
+const walletMovement =
+
+  financialMode ===
+    FINANCIAL_MODES.GENERAL
+
+    ? addMoneyToGeneralWallet({
+
+        amount:
+          value,
+
+        type:
+          WALLET_MOVEMENT_TYPES
+            .EXTRA_CONTRIBUTION,
+
+        dayId:
+          effectiveDayId,
+
+        referenceId,
+
+        note:
+          note ||
+          `Aporte adicional para reposición de ${getGasName(gasId)}`,
+
+        source,
+
+        impactsCash,
+
+        metadata: {
+
+          extraContribution:
+            true,
+
+          gasId,
+
+          financialMode:
+            FINANCIAL_MODES.GENERAL,
+
+        },
+
+        createdAt,
+
+      })
+
+    : addMoneyToWallet({
+
+        gasId,
+
+        amount:
+          value,
+
+        type:
+          WALLET_MOVEMENT_TYPES
+            .EXTRA_CONTRIBUTION,
+
+        dayId:
+          effectiveDayId,
+
+        referenceId,
+
+        note:
+          note ||
+          `Aporte adicional para reposición de ${getGasName(gasId)}`,
+
+        source,
+
+        impactsCash,
+
+        metadata: {
+
+          extraContribution:
+            true,
+
+          financialMode:
+            FINANCIAL_MODES.EXACT,
+
+        },
+
+        createdAt,
+
+      });
 
   pushGeneralMovement({
 
@@ -3001,8 +3301,6 @@ remaining =
         fromContributions
       )
     );
-
-
 
   /*
     =====================================================
@@ -3434,13 +3732,24 @@ function getLineFinancialValues(
     );
 
 
-  const grossProfit =
-    roundMoney(
-      revenue -
-      reserveRequired
-    );
+ const grossProfit =
+  roundMoney(
 
+    line.grossProfit !== undefined
 
+      ? toNumber(
+          line.grossProfit
+        )
+
+      : revenue -
+        (
+          quantity *
+          getReplacementCost(
+            gasId
+          )
+        )
+
+  );
   return {
 
     gasId,
@@ -4636,22 +4945,25 @@ export function createEmptyFinanceSummary() {
 
     },
 
+wallets: {
 
-    wallets: {
+  financialMode:
+    FINANCIAL_MODES.EXACT,
 
-      [GAS_IDS.DURAGAS]:
-        getGasWalletBalance(
-          GAS_IDS.DURAGAS
-        ),
+  general:
+    getGeneralWalletBalance(),
 
-      [GAS_IDS.KING_GAS]:
-        getGasWalletBalance(
-          GAS_IDS.KING_GAS
-        ),
+  [GAS_IDS.DURAGAS]:
+    getGasWalletBalance(
+      GAS_IDS.DURAGAS
+    ),
 
-    },
+  [GAS_IDS.KING_GAS]:
+    getGasWalletBalance(
+      GAS_IDS.KING_GAS
+    ),
 
-
+},
     byGas: {
 
       [GAS_IDS.DURAGAS]: {
@@ -4755,6 +5067,15 @@ export function getWalletSummary(
     null
 ) {
 
+  const financialMode =
+    getFinancialMode(
+      dayId
+    );
+
+
+  const generalBalance =
+    getGeneralWalletBalance();
+   
   const duragas =
     getWalletDayBreakdown(
       GAS_IDS.DURAGAS,
@@ -4771,6 +5092,22 @@ export function getWalletSummary(
 
   return {
 
+         financialMode,
+
+    general: {
+
+      active:
+        financialMode ===
+        FINANCIAL_MODES.GENERAL,
+
+      balance:
+        generalBalance,
+
+      reservePerUnit:
+        GENERAL_RESERVE_PER_UNIT,
+
+    },
+     
     [GAS_IDS.DURAGAS]: {
 
       /*
@@ -4887,15 +5224,17 @@ export function getWalletSummary(
 /* =========================================================
    DINERO QUE FALTA PARA UNA REPOSICIÓN
 ========================================================= */
-
 export function calculateReplenishmentFunding({
 
   gasId,
 
   quantity,
 
-}) {
+  dayId =
+    getActiveDay()?.id ??
+    null,
 
+}) {
   assertGasType(
     gasId
   );
@@ -4913,7 +5252,87 @@ export function calculateReplenishmentFunding({
       qty
     );
 
+const financialMode =
+  getFinancialMode(
+    dayId
+  );
 
+
+if (
+  financialMode ===
+  FINANCIAL_MODES.GENERAL
+) {
+
+  const walletBefore =
+    getGeneralWalletBalance();
+
+
+  const walletUsed =
+    roundMoney(
+      Math.min(
+        walletBefore,
+        gasCost
+      )
+    );
+
+
+  const extraNeeded =
+    roundMoney(
+      Math.max(
+        0,
+        gasCost -
+        walletBefore
+      )
+    );
+
+
+  const walletRemainingWithoutExtra =
+    roundMoney(
+      Math.max(
+        0,
+        walletBefore -
+        gasCost
+      )
+    );
+
+
+  return {
+
+    gasId,
+
+    quantity:
+      qty,
+
+    gasCost,
+
+    financialMode:
+      FINANCIAL_MODES.GENERAL,
+
+    walletBefore,
+
+    extraNeeded,
+
+    walletRemainingWithoutExtra,
+
+    fundingBreakdown: {
+
+      generalAvailable:
+        walletBefore,
+
+      fromGeneralWallet:
+        walletUsed,
+
+      fromExtraContribution:
+        extraNeeded,
+
+      generalAfter:
+        walletRemainingWithoutExtra,
+
+    },
+
+  };
+
+}
   const walletBefore =
     getGasWalletBalance(
       gasId
