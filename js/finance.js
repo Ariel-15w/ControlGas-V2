@@ -38,7 +38,6 @@
 
    No volvemos a restar $1.70 de la ganancia.
 ========================================================= */
-
 import {
   GAS_IDS,
   GAS_ID_LIST,
@@ -47,20 +46,21 @@ import {
   MOVEMENT_TYPES,
   WALLET_MOVEMENT_TYPES,
   EXTRA_CONTRIBUTION_SOURCES,
+  FINANCIAL_MODES,
+  GENERAL_RESERVE_PER_UNIT,
   getReplacementCost,
 } from './config.js';
-
 
 import {
   getState,
   getActiveDay,
   getWalletBalance,
+  getGeneralWalletBalance,
   getSaleById,
   getSaleLines,
   createMovementBase,
   touchState,
 } from './state.js';
-
 
 import {
   cloneData,
@@ -136,8 +136,80 @@ export function getWalletsSnapshot() {
 
 }
 
+/* =========================================================
+   MÉTODO FINANCIERO DE LA JORNADA
+========================================================= */
+
+export function getFinancialMode(
+  dayId =
+    getActiveDay()?.id ??
+    null
+) {
+
+  if (!dayId) {
+
+    return FINANCIAL_MODES.EXACT;
+
+  }
 
 
+  const day =
+    getState()
+      .days
+      .find(
+        item =>
+          item.id ===
+          dayId
+      );
+
+
+  return (
+    day?.financialMode ??
+    FINANCIAL_MODES.EXACT
+  );
+
+}
+/* =========================================================
+   RESERVA UNITARIA SEGÚN MÉTODO FINANCIERO
+========================================================= */
+
+export function getSaleReserveUnitCost(
+  gasId,
+  dayId =
+    getActiveDay()?.id ??
+    null
+) {
+
+  assertGasType(
+    gasId
+  );
+
+
+  const mode =
+    getFinancialMode(
+      dayId
+    );
+
+
+  if (
+    mode ===
+    FINANCIAL_MODES.GENERAL
+  ) {
+
+    return roundMoney(
+      GENERAL_RESERVE_PER_UNIT
+    );
+
+  }
+
+
+  return roundMoney(
+    getReplacementCost(
+      gasId
+    )
+  );
+
+}
 /* =========================================================
    SALDO DE BOLSA
 ========================================================= */
@@ -650,77 +722,85 @@ export function getWalletDayBreakdown(
           )
         );
 
+/* ===============================================
+   2. APORTES ADICIONALES
+=============================================== */
+
+const fromContributions =
+  roundMoney(
+    Math.min(
+      contributionsRemaining,
+      remainingSpend
+    )
+  );
 
 
-      /* ===============================================
-         2. RESERVA GENERADA HOY
-      =============================================== */
-
-      const fromToday =
-        roundMoney(
-          Math.min(
-            todayReserveRemaining,
-            remainingSpend
-          )
-        );
+contributionsRemaining =
+  roundMoney(
+    Math.max(
+      0,
+      contributionsRemaining -
+      fromContributions
+    )
+  );
 
 
-      todayReserveRemaining =
-        roundMoney(
-          Math.max(
-            0,
-            todayReserveRemaining -
-            fromToday
-          )
-        );
+usedFromContributions =
+  roundMoney(
+    usedFromContributions +
+    fromContributions
+  );
 
 
-      usedFromToday =
-        roundMoney(
-          usedFromToday +
-          fromToday
-        );
-
-
-      remainingSpend =
-        roundMoney(
-          Math.max(
-            0,
-            remainingSpend -
-            fromToday
-          )
-        );
+remainingSpend =
+  roundMoney(
+    Math.max(
+      0,
+      remainingSpend -
+      fromContributions
+    )
+  );
 
 
 
-      /* ===============================================
-         3. APORTES ADICIONALES
-      =============================================== */
+/* ===============================================
+   3. RESERVA GENERADA HOY
+=============================================== */
 
-      const fromContributions =
-        roundMoney(
-          Math.min(
-            contributionsRemaining,
-            remainingSpend
-          )
-        );
-
-
-      contributionsRemaining =
-        roundMoney(
-          Math.max(
-            0,
-            contributionsRemaining -
-            fromContributions
-          )
-        );
+const fromToday =
+  roundMoney(
+    Math.min(
+      todayReserveRemaining,
+      remainingSpend
+    )
+  );
 
 
-      usedFromContributions =
-        roundMoney(
-          usedFromContributions +
-          fromContributions
-        );
+todayReserveRemaining =
+  roundMoney(
+    Math.max(
+      0,
+      todayReserveRemaining -
+      fromToday
+    )
+  );
+
+
+usedFromToday =
+  roundMoney(
+    usedFromToday +
+    fromToday
+  );
+
+
+remainingSpend =
+  roundMoney(
+    Math.max(
+      0,
+      remainingSpend -
+      fromToday
+    )
+  );
 
     }
   );
@@ -1216,7 +1296,391 @@ export function addMoneyToWallet({
 
 }
 
+/* =========================================================
+   AGREGAR DINERO A LA BOLSA GENERAL
+========================================================= */
 
+export function addMoneyToGeneralWallet({
+
+  amount,
+
+  type =
+    WALLET_MOVEMENT_TYPES
+      .SALE_RESERVE,
+
+  dayId = null,
+
+  referenceId = null,
+
+  note = '',
+
+  source = null,
+
+  paymentMethod = null,
+
+  impactsCash = false,
+
+  metadata = {},
+
+  createdAt =
+    nowIso(),
+
+}) {
+
+  const value =
+    roundMoney(
+      toNonNegativeNumber(
+        amount
+      )
+    );
+
+
+  if (
+    value <= 0
+  ) {
+
+    return null;
+
+  }
+
+
+  const state =
+    getState();
+
+
+  const currentBalance =
+    getGeneralWalletBalance();
+
+
+  const effectiveDayId =
+    dayId ??
+    getActiveDay()?.id ??
+    null;
+
+
+  const movement = {
+
+    id:
+      uid('wallet'),
+
+    dayId:
+      effectiveDayId,
+
+    gasId:
+      null,
+
+    generalWallet:
+      true,
+
+    type,
+
+    amount:
+      value,
+
+    balanceBefore:
+      currentBalance,
+
+    balanceAfter:
+      roundMoney(
+        currentBalance +
+        value
+      ),
+
+    referenceId,
+
+    source,
+
+    paymentMethod,
+
+    impactsCash:
+      Boolean(
+        impactsCash
+      ),
+
+    note:
+      String(
+        note ?? ''
+      ),
+
+    metadata:
+      cloneData({
+        ...(metadata ?? {}),
+        generalWallet: true,
+      }),
+
+    createdAt,
+
+  };
+
+
+  state.generalWallet =
+    movement.balanceAfter;
+
+
+  state.walletMovements.push(
+    movement
+  );
+
+
+  pushGeneralMovement({
+
+    dayId:
+      effectiveDayId,
+
+    type:
+      MOVEMENT_TYPES.WALLET,
+
+    gasId:
+      null,
+
+    referenceId,
+
+    reference:
+      'Bolsa General',
+
+    detail:
+      note ||
+      'Ingreso a Bolsa General',
+
+    value,
+
+    metadata: {
+
+      walletMovementId:
+        movement.id,
+
+      walletMovementType:
+        type,
+
+      balanceBefore:
+        currentBalance,
+
+      balanceAfter:
+        movement.balanceAfter,
+
+      source,
+
+      paymentMethod,
+
+      impactsCash:
+        Boolean(
+          impactsCash
+        ),
+
+      generalWallet:
+        true,
+
+      ...(metadata ?? {}),
+
+    },
+
+    createdAt,
+
+  });
+
+
+  touchState();
+
+
+  return movement;
+
+}
+
+/* =========================================================
+   RETIRAR DINERO DE LA BOLSA GENERAL
+========================================================= */
+
+export function spendGeneralWalletMoney({
+
+  amount,
+
+  type =
+    WALLET_MOVEMENT_TYPES
+      .REPLENISHMENT_PAYMENT,
+
+  dayId = null,
+
+  referenceId = null,
+
+  note = '',
+
+  metadata = {},
+
+  createdAt =
+    nowIso(),
+
+}) {
+
+  const value =
+    roundMoney(
+      toNonNegativeNumber(
+        amount
+      )
+    );
+
+
+  if (
+    value <= 0
+  ) {
+
+    return null;
+
+  }
+
+
+  const state =
+    getState();
+
+
+  const currentBalance =
+    getGeneralWalletBalance();
+
+
+  if (
+    value >
+    currentBalance + 0.005
+  ) {
+
+    throw new Error(
+      `La Bolsa General tiene ${currentBalance.toFixed(2)} y necesitas ${value.toFixed(2)}.`
+    );
+
+  }
+
+
+  const effectiveDayId =
+    dayId ??
+    getActiveDay()?.id ??
+    null;
+
+
+  const balanceAfter =
+    roundMoney(
+      Math.max(
+        0,
+        currentBalance -
+        value
+      )
+    );
+
+
+  const movement = {
+
+    id:
+      uid('wallet'),
+
+    dayId:
+      effectiveDayId,
+
+    gasId:
+      null,
+
+    generalWallet:
+      true,
+
+    type,
+
+    amount:
+      -value,
+
+    balanceBefore:
+      currentBalance,
+
+    balanceAfter,
+
+    referenceId,
+
+    source:
+      'general_wallet',
+
+    paymentMethod:
+      null,
+
+    impactsCash:
+      false,
+
+    note:
+      String(
+        note ?? ''
+      ),
+
+    metadata:
+      cloneData({
+        ...(metadata ?? {}),
+        generalWallet: true,
+      }),
+
+    createdAt,
+
+  };
+
+
+  state.generalWallet =
+    balanceAfter;
+
+
+  state.walletMovements.push(
+    movement
+  );
+
+
+  pushGeneralMovement({
+
+    dayId:
+      effectiveDayId,
+
+    type:
+      MOVEMENT_TYPES.WALLET,
+
+    gasId:
+      null,
+
+    referenceId,
+
+    reference:
+      'Bolsa General',
+
+    detail:
+      note ||
+      'Salida de Bolsa General',
+
+    value:
+      -value,
+
+    metadata: {
+
+      walletMovementId:
+        movement.id,
+
+      walletMovementType:
+        type,
+
+      balanceBefore:
+        currentBalance,
+
+      balanceAfter,
+
+      impactsCash:
+        false,
+
+      generalWallet:
+        true,
+
+      ...(metadata ?? {}),
+
+    },
+
+    createdAt,
+
+  });
+
+
+  touchState();
+
+
+  return movement;
+
+}
 
 /* =========================================================
    RETIRAR DINERO DE UNA BOLSA
@@ -1394,6 +1858,10 @@ export function calculateSaleFinancialPreview({
 
   price = 0,
 
+  dayId =
+    getActiveDay()?.id ??
+    null,
+
 }) {
 
   const unitPrice =
@@ -1431,14 +1899,14 @@ export function calculateSaleFinancialPreview({
           unitPrice
         );
 
-
-      const reserve =
-        calculateReplacementCost(
-          gasId,
-          quantity
-        );
-
-
+const reserve =
+  roundMoney(
+    quantity *
+    getSaleReserveUnitCost(
+      gasId,
+      dayId
+    )
+  );
       const profit =
         roundMoney(
           revenue -
@@ -1549,17 +2017,21 @@ export function calculateReserveFundingPlan({
 
   alreadyFunded = {},
 
+  dayId =
+    getActiveDay()?.id ??
+    null,
+
 }) {
+const preview =
+  calculateSaleFinancialPreview({
 
-  const preview =
-    calculateSaleFinancialPreview({
+    quantities,
 
-      quantities,
+    price,
 
-      price,
+    dayId,
 
-    });
-
+  });
 
   const collected =
     roundMoney(
@@ -1900,23 +2372,122 @@ export function fundSaleReplacementReserve({
 
 }) {
 
-  const plan =
-    calculateReserveFundingPlan({
+ const plan =
+  calculateReserveFundingPlan({
 
-      quantities,
+    quantities,
 
-      price,
+    price,
 
-      amountCollected,
+    amountCollected,
 
-      alreadyFunded,
+    alreadyFunded,
 
-    });
+    dayId:
+      dayId ??
+      getActiveDay()?.id ??
+      null,
 
-
+  });
   const movements = [];
 
+const effectiveDayId =
+  dayId ??
+  getActiveDay()?.id ??
+  null;
 
+
+const financialMode =
+  getFinancialMode(
+    effectiveDayId
+  );
+
+
+if (
+  financialMode ===
+  FINANCIAL_MODES.GENERAL
+) {
+
+  const amount =
+    roundMoney(
+      plan.allocatedTotal
+    );
+
+
+  if (
+    amount > 0
+  ) {
+
+    const movement =
+      addMoneyToGeneralWallet({
+
+        amount,
+
+        type:
+          WALLET_MOVEMENT_TYPES
+            .SALE_RESERVE,
+
+        dayId:
+          effectiveDayId,
+
+        referenceId:
+          saleId,
+
+        note:
+          'Dinero apartado de venta en Bolsa General',
+
+        source:
+          'sale',
+
+        paymentMethod,
+
+        impactsCash:
+          paymentMethod ===
+          PAYMENT_METHODS.CASH,
+
+        metadata: {
+
+          saleId,
+
+          allocation:
+            cloneData(
+              plan.allocation
+            ),
+
+          financialMode:
+            FINANCIAL_MODES.GENERAL,
+
+        },
+
+        createdAt,
+
+      });
+
+
+    if (movement) {
+
+      movements.push(
+        movement
+      );
+
+    }
+
+  }
+
+
+  return {
+
+    ...plan,
+
+    financialMode:
+      FINANCIAL_MODES.GENERAL,
+
+    walletMovements:
+      movements,
+
+  };
+
+}
   GAS_ID_LIST.forEach(
     gasId => {
 
@@ -2230,7 +2801,51 @@ export function payReplacementFromWallet({
     getActiveDay()?.id ??
     null;
 
+const financialMode =
+  getFinancialMode(
+    effectiveDayId
+  );
 
+
+if (
+  financialMode ===
+  FINANCIAL_MODES.GENERAL
+) {
+
+  return spendGeneralWalletMoney({
+
+    amount:
+      value,
+
+    type:
+      WALLET_MOVEMENT_TYPES
+        .REPLENISHMENT_PAYMENT,
+
+    dayId:
+      effectiveDayId,
+
+    referenceId:
+      replenishmentId,
+
+    note:
+      `Pago de reposición ${getGasName(gasId)} desde Bolsa General`,
+
+    metadata: {
+
+      replenishmentId,
+
+      gasId,
+
+      financialMode:
+        FINANCIAL_MODES.GENERAL,
+
+    },
+
+    createdAt,
+
+  });
+
+}
   /*
     =====================================================
     COMPOSICIÓN DE LA BOLSA ANTES DEL PAGO
@@ -2290,59 +2905,55 @@ export function payReplacementFromWallet({
       )
     );
 
+/*
+  =====================================================
+  2. DESPUÉS APORTES ADICIONALES
+  =====================================================
+*/
+
+const fromContributions =
+  roundMoney(
+    Math.min(
+      breakdown.contributionsRemaining,
+      remaining
+    )
+  );
 
 
-  /*
-    =====================================================
-    2. DESPUÉS RESERVA GENERADA HOY
-    =====================================================
-  */
-
-  const fromToday =
-    roundMoney(
-      Math.min(
-        breakdown.todayReserveRemaining,
-        remaining
-      )
-    );
-
-
-  remaining =
-    roundMoney(
-      Math.max(
-        0,
-        remaining -
-        fromToday
-      )
-    );
+remaining =
+  roundMoney(
+    Math.max(
+      0,
+      remaining -
+      fromContributions
+    )
+  );
 
 
 
-  /*
-    =====================================================
-    3. FINALMENTE APORTES ADICIONALES
-    =====================================================
-  */
+/*
+  =====================================================
+  3. FINALMENTE RESERVA GENERADA HOY
+  =====================================================
+*/
 
-  const fromContributions =
-    roundMoney(
-      Math.min(
-        breakdown.contributionsRemaining,
-        remaining
-      )
-    );
-
-
-  remaining =
-    roundMoney(
-      Math.max(
-        0,
-        remaining -
-        fromContributions
-      )
-    );
+const fromToday =
+  roundMoney(
+    Math.min(
+      breakdown.todayReserveRemaining,
+      remaining
+    )
+  );
 
 
+remaining =
+  roundMoney(
+    Math.max(
+      0,
+      remaining -
+      fromToday
+    )
+  );
 
   /*
     En funcionamiento normal remaining debe quedar 0.
@@ -4346,55 +4957,51 @@ export function calculateReplenishmentFunding({
       )
     );
 
+/* =======================================================
+   2. DESPUÉS USAR APORTES ADICIONALES
+======================================================= */
+
+const fromContributions =
+  roundMoney(
+    Math.min(
+      breakdown.contributionsRemaining,
+      remainingCost
+    )
+  );
 
 
-  /* =======================================================
-     2. DESPUÉS USAR LO GENERADO HOY
-  ======================================================= */
-
-  const fromToday =
-    roundMoney(
-      Math.min(
-        breakdown.todayReserveRemaining,
-        remainingCost
-      )
-    );
-
-
-  remainingCost =
-    roundMoney(
-      Math.max(
-        0,
-        remainingCost -
-        fromToday
-      )
-    );
+remainingCost =
+  roundMoney(
+    Math.max(
+      0,
+      remainingCost -
+      fromContributions
+    )
+  );
 
 
 
-  /* =======================================================
-     3. DESPUÉS APORTES QUE YA EXISTAN HOY
-  ======================================================= */
+/* =======================================================
+   3. FINALMENTE USAR LO GENERADO HOY
+======================================================= */
 
-  const fromContributions =
-    roundMoney(
-      Math.min(
-        breakdown.contributionsRemaining,
-        remainingCost
-      )
-    );
-
-
-  remainingCost =
-    roundMoney(
-      Math.max(
-        0,
-        remainingCost -
-        fromContributions
-      )
-    );
+const fromToday =
+  roundMoney(
+    Math.min(
+      breakdown.todayReserveRemaining,
+      remainingCost
+    )
+  );
 
 
+remainingCost =
+  roundMoney(
+    Math.max(
+      0,
+      remainingCost -
+      fromToday
+    )
+  );
 
   /* =======================================================
      4. SI TODAVÍA FALTA DINERO
