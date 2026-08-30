@@ -78,8 +78,20 @@ export const GAS_TYPES = Object.freeze({
       para poder reponerlo posteriormente.
     */
 
-    replacementCost: 1.70,
+     /*
+  Costo total real de reposición.
+*/
+replacementCost: 1.70,
 
+/*
+  DURAGAS se paga en dos momentos:
+
+  $1.15 -> factura / depósito posterior
+  $0.55 -> se paga cuando llega el carro
+*/
+invoiceCost: 1.15,
+
+arrivalCost: 0.55,
   }),
 
 
@@ -99,8 +111,10 @@ export const GAS_TYPES = Object.freeze({
       Dinero que debe apartarse por cada cilindro vendido
       para poder reponerlo posteriormente.
     */
-
-    replacementCost: 1.48,
+/*
+  King Gas se paga completo en una sola operación.
+*/
+singlePaymentCost: 1.48,
 
   }),
 
