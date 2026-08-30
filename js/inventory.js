@@ -239,6 +239,28 @@ export function getControlledGasTotal(
 
     +
 
+    /*
+      Apartados para el vendedor.
+      Siguen físicamente en la bodega.
+    */
+    toNonNegativeInteger(
+      gas.routeReserved
+    )
+
+    +
+
+    /*
+      Tanques que actualmente están
+      con el vendedor de $2.
+      No están en bodega, pero siguen
+      perteneciendo al negocio.
+    */
+    toNonNegativeInteger(
+      gas.route
+    )
+
+    +
+
     (
       INVENTORY_CONFIG
         .countLoanedAsControlledProperty
@@ -253,9 +275,6 @@ export function getControlledGasTotal(
   );
 
 }
-
-
-
 /* =========================================================
    TOTAL FÍSICO EN BODEGA POR MARCA
 ========================================================= */
@@ -266,7 +285,6 @@ export function getControlledGasTotal(
   Los reservados sí están físicamente
   dentro de la bodega, aunque ya tengan dueño.
 */
-
 export function getPhysicalGasTotal(
   gasId
 ) {
@@ -295,11 +313,20 @@ export function getPhysicalGasTotal(
       gas.reserved
     )
 
+    +
+
+    /*
+      Estos están apartados para el vendedor,
+      pero todavía están físicamente
+      dentro de la bodega.
+    */
+    toNonNegativeInteger(
+      gas.routeReserved
+    )
+
   );
 
 }
-
-
 
 /* =========================================================
    TOTAL GENERAL CONTROLADO
@@ -622,7 +649,6 @@ export function setInventoryQuantity(
 /* =========================================================
    ESTABLECER INVENTARIO COMPLETO
 ========================================================= */
-
 export function setInventory(
   inventory
 ) {
@@ -632,6 +658,28 @@ export function setInventory(
 
       const source =
         inventory?.[gasId] ?? {};
+
+
+      /*
+        Guardamos los valores actuales de
+        ruta antes de modificar el inventario.
+
+        Esto es importante porque una cuenta
+        del vendedor puede continuar de un día
+        para otro.
+      */
+      const currentRoute =
+        getInventoryQuantity(
+          gasId,
+          INVENTORY_BUCKETS.ROUTE
+        );
+
+
+      const currentRouteReserved =
+        getInventoryQuantity(
+          gasId,
+          INVENTORY_BUCKETS.ROUTE_RESERVED
+        );
 
 
       setInventoryQuantity(
@@ -661,6 +709,40 @@ export function setInventory(
         source.loaned
       );
 
+
+      /*
+        Si el objeto recibido contiene route,
+        usamos ese valor.
+
+        Si viene de un formulario antiguo que
+        todavía no conoce route, conservamos
+        el valor lógico existente.
+      */
+      setInventoryQuantity(
+        gasId,
+        INVENTORY_BUCKETS.ROUTE,
+
+        source.route !==
+          undefined
+
+          ? source.route
+
+          : currentRoute
+      );
+
+
+      setInventoryQuantity(
+        gasId,
+        INVENTORY_BUCKETS.ROUTE_RESERVED,
+
+        source.routeReserved !==
+          undefined
+
+          ? source.routeReserved
+
+          : currentRouteReserved
+      );
+
     }
   );
 
@@ -668,9 +750,6 @@ export function setInventory(
   return getInventorySnapshot();
 
 }
-
-
-
 /* =========================================================
    APLICAR APERTURA
 ========================================================= */
@@ -1058,7 +1137,669 @@ export function pickupReservedCylinders(
 
 }
 
+/* =========================================================
+   VENDEDOR DE $2 - SACAR CILINDROS A RUTA
+========================================================= */
 
+/*
+  Cuando el vendedor se lleva cilindros:
+
+  full  - cantidad
+  route + cantidad
+
+  IMPORTANTE:
+  Todavía NO son ventas.
+*/
+
+export function dispatchRouteCylinders(
+  quantities = {}
+) {
+
+  const validation =
+    validateSaleStock(
+      quantities
+    );
+
+
+  if (!validation.valid) {
+
+    throw new Error(
+      validation.errors.join(
+        ' '
+      )
+    );
+
+  }
+
+
+  const before =
+    getInventorySnapshot();
+
+
+  try {
+
+    GAS_ID_LIST.forEach(
+      gasId => {
+
+        const quantity =
+          toNonNegativeInteger(
+            quantities[gasId]
+          );
+
+
+        if (
+          quantity === 0
+        ) {
+
+          return;
+
+        }
+
+
+        changeInventoryQuantity(
+          gasId,
+          INVENTORY_BUCKETS.FULL,
+          -quantity
+        );
+
+
+        changeInventoryQuantity(
+          gasId,
+          INVENTORY_BUCKETS.ROUTE,
+          quantity
+        );
+
+      }
+    );
+
+
+    return {
+
+      before,
+
+      after:
+        getInventorySnapshot(),
+
+    };
+
+  }
+  catch (error) {
+
+    setInventory(
+      before
+    );
+
+
+    throw error;
+
+  }
+
+}
+
+
+/* =========================================================
+   VENDEDOR DE $2 - RENDIR VIAJE
+========================================================= */
+
+/*
+  sold:
+  cilindros que realmente vendió.
+
+  returnedFull:
+  cilindros llenos que NO vendió
+  y regresan físicamente a la bodega.
+
+  emptiesReceived:
+  vacíos que entrega al regresar.
+
+  Ejemplo:
+
+  Tenía en ruta:
+  10 Duragas
+  2 King Gas
+
+  Vendió:
+  5 Duragas
+  1 King Gas
+
+  Devolvió llenos:
+  3 Duragas
+  1 King Gas
+
+  Entonces todavía conserva:
+
+  2 Duragas en ruta.
+*/
+
+export function settleRouteInventory({
+
+  sold = {},
+
+  returnedFull = {},
+
+  emptiesReceived = {},
+
+}) {
+
+  const before =
+    getInventorySnapshot();
+
+
+  try {
+
+    /*
+      Primero validamos TODAS las marcas
+      antes de mover un solo cilindro.
+    */
+    GAS_ID_LIST.forEach(
+      gasId => {
+
+        const soldQuantity =
+          toNonNegativeInteger(
+            sold[gasId]
+          );
+
+
+        const returnedQuantity =
+          toNonNegativeInteger(
+            returnedFull[gasId]
+          );
+
+
+        const routeQuantity =
+          getInventoryQuantity(
+            gasId,
+            INVENTORY_BUCKETS.ROUTE
+          );
+
+
+        const accounted =
+          soldQuantity +
+          returnedQuantity;
+
+
+        if (
+          accounted >
+          routeQuantity
+        ) {
+
+          throw new Error(
+            `${
+              gasId ===
+              GAS_IDS.DURAGAS
+
+                ? 'Duragas'
+
+                : 'King Gas'
+            }: intentas rendir ${accounted} cilindros, pero solo hay ${routeQuantity} con el vendedor.`
+          );
+
+        }
+
+      }
+    );
+
+
+    /*
+      Después de validar todo,
+      aplicamos los movimientos.
+    */
+    GAS_ID_LIST.forEach(
+      gasId => {
+
+        const soldQuantity =
+          toNonNegativeInteger(
+            sold[gasId]
+          );
+
+
+        const returnedQuantity =
+          toNonNegativeInteger(
+            returnedFull[gasId]
+          );
+
+
+        /*
+          Los vendidos salen definitivamente
+          de la categoría route.
+        */
+        if (
+          soldQuantity > 0
+        ) {
+
+          changeInventoryQuantity(
+            gasId,
+            INVENTORY_BUCKETS.ROUTE,
+            -soldQuantity
+          );
+
+        }
+
+
+        /*
+          Los que no vendió regresan:
+
+          route - cantidad
+          full  + cantidad
+        */
+        if (
+          returnedQuantity > 0
+        ) {
+
+          changeInventoryQuantity(
+            gasId,
+            INVENTORY_BUCKETS.ROUTE,
+            -returnedQuantity
+          );
+
+
+          changeInventoryQuantity(
+            gasId,
+            INVENTORY_BUCKETS.FULL,
+            returnedQuantity
+          );
+
+        }
+
+      }
+    );
+
+
+    /*
+      Los vacíos que físicamente entrega
+      entran a la bodega.
+
+      Pueden ser de marcas distintas
+      a las que vendió.
+    */
+    receiveEmptyCylinders(
+      emptiesReceived
+    );
+
+
+    return {
+
+      before,
+
+      after:
+        getInventorySnapshot(),
+
+    };
+
+  }
+  catch (error) {
+
+    setInventory(
+      before
+    );
+
+
+    throw error;
+
+  }
+
+}
+
+/* =========================================================
+   VENDEDOR DE $2 - APARTAR CILINDROS
+========================================================= */
+
+/*
+  Apartar significa:
+
+  full          - cantidad
+  routeReserved + cantidad
+
+  Los cilindros siguen físicamente
+  dentro de la bodega.
+
+  NO son una venta.
+  NO están todavía con el vendedor.
+*/
+
+export function reserveRouteCylinders(
+  quantities = {}
+) {
+
+  const validation =
+    validateSaleStock(
+      quantities
+    );
+
+
+  if (!validation.valid) {
+
+    throw new Error(
+      validation.errors.join(
+        ' '
+      )
+    );
+
+  }
+
+
+  const before =
+    getInventorySnapshot();
+
+
+  try {
+
+    GAS_ID_LIST.forEach(
+      gasId => {
+
+        const quantity =
+          toNonNegativeInteger(
+            quantities[gasId]
+          );
+
+
+        if (
+          quantity === 0
+        ) {
+
+          return;
+
+        }
+
+
+        changeInventoryQuantity(
+          gasId,
+          INVENTORY_BUCKETS.FULL,
+          -quantity
+        );
+
+
+        changeInventoryQuantity(
+          gasId,
+          INVENTORY_BUCKETS.ROUTE_RESERVED,
+          quantity
+        );
+
+      }
+    );
+
+
+    return {
+
+      before,
+
+      after:
+        getInventorySnapshot(),
+
+    };
+
+  }
+  catch (error) {
+
+    setInventory(
+      before
+    );
+
+
+    throw error;
+
+  }
+
+}
+
+
+/* =========================================================
+   VENDEDOR DE $2 - LIBERAR APARTADO
+========================================================= */
+
+/*
+  Si finalmente NO se va a llevar
+  algunos cilindros apartados:
+
+  routeReserved - cantidad
+  full          + cantidad
+*/
+
+export function releaseRouteReservedCylinders(
+  quantities = {}
+) {
+
+  const before =
+    getInventorySnapshot();
+
+
+  try {
+
+    /*
+      Primero validamos todo.
+    */
+    GAS_ID_LIST.forEach(
+      gasId => {
+
+        const quantity =
+          toNonNegativeInteger(
+            quantities[gasId]
+          );
+
+
+        const reservedQuantity =
+          getInventoryQuantity(
+            gasId,
+            INVENTORY_BUCKETS.ROUTE_RESERVED
+          );
+
+
+        if (
+          quantity >
+          reservedQuantity
+        ) {
+
+          throw new Error(
+            `${
+              gasId ===
+              GAS_IDS.DURAGAS
+
+                ? 'Duragas'
+
+                : 'King Gas'
+            }: intentas liberar ${quantity}, pero solo hay ${reservedQuantity} apartados para el vendedor.`
+          );
+
+        }
+
+      }
+    );
+
+
+    /*
+      Después aplicamos los cambios.
+    */
+    GAS_ID_LIST.forEach(
+      gasId => {
+
+        const quantity =
+          toNonNegativeInteger(
+            quantities[gasId]
+          );
+
+
+        if (
+          quantity === 0
+        ) {
+
+          return;
+
+        }
+
+
+        changeInventoryQuantity(
+          gasId,
+          INVENTORY_BUCKETS.ROUTE_RESERVED,
+          -quantity
+        );
+
+
+        changeInventoryQuantity(
+          gasId,
+          INVENTORY_BUCKETS.FULL,
+          quantity
+        );
+
+      }
+    );
+
+
+    return {
+
+      before,
+
+      after:
+        getInventorySnapshot(),
+
+    };
+
+  }
+  catch (error) {
+
+    setInventory(
+      before
+    );
+
+
+    throw error;
+
+  }
+
+}
+
+
+/* =========================================================
+   VENDEDOR DE $2 - RETIRAR CILINDROS APARTADOS
+========================================================= */
+
+/*
+  Cuando realmente viene a recoger
+  cilindros que ya estaban apartados:
+
+  routeReserved - cantidad
+  route         + cantidad
+
+  IMPORTANTE:
+  NO toca full porque esos cilindros
+  ya habían salido de full cuando
+  fueron apartados.
+
+  Tampoco se registra venta todavía.
+*/
+
+export function pickupRouteReservedCylinders(
+  quantities = {}
+) {
+
+  const before =
+    getInventorySnapshot();
+
+
+  try {
+
+    /*
+      Validamos que realmente exista
+      esa cantidad apartada.
+    */
+    GAS_ID_LIST.forEach(
+      gasId => {
+
+        const quantity =
+          toNonNegativeInteger(
+            quantities[gasId]
+          );
+
+
+        const reservedQuantity =
+          getInventoryQuantity(
+            gasId,
+            INVENTORY_BUCKETS.ROUTE_RESERVED
+          );
+
+
+        if (
+          quantity >
+          reservedQuantity
+        ) {
+
+          throw new Error(
+            `${
+              gasId ===
+              GAS_IDS.DURAGAS
+
+                ? 'Duragas'
+
+                : 'King Gas'
+            }: intenta retirar ${quantity}, pero solo tiene ${reservedQuantity} apartados.`
+          );
+
+        }
+
+      }
+    );
+
+
+    /*
+      Movemos los cilindros desde
+      apartado en bodega hacia ruta.
+    */
+    GAS_ID_LIST.forEach(
+      gasId => {
+
+        const quantity =
+          toNonNegativeInteger(
+            quantities[gasId]
+          );
+
+
+        if (
+          quantity === 0
+        ) {
+
+          return;
+
+        }
+
+
+        changeInventoryQuantity(
+          gasId,
+          INVENTORY_BUCKETS.ROUTE_RESERVED,
+          -quantity
+        );
+
+
+        changeInventoryQuantity(
+          gasId,
+          INVENTORY_BUCKETS.ROUTE,
+          quantity
+        );
+
+      }
+    );
+
+
+    return {
+
+      before,
+
+      after:
+        getInventorySnapshot(),
+
+    };
+
+  }
+  catch (error) {
+
+    setInventory(
+      before
+    );
+
+
+    throw error;
+
+  }
+
+}
 
 /* =========================================================
    REPOSICIÓN
