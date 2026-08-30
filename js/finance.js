@@ -1502,11 +1502,13 @@ export function spendGeneralWalletMoney({
 
   note = '',
 
-  metadata = {},
+ metadata = {},
 
-  createdAt =
-    nowIso(),
+allowCommitted =
+  false,
 
+createdAt =
+  nowIso(),
 }) {
 
   const value =
@@ -1529,22 +1531,38 @@ export function spendGeneralWalletMoney({
   const state =
     getState();
 
+const currentBalance =
+  getGeneralWalletBalance();
 
-  const currentBalance =
-    getGeneralWalletBalance();
+
+const committed =
+  getSupplierCommittedAmount();
 
 
-  if (
-    value >
-    currentBalance + 0.005
-  ) {
+const available =
+  allowCommitted
 
-    throw new Error(
-      `La Bolsa General tiene ${currentBalance.toFixed(2)} y necesitas ${value.toFixed(2)}.`
-    );
+    ? currentBalance
 
-  }
+    : roundMoney(
+        Math.max(
+          0,
+          currentBalance -
+          committed
+        )
+      );
 
+
+if (
+  value >
+  available + 0.005
+) {
+
+  throw new Error(
+    `La Bolsa General tiene $${currentBalance.toFixed(2)}, pero solo $${available.toFixed(2)} están disponibles. Hay $${committed.toFixed(2)} comprometidos con el proveedor.`
+  );
+
+}
 
   const effectiveDayId =
     dayId ??
@@ -1700,11 +1718,13 @@ export function spendWalletMoney({
 
   note = '',
 
-  metadata = {},
+metadata = {},
 
-  createdAt =
-    nowIso(),
+allowCommitted =
+  false,
 
+createdAt =
+  nowIso(),
 }) {
 
   assertGasType(
@@ -1729,24 +1749,42 @@ export function spendWalletMoney({
   }
 
 
-  const available =
-    getGasWalletBalance(
-      gasId
-    );
+const currentBalance =
+  getGasWalletBalance(
+    gasId
+  );
 
 
-  if (
-    value >
-    available + 0.005
-  ) {
-
-    throw new Error(
-      `La bolsa ${getGasName(gasId)} tiene ${available.toFixed(2)} y necesitas ${value.toFixed(2)}.`
-    );
-
-  }
+const committed =
+  getSupplierCommittedAmount({
+    gasId,
+  });
 
 
+const available =
+  allowCommitted
+
+    ? currentBalance
+
+    : roundMoney(
+        Math.max(
+          0,
+          currentBalance -
+          committed
+        )
+      );
+
+
+if (
+  value >
+  available + 0.005
+) {
+
+  throw new Error(
+    `La bolsa ${getGasName(gasId)} tiene $${currentBalance.toFixed(2)}, pero solo $${available.toFixed(2)} están disponibles. Hay $${committed.toFixed(2)} comprometidos con el proveedor.`
+  );
+
+}
   return createWalletMovement({
 
     gasId,
@@ -2054,6 +2092,103 @@ export function getSupplierCommittedAmount({
         0
     )
   );
+
+}
+
+/* =========================================================
+   DINERO REALMENTE DISPONIBLE PARA NUEVA REPOSICIÓN
+========================================================= */
+
+export function getAvailableReplacementWalletBalance({
+
+  gasId = null,
+
+  dayId =
+    getActiveDay()?.id ??
+    null,
+
+} = {}) {
+
+  const financialMode =
+    getFinancialMode(
+      dayId
+    );
+
+
+  if (
+    financialMode ===
+    FINANCIAL_MODES.GENERAL
+  ) {
+
+    const balance =
+      getGeneralWalletBalance();
+
+
+    const committed =
+      getSupplierCommittedAmount();
+
+
+    return {
+
+      financialMode:
+        FINANCIAL_MODES.GENERAL,
+
+      balance,
+
+      committed,
+
+      available:
+        roundMoney(
+          Math.max(
+            0,
+            balance -
+            committed
+          )
+        ),
+
+    };
+
+  }
+
+
+  assertGasType(
+    gasId
+  );
+
+
+  const balance =
+    getGasWalletBalance(
+      gasId
+    );
+
+
+  const committed =
+    getSupplierCommittedAmount({
+      gasId,
+    });
+
+
+  return {
+
+    financialMode:
+      FINANCIAL_MODES.EXACT,
+
+    gasId,
+
+    balance,
+
+    committed,
+
+    available:
+      roundMoney(
+        Math.max(
+          0,
+          balance -
+          committed
+        )
+      ),
+
+  };
 
 }
 
@@ -3067,11 +3202,13 @@ export function payReplacementFromWallet({
 
   dayId = null,
 
-  replenishmentId = null,
+ replenishmentId = null,
 
-  createdAt =
-    nowIso(),
+allowCommitted =
+  false,
 
+createdAt =
+  nowIso(),
 }) {
 
   assertGasType(
@@ -3130,18 +3267,20 @@ if (
     note:
       `Pago de reposición ${getGasName(gasId)} desde Bolsa General`,
 
-    metadata: {
+metadata: {
 
-      replenishmentId,
+  replenishmentId,
 
-      gasId,
+  gasId,
 
-      financialMode:
-        FINANCIAL_MODES.GENERAL,
+  financialMode:
+    FINANCIAL_MODES.GENERAL,
 
-    },
+},
 
-    createdAt,
+allowCommitted,
+
+createdAt,
 
   });
 
@@ -3409,7 +3548,7 @@ remaining =
     },
 
     createdAt,
-
+allowCommitted,
   });
 
 }
@@ -5262,40 +5401,145 @@ if (
   financialMode ===
   FINANCIAL_MODES.GENERAL
 ) {
+const walletInfo =
+  getAvailableReplacementWalletBalance({
+    dayId,
+  });
 
-  const walletBefore =
-    getGeneralWalletBalance();
-
-
-  const walletUsed =
-    roundMoney(
-      Math.min(
-        walletBefore,
-        gasCost
-      )
-    );
+const walletInfo =
+  getAvailableReplacementWalletBalance({
+    gasId,
+    dayId,
+  });
 
 
-  const extraNeeded =
-    roundMoney(
-      Math.max(
-        0,
-        gasCost -
-        walletBefore
-      )
-    );
+const walletBefore =
+  walletInfo.available;
 
 
-  const walletRemainingWithoutExtra =
-    roundMoney(
-      Math.max(
-        0,
-        walletBefore -
-        gasCost
-      )
-    );
+/*
+  Obtenemos cómo está compuesta
+  la bolsa EN ESTE MOMENTO.
+*/
+const breakdown =
+  getWalletDayBreakdown(
+    gasId,
+    dayId
+  );
 
 
+/*
+  Solo podemos utilizar como máximo
+  el dinero realmente libre.
+*/
+let remainingWalletTarget =
+  roundMoney(
+    Math.min(
+      gasCost,
+      walletBefore
+    )
+  );
+
+
+/* =======================================================
+   1. USAR PRIMERO SALDO ANTERIOR
+======================================================= */
+
+const fromPrevious =
+  roundMoney(
+    Math.min(
+      breakdown.previousRemaining,
+      remainingWalletTarget
+    )
+  );
+
+
+remainingWalletTarget =
+  roundMoney(
+    Math.max(
+      0,
+      remainingWalletTarget -
+      fromPrevious
+    )
+  );
+
+
+/* =======================================================
+   2. DESPUÉS USAR APORTES ADICIONALES
+======================================================= */
+
+const fromContributions =
+  roundMoney(
+    Math.min(
+      breakdown.contributionsRemaining,
+      remainingWalletTarget
+    )
+  );
+
+
+remainingWalletTarget =
+  roundMoney(
+    Math.max(
+      0,
+      remainingWalletTarget -
+      fromContributions
+    )
+  );
+
+
+/* =======================================================
+   3. FINALMENTE USAR LO GENERADO HOY
+======================================================= */
+
+const fromToday =
+  roundMoney(
+    Math.min(
+      breakdown.todayReserveRemaining,
+      remainingWalletTarget
+    )
+  );
+
+
+remainingWalletTarget =
+  roundMoney(
+    Math.max(
+      0,
+      remainingWalletTarget -
+      fromToday
+    )
+  );
+
+
+const walletUsed =
+  roundMoney(
+    fromPrevious +
+    fromContributions +
+    fromToday
+  );
+
+
+/* =======================================================
+   4. SI TODAVÍA FALTA DINERO
+======================================================= */
+
+const extraNeeded =
+  roundMoney(
+    Math.max(
+      0,
+      gasCost -
+      walletUsed
+    )
+  );
+
+
+const walletRemainingWithoutExtra =
+  roundMoney(
+    Math.max(
+      0,
+      walletBefore -
+      walletUsed
+    )
+  );
   return {
 
     gasId,
