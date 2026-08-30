@@ -267,8 +267,11 @@ supplierPayments: [],
 
     expenses: [],
 
+/* =====================================================
+   REPARTOS DE GANANCIA
+===================================================== */
 
-
+profitDistributions: [],
     /* =====================================================
        AJUSTES DE INVENTARIO
     ===================================================== */
@@ -836,7 +839,50 @@ export function getClosingById(
 
 }
 
+/* =========================================================
+   REPARTOS DE GANANCIA
+========================================================= */
 
+export function getProfitDistributionById(
+  distributionId
+) {
+
+  if (!distributionId) {
+
+    return null;
+
+  }
+
+
+  return (
+    state.profitDistributions.find(
+      distribution =>
+        distribution.id ===
+        distributionId
+    ) ?? null
+  );
+
+}
+
+
+export function getProfitDistributionsByDayId(
+  dayId
+) {
+
+  if (!dayId) {
+
+    return [];
+
+  }
+
+
+  return state.profitDistributions.filter(
+    distribution =>
+      distribution.dayId ===
+      dayId
+  );
+
+}
 
 /* =========================================================
    INVENTARIO DE UNA MARCA
@@ -1183,8 +1229,12 @@ supplierPayments:
       ensureArray(
         source.expenses
       ),
-
-
+     
+profitDistributions:
+  ensureArray(
+    source.profitDistributions
+  ),
+     
     adjustments:
       ensureArray(
         source.adjustments
@@ -1829,6 +1879,141 @@ export function createSupplierPaymentRecord({
     createdAt,
 
     paidAt,
+
+    note:
+      String(
+        note ?? ''
+      ).trim(),
+
+  };
+
+}
+
+/* =========================================================
+   ESTRUCTURA DE REPARTO DE GANANCIA
+========================================================= */
+
+export function createProfitDistributionRecord({
+
+  id,
+
+  dayId,
+
+  createdAt,
+
+  /*
+    Método financiero con el que se calculó
+    la ganancia:
+
+    exact
+    general
+  */
+  financialMode =
+    DEFAULTS.financialMode,
+
+  /*
+    Forma de reparto:
+
+    half
+    employee
+  */
+  distributionMode,
+
+  /*
+    Ganancia disponible antes del reparto.
+  */
+  availableProfitBefore = 0,
+
+  /*
+    Para mitad y mitad.
+  */
+  personOneAmount = 0,
+
+  personTwoAmount = 0,
+
+  /*
+    Para pago a empleado.
+  */
+  employeeAmount = 0,
+
+  ownerAmount = 0,
+
+  /*
+    Total que efectivamente salió
+    de la ganancia disponible.
+  */
+  distributedAmount = 0,
+
+  /*
+    Ganancia que quedó sin repartir
+    después de esta operación.
+  */
+  remainingProfit = 0,
+
+  note = '',
+
+}) {
+
+  return {
+
+    id,
+
+    dayId,
+
+    createdAt,
+
+    financialMode,
+
+    distributionMode,
+
+    availableProfitBefore:
+      roundMoney(
+        toNonNegativeNumber(
+          availableProfitBefore
+        )
+      ),
+
+    personOneAmount:
+      roundMoney(
+        toNonNegativeNumber(
+          personOneAmount
+        )
+      ),
+
+    personTwoAmount:
+      roundMoney(
+        toNonNegativeNumber(
+          personTwoAmount
+        )
+      ),
+
+    employeeAmount:
+      roundMoney(
+        toNonNegativeNumber(
+          employeeAmount
+        )
+      ),
+
+    ownerAmount:
+      roundMoney(
+        toNonNegativeNumber(
+          ownerAmount
+        )
+      ),
+
+    distributedAmount:
+      roundMoney(
+        toNonNegativeNumber(
+          distributedAmount
+        )
+      ),
+
+    remainingProfit:
+      roundMoney(
+        toNonNegativeNumber(
+          remainingProfit
+        )
+      ),
 
     note:
       String(
