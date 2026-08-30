@@ -5495,13 +5495,30 @@ export function getOpenAccounts() {
   return sortNewestFirst(
 
     state.accounts
+  .filter(
+    account => {
 
-      .filter(
-        account =>
-          account.status ===
-          ACCOUNT_STATUS.OPEN
-      )
+      const isOpen =
+        account.status ===
+        ACCOUNT_STATUS.OPEN;
 
+
+      const isRouteSellerPending =
+        Boolean(
+          account.routeAccountId
+        )
+        ||
+        account.isRouteSellerAccount ===
+        true;
+
+
+      return (
+        isOpen &&
+        !isRouteSellerPending
+      );
+
+    }
+  )
       .map(
         account => {
 
