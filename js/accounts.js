@@ -1379,6 +1379,7 @@ const settlementId =
         }
 
       }
+   }
 /*
   Si sobraron vacíos después de cubrir
   la venta actual, pertenecen a deudas
@@ -1416,8 +1417,6 @@ if (
     });
 
 }
-    }
-
 
     const settlement =
       createRouteSettlementRecord({
