@@ -1964,18 +1964,26 @@ export function lendCylinders({
     sourceBucket
   );
 
-
-  if (
-    sourceBucket ===
+if (
+  sourceBucket ===
     INVENTORY_BUCKETS.LOANED
-  ) {
 
-    throw new Error(
-      'No puedes prestar desde la categoría Prestados.'
-    );
+  ||
 
-  }
+  sourceBucket ===
+    INVENTORY_BUCKETS.ROUTE
 
+  ||
+
+  sourceBucket ===
+    INVENTORY_BUCKETS.ROUTE_RESERVED
+) {
+
+  throw new Error(
+    'No puedes prestar cilindros que estén prestados, con el vendedor de $2 o apartados para él.'
+  );
+
+}
 
   const qty =
     toNonNegativeInteger(
@@ -2098,18 +2106,26 @@ export function returnLoanedCylinders({
     destinationBucket
   );
 
-
-  if (
-    destinationBucket ===
+if (
+  destinationBucket ===
     INVENTORY_BUCKETS.LOANED
-  ) {
 
-    throw new Error(
-      'El destino de una devolución no puede ser Prestados.'
-    );
+  ||
 
-  }
+  destinationBucket ===
+    INVENTORY_BUCKETS.ROUTE
 
+  ||
+
+  destinationBucket ===
+    INVENTORY_BUCKETS.ROUTE_RESERVED
+) {
+
+  throw new Error(
+    'Un cilindro prestado no puede devolverse directamente a Prestados, En ruta ni Apartados para vendedor.'
+  );
+
+}
 
   const qty =
     toNonNegativeInteger(
@@ -2290,7 +2306,6 @@ export function applyInventoryAdjustment({
 /* =========================================================
    DIFERENCIA ENTRE INVENTARIO ESPERADO Y FÍSICO
 ========================================================= */
-
 export function calculateInventoryDifference(
   physicalInventory
 ) {
@@ -2302,6 +2317,11 @@ export function calculateInventoryDifference(
     gasId => {
 
       result[gasId] = {};
+
+
+      const physicalSource =
+        physicalInventory?.[gasId] ??
+        {};
 
 
       Object.values(
@@ -2316,12 +2336,90 @@ export function calculateInventoryDifference(
             );
 
 
-          const physical =
-            toNonNegativeInteger(
-              physicalInventory
-                ?.[gasId]
-                ?.[bucket]
-            );
+          /*
+            PRESTADOS y EN RUTA están fuera
+            de la bodega.
+
+            No deben producir diferencias
+            en el conteo físico del cierre.
+          */
+          const outsideWarehouse =
+
+            bucket ===
+              INVENTORY_BUCKETS.LOANED
+
+            ||
+
+            bucket ===
+              INVENTORY_BUCKETS.ROUTE;
+
+
+          let physical;
+
+
+          if (
+            outsideWarehouse
+          ) {
+
+            /*
+              Conservamos su valor lógico.
+              No se obliga a contarlos
+              físicamente.
+            */
+            physical =
+              expected;
+
+          }
+          else if (
+            bucket ===
+              INVENTORY_BUCKETS.ROUTE_RESERVED
+          ) {
+
+            /*
+              Los apartados para vendedor
+              SÍ están físicamente en bodega.
+
+              Mientras actualizamos el formulario
+              de cierre, si todavía no existe
+              ese campo no generamos una
+              diferencia falsa.
+
+              Cuando el campo exista, se utilizará
+              el valor realmente contado.
+            */
+            const wasCounted =
+              Object.prototype.hasOwnProperty.call(
+                physicalSource,
+                bucket
+              );
+
+
+            physical =
+              wasCounted
+
+                ? toNonNegativeInteger(
+                    physicalSource[
+                      bucket
+                    ]
+                  )
+
+                : expected;
+
+          }
+          else {
+
+            /*
+              Llenos, vacíos y reservas normales
+              siguen siendo conteos físicos.
+            */
+            physical =
+              toNonNegativeInteger(
+                physicalSource[
+                  bucket
+                ]
+              );
+
+          }
 
 
           result[gasId][bucket] = {
@@ -2367,8 +2465,6 @@ export function calculateInventoryDifference(
   return result;
 
 }
-
-
 
 /* =========================================================
    DETECTAR INTERCAMBIO DE MARCAS
