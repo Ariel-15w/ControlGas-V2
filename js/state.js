@@ -9,14 +9,13 @@
    - storage.js será quien cargue y guarde.
    - Los demás módulos trabajan sobre este estado.
 ========================================================= */
-
 import {
   APP_CONFIG,
   DEFAULTS,
   DAY_STATUS,
   GAS_IDS,
+  ROUTE_SELLER_CONFIG,
 } from './config.js';
-
 
 import {
   cloneData,
