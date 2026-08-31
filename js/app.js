@@ -93,8 +93,554 @@ import {
   getFinancialMode,
   setOpeningWalletBalance,
   setOpeningGeneralWalletBalance,
+  calculateProfitDistributionPlan,
+  registerProfitDistribution,
+  payPendingSupplierPayment,
 } from './finance.js';
 
+
+
+/* =========================================================
+   PAGAR OBLIGACIÓN PENDIENTE DEL PROVEEDOR
+========================================================= */
+
+function bindSupplierPaymentActions() {
+
+  document.addEventListener(
+    'click',
+    event => {
+
+      const button =
+        event.target.closest?.(
+          '[data-supplier-payment-id]'
+        );
+
+
+      if (!button) {
+
+        return;
+
+      }
+
+
+      const paymentId =
+        button.dataset
+          .supplierPaymentId;
+
+
+      if (!paymentId) {
+
+        return;
+
+      }
+
+
+      /*
+        Evitar doble clic accidental.
+      */
+
+      if (
+        button.dataset.busy ===
+        'true'
+      ) {
+
+        return;
+
+      }
+
+
+      button.dataset.busy =
+        'true';
+
+
+      button.disabled =
+        true;
+
+
+      try {
+
+        const result =
+          payPendingSupplierPayment({
+
+            paymentId,
+
+          });
+
+
+        /*
+          finance.js modifica el estado,
+          app.js se encarga de persistirlo.
+        */
+
+        saveState();
+
+
+        refreshUI();
+
+
+        const amount =
+          roundMoney(
+            result
+              .payment
+              .amount
+          );
+
+
+        showToast(
+          `Pago al proveedor registrado por $${amount.toFixed(2)}.`,
+          'good'
+        );
+
+      }
+      catch (error) {
+
+        delete button.dataset.busy;
+
+
+        button.disabled =
+          false;
+
+
+        showToast(
+          error.message,
+          'bad'
+        );
+
+
+        setOperationStatus(
+          'supplierPaymentStatus',
+          error.message,
+          'bad'
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+
+/* =========================================================
+   LEER FORMA DE REPARTO
+========================================================= */
+
+function readProfitDistributionMode() {
+
+  const value =
+    getValue(
+      'profitDistributionMode'
+    );
+
+
+  return (
+    value === 'employee'
+
+      ? 'employee'
+
+      : 'half'
+  );
+
+}
+
+
+
+/* =========================================================
+   PREVISUALIZAR REPARTO DE GANANCIA
+========================================================= */
+
+function updateProfitDistributionPreview() {
+
+  const day =
+    getActiveDay();
+
+
+  if (!day) {
+
+    return null;
+
+  }
+
+
+  try {
+
+    const distributionMode =
+      readProfitDistributionMode();
+
+
+    const employeeAmount =
+      roundMoney(
+        toNonNegativeNumber(
+          getValue(
+            'profitEmployeeAmount'
+          )
+        )
+      );
+
+
+    const plan =
+      calculateProfitDistributionPlan({
+
+        distributionMode,
+
+        employeeAmount,
+
+        dayId:
+          day.id,
+
+      });
+
+
+    /*
+      MOSTRAR / OCULTAR MONTO EMPLEADO
+    */
+
+    setVisible(
+      'profitEmployeeBlock',
+      distributionMode ===
+        'employee'
+    );
+
+
+    /*
+      RESUMEN
+    */
+
+    setText(
+      'profitAvailable',
+      `$${roundMoney(
+        plan.availableProfitBefore
+      ).toFixed(2)}`
+    );
+
+
+    setText(
+      'profitDistributed',
+      `$${roundMoney(
+        plan.distributedAmount
+      ).toFixed(2)}`
+    );
+
+
+    setText(
+      'profitRemaining',
+      `$${roundMoney(
+        plan.remainingProfit
+      ).toFixed(2)}`
+    );
+
+
+    /*
+      MITAD Y MITAD
+    */
+
+    setText(
+      'profitPersonOne',
+      `$${roundMoney(
+        plan.personOneAmount
+      ).toFixed(2)}`
+    );
+
+
+    setText(
+      'profitPersonTwo',
+      `$${roundMoney(
+        plan.personTwoAmount
+      ).toFixed(2)}`
+    );
+
+
+    /*
+      EMPLEADO + PROPIETARIO
+    */
+
+    setText(
+      'profitEmployeeResult',
+      `$${roundMoney(
+        plan.employeeAmount
+      ).toFixed(2)}`
+    );
+
+
+    setText(
+      'profitOwnerResult',
+      `$${roundMoney(
+        plan.ownerAmount
+      ).toFixed(2)}`
+    );
+
+
+    if (
+      plan.distributedAmount <= 0
+    ) {
+
+      setOperationStatus(
+        'profitDistributionStatus',
+        'Todavía no hay ganancia disponible para repartir.',
+        'warn'
+      );
+
+    }
+    else {
+
+      setOperationStatus(
+
+        'profitDistributionStatus',
+
+        distributionMode ===
+          'half'
+
+          ? 'Reparto listo: mitad y mitad.'
+
+          : 'Reparto listo: empleado y propietario.',
+
+        'good'
+
+      );
+
+    }
+
+
+    return plan;
+
+  }
+  catch (error) {
+
+    setOperationStatus(
+      'profitDistributionStatus',
+      error.message,
+      'bad'
+    );
+
+
+    return null;
+
+  }
+
+}
+
+
+
+/* =========================================================
+   BOTONES DE REPARTO
+========================================================= */
+
+function bindProfitDistributionButtons() {
+
+  document.addEventListener(
+    'click',
+    event => {
+
+      const button =
+        event.target.closest?.(
+          '[data-profit-mode]'
+        );
+
+
+      if (!button) {
+
+        return;
+
+      }
+
+
+      const mode =
+        button.dataset
+          .profitMode;
+
+
+      if (
+        mode !== 'half' &&
+        mode !== 'employee'
+      ) {
+
+        return;
+
+      }
+
+
+      setValue(
+        'profitDistributionMode',
+        mode
+      );
+
+
+      activateButtonGroup({
+
+        selector:
+          '[data-profit-mode]',
+
+        dataProperty:
+          'profitMode',
+
+        value:
+          mode,
+
+      });
+
+
+      setVisible(
+        'profitEmployeeBlock',
+        mode === 'employee'
+      );
+
+
+      updateProfitDistributionPreview();
+
+    }
+  );
+
+}
+
+
+
+/* =========================================================
+   FORMULARIO DE REPARTO DE GANANCIA
+========================================================= */
+
+function bindProfitDistributionForm() {
+
+  const form =
+    byId(
+      'profitDistributionForm'
+    );
+
+
+  /*
+    Todavía no existe en el HTML viejo.
+
+    Cuando lo agreguemos,
+    este código comenzará a funcionar
+    automáticamente.
+  */
+
+  if (!form) {
+
+    return;
+
+  }
+
+
+  form.addEventListener(
+    'input',
+    updateProfitDistributionPreview
+  );
+
+
+  form.addEventListener(
+    'change',
+    updateProfitDistributionPreview
+  );
+
+
+  form.addEventListener(
+    'submit',
+    event => {
+
+      event.preventDefault();
+
+
+      try {
+
+        const distributionMode =
+          readProfitDistributionMode();
+
+
+        const result =
+          registerProfitDistribution({
+
+            distributionMode,
+
+            employeeAmount:
+              toNonNegativeNumber(
+                getValue(
+                  'profitEmployeeAmount'
+                )
+              ),
+
+            note:
+              getValue(
+                'profitDistributionNote'
+              ),
+
+          });
+
+
+        /*
+          Persistir reparto.
+        */
+
+        saveState();
+
+
+        /*
+          Limpiar solamente los datos
+          editables del formulario.
+        */
+
+        setValue(
+          'profitEmployeeAmount',
+          0
+        );
+
+
+        setValue(
+          'profitDistributionNote',
+          ''
+        );
+
+
+        refreshUI();
+
+
+        updateProfitDistributionPreview();
+
+
+        showToast(
+          `Ganancia repartida: $${roundMoney(
+            result.plan.distributedAmount
+          ).toFixed(2)}.`,
+          'good'
+        );
+
+      }
+      catch (error) {
+
+        setOperationStatus(
+          'profitDistributionStatus',
+          error.message,
+          'bad'
+        );
+
+
+        showToast(
+          error.message,
+          'bad'
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+
+/* =========================================================
+   ACCIONES FINANCIERAS
+========================================================= */
+
+function bindFinancialActions() {
+
+  bindSupplierPaymentActions();
+
+  bindProfitDistributionButtons();
+
+  bindProfitDistributionForm();
+
+}
 /* =========================================================
    VENTAS
 ========================================================= */
@@ -109,15 +655,19 @@ import {
 /* =========================================================
    PENDIENTES
 ========================================================= */
-
 import {
   registerAccountPayment,
   registerTankReturn,
   registerReservedPickup,
+
+  createRouteAccount,
+  createRouteReservation,
+  pickupRouteReservation,
+  releaseRouteReservation,
+  startRouteTrip,
+  settleRouteTrip,
+  registerRouteAccountPayment,
 } from './accounts.js';
-
-
-
 /* =========================================================
    REPOSICIONES
 ========================================================= */
@@ -6067,15 +6617,492 @@ function bindDialogs() {
 
 
 /* =========================================================
+   FORMULARIOS DEL VENDEDOR DE $2
+========================================================= */
+
+function bindRouteForms() {
+
+  /*
+    El HTML nuevo todavía no está colocado.
+
+    Por eso todos estos formularios son opcionales:
+    si no existen, app.js simplemente continúa.
+
+    Cuando hagamos index.html usaremos exactamente
+    estos IDs y todo empezará a funcionar.
+  */
+
+
+  const routeForms = [
+
+    /* =====================================================
+       CREAR CUENTA
+    ===================================================== */
+
+    {
+      formId:
+        'routeAccountForm',
+
+      run:
+        () =>
+          createRouteAccount({
+
+            name:
+              getValue(
+                'routeAccountName'
+              ),
+
+            reference:
+              getValue(
+                'routeAccountReference'
+              ),
+
+          }),
+
+      success:
+        'Cuenta del vendedor creada correctamente.',
+    },
+
+
+    /* =====================================================
+       APARTAR CILINDROS
+    ===================================================== */
+
+    {
+      formId:
+        'routeReserveForm',
+
+      run:
+        () =>
+          createRouteReservation({
+
+            accountId:
+              getValue(
+                'routeReserveAccountId'
+              ),
+
+            duragas:
+              toNonNegativeInteger(
+                getValue(
+                  'routeReserveDuragas'
+                )
+              ),
+
+            kinggas:
+              toNonNegativeInteger(
+                getValue(
+                  'routeReserveKingGas'
+                )
+              ),
+
+            note:
+              getValue(
+                'routeReserveNote'
+              ),
+
+          }),
+
+      success:
+        'Cilindros apartados para el vendedor.',
+    },
+
+
+    /* =====================================================
+       RETIRAR APARTADO
+    ===================================================== */
+
+    {
+      formId:
+        'routePickupForm',
+
+      run:
+        () =>
+          pickupRouteReservation({
+
+            reservationId:
+              getValue(
+                'routePickupReservationId'
+              ),
+
+            duragas:
+              toNonNegativeInteger(
+                getValue(
+                  'routePickupDuragas'
+                )
+              ),
+
+            kinggas:
+              toNonNegativeInteger(
+                getValue(
+                  'routePickupKingGas'
+                )
+              ),
+
+            note:
+              getValue(
+                'routePickupNote'
+              ),
+
+          }),
+
+      success:
+        'Cilindros retirados y enviados a ruta.',
+    },
+
+
+    /* =====================================================
+       LIBERAR APARTADO
+    ===================================================== */
+
+    {
+      formId:
+        'routeReleaseForm',
+
+      run:
+        () =>
+          releaseRouteReservation({
+
+            reservationId:
+              getValue(
+                'routeReleaseReservationId'
+              ),
+
+            duragas:
+              toNonNegativeInteger(
+                getValue(
+                  'routeReleaseDuragas'
+                )
+              ),
+
+            kinggas:
+              toNonNegativeInteger(
+                getValue(
+                  'routeReleaseKingGas'
+                )
+              ),
+
+            note:
+              getValue(
+                'routeReleaseNote'
+              ),
+
+          }),
+
+      success:
+        'Cilindros liberados nuevamente a bodega.',
+    },
+
+
+    /* =====================================================
+       INICIAR VIAJE SIN APARTADO PREVIO
+    ===================================================== */
+
+    {
+      formId:
+        'routeStartForm',
+
+      run:
+        () =>
+          startRouteTrip({
+
+            accountId:
+              getValue(
+                'routeStartAccountId'
+              ),
+
+            duragas:
+              toNonNegativeInteger(
+                getValue(
+                  'routeStartDuragas'
+                )
+              ),
+
+            kinggas:
+              toNonNegativeInteger(
+                getValue(
+                  'routeStartKingGas'
+                )
+              ),
+
+            note:
+              getValue(
+                'routeStartNote'
+              ),
+
+          }),
+
+      success:
+        'Viaje del vendedor iniciado.',
+    },
+
+
+    /* =====================================================
+       RENDIR VIAJE
+    ===================================================== */
+
+    {
+      formId:
+        'routeSettleForm',
+
+      run:
+        () =>
+          settleRouteTrip({
+
+            tripId:
+              getValue(
+                'routeSettleTripId'
+              ),
+
+            soldDuragas:
+              toNonNegativeInteger(
+                getValue(
+                  'routeSettleSoldDuragas'
+                )
+              ),
+
+            soldKinggas:
+              toNonNegativeInteger(
+                getValue(
+                  'routeSettleSoldKingGas'
+                )
+              ),
+
+            returnedDuragas:
+              toNonNegativeInteger(
+                getValue(
+                  'routeSettleReturnedDuragas'
+                )
+              ),
+
+            returnedKinggas:
+              toNonNegativeInteger(
+                getValue(
+                  'routeSettleReturnedKingGas'
+                )
+              ),
+
+            emptyDuragas:
+              toNonNegativeInteger(
+                getValue(
+                  'routeSettleEmptyDuragas'
+                )
+              ),
+
+            emptyKinggas:
+              toNonNegativeInteger(
+                getValue(
+                  'routeSettleEmptyKingGas'
+                )
+              ),
+
+            moneyPaid:
+              roundMoney(
+                toNonNegativeNumber(
+                  getValue(
+                    'routeSettleMoneyPaid'
+                  )
+                )
+              ),
+
+            note:
+              getValue(
+                'routeSettleNote'
+              ),
+
+          }),
+
+      success:
+        'Rendición del vendedor registrada.',
+    },
+
+
+    /* =====================================================
+       ABONAR DEUDA DEL VENDEDOR
+    ===================================================== */
+
+    {
+      formId:
+        'routeAccountPaymentForm',
+
+      run:
+        () =>
+          registerRouteAccountPayment({
+
+            accountId:
+              getValue(
+                'routePaymentAccountId'
+              ),
+
+            amount:
+              roundMoney(
+                toNonNegativeNumber(
+                  getValue(
+                    'routePaymentAmount'
+                  )
+                )
+              ),
+
+            note:
+              getValue(
+                'routePaymentNote'
+              ),
+
+          }),
+
+      success:
+        'Abono del vendedor registrado.',
+    },
+
+  ];
+
+
+  routeForms.forEach(
+    config => {
+
+      const form =
+        byId(
+          config.formId
+        );
+
+
+      /*
+        El formulario todavía puede no existir
+        en el HTML actual.
+      */
+
+      if (!form) {
+
+        return;
+
+      }
+
+
+      form.addEventListener(
+        'submit',
+        event => {
+
+          event.preventDefault();
+
+
+          const submit =
+            form.querySelector(
+              'button[type="submit"]'
+            );
+
+
+          /*
+            Protección contra doble clic.
+          */
+
+          if (
+            submit?.dataset.busy ===
+            'true'
+          ) {
+
+            return;
+
+          }
+
+
+          if (submit) {
+
+            submit.dataset.busy =
+              'true';
+
+            submit.disabled =
+              true;
+
+          }
+
+
+          try {
+
+            config.run();
+
+
+            /*
+              Las operaciones del módulo ya modifican
+              el estado. Aquí aseguramos persistencia.
+            */
+
+            saveState();
+
+
+            form.reset();
+
+
+            refreshUI();
+
+
+            showToast(
+              config.success,
+              'good'
+            );
+
+          }
+          catch (error) {
+
+            showToast(
+              error.message,
+              'bad'
+            );
+
+
+            setOperationStatus(
+              'routeStatus',
+              error.message,
+              'bad'
+            );
+
+          }
+          finally {
+
+            if (submit) {
+
+              delete submit
+                .dataset
+                .busy;
+
+              submit.disabled =
+                false;
+
+            }
+
+          }
+
+        }
+      );
+
+    }
+  );
+
+}
+
+
+
+/* =========================================================
    EVENTOS PRINCIPALES
 ========================================================= */
 
 function bindEvents() {
 
+  /*
+    NAVEGACIÓN
+  */
+
   bindNavigation();
+
+
+  /*
+    APERTURA
+  */
 
   bindOpeningForm();
 
+
+  /*
+    VENTAS
+  */
 
   bindSaleQuantityButtons();
 
@@ -6092,10 +7119,18 @@ function bindEvents() {
   bindSaleForm();
 
 
+  /*
+    REPOSICIONES
+  */
+
   bindReplenishmentButtons();
 
   bindReplenishmentForm();
 
+
+  /*
+    PENDIENTES
+  */
 
   bindAccountCards();
 
@@ -6106,18 +7141,51 @@ function bindEvents() {
   bindPaymentDialog();
 
 
+  /*
+    FINANZAS
+
+    - pagar proveedor
+    - reparto de ganancia
+  */
+
+  bindFinancialActions();
+
+
+  /*
+    VENDEDOR / RUTAS
+  */
+
+  bindRouteForms();
+
+
+  /*
+    AJUSTES
+  */
+
   bindAdjustmentButtons();
 
   bindAdjustmentForm();
 
+
+  /*
+    PRÉSTAMOS
+  */
 
   bindLoanButtons();
 
   bindLoanForm();
 
 
+  /*
+    CIERRE
+  */
+
   bindClosingForm();
 
+
+  /*
+    HISTORIAL
+  */
 
   bindHistoryModeButtons();
 
@@ -6126,12 +7194,20 @@ function bindEvents() {
   bindDayDetail();
 
 
+  /*
+    RESPALDOS
+  */
+
   bindExportButtons();
 
   bindImportButtons();
 
   bindResetButton();
 
+
+  /*
+    CONTROLES GENERALES
+  */
 
   bindNumericInputs();
 
@@ -6266,7 +7342,6 @@ function init() {
       loadState();
 
 
-
     /*
       2. CONFIGURAR CONTROLES
     */
@@ -6274,13 +7349,11 @@ function init() {
     applyInitialControlValues();
 
 
-
     /*
       3. CONECTAR EVENTOS
     */
 
     bindEvents();
-
 
 
     /*
@@ -6292,13 +7365,11 @@ function init() {
     prepareOpeningMode();
 
 
-
     /*
-      5. PREPARAR CIERRE SI HAY DÍA
+      5. PREPARAR CIERRE
     */
 
     prepareClosingInputsIfEmpty();
-
 
 
     /*
@@ -6314,6 +7385,24 @@ function init() {
     updateClosingPreview();
 
 
+    /*
+      Reparto de ganancia.
+
+      Si todavía no existe su formulario
+      en HTML, las funciones de interfaz
+      simplemente no muestran nada.
+    */
+
+    if (
+      byId(
+        'profitDistributionForm'
+      )
+    ) {
+
+      updateProfitDistributionPreview();
+
+    }
+
 
     /*
       7. RESTAURAR PESTAÑA
@@ -6322,13 +7411,11 @@ function init() {
     restoreInitialView();
 
 
-
     /*
       8. RELOJ
     */
 
     startClock();
-
 
 
     /*
@@ -6361,9 +7448,6 @@ function init() {
   }
 
 }
-
-
-
 /* =========================================================
    ARRANQUE
 ========================================================= */
