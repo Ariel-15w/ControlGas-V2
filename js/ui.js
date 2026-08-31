@@ -2650,117 +2650,192 @@ export function renderReplenishmentPreview(
   /* =====================================================
      BOLSA GENERAL
   ===================================================== */
+if (isGeneral) {
 
-  if (isGeneral) {
+  const generalAvailable =
+    roundMoney(
+      funding.generalAvailable ??
+      preview.walletBefore ??
+      0
+    );
 
-    const generalAvailable =
-      roundMoney(
-        funding.generalAvailable ??
-        preview.walletBefore ??
+
+  const fromGeneral =
+    roundMoney(
+      funding.fromGeneralWallet ??
+      Math.min(
+        generalAvailable,
+        preview.gasCost ??
         0
-      );
-
-
-    const fromGeneral =
-      roundMoney(
-        funding.fromGeneralWallet ??
-        0
-      );
-
-
-    const generalAfter =
-      roundMoney(
-        funding.generalAfter ??
-        Math.max(
-          0,
-          generalAvailable -
-          fromGeneral
-        )
-      );
-
-
-    setText(
-      'replenishmentGeneralAvailable',
-      formatMoney(
-        generalAvailable
       )
     );
 
 
-    setText(
-      'replenishmentUseGeneral',
-      formatMoney(
+  /*
+    Cuánto del aporte NUEVO realmente
+    hace falta utilizar para pagar el gas.
+  */
+
+  const missingAfterGeneral =
+    roundMoney(
+      Math.max(
+        0,
+        (
+          preview.gasCost ??
+          0
+        ) -
         fromGeneral
       )
     );
 
 
-    setText(
-      'replenishmentGeneralAfter',
-      formatMoney(
-        generalAfter
-      )
-    );
-
-
-    setText(
-      'replenishmentGeneralFundingFormula',
-      `${formatMoney(
-        generalAvailable
-      )} disponibles − ${formatMoney(
-        fromGeneral
-      )} usados = ${formatMoney(
-        generalAfter
-      )}`
-    );
-
-
-    /*
-      Dejamos los campos antiguos
-      en cero por compatibilidad.
-    */
-
-    setText(
-      'replenishmentUsePrevious',
-      formatMoney(0)
-    );
-
-
-    setText(
-      'replenishmentUseToday',
-      formatMoney(0)
-    );
-
-
-    setText(
-      'replenishmentUseContributions',
-      formatMoney(
+  const fromNewContribution =
+    roundMoney(
+      Math.min(
         preview.extraContribution ??
-        0
+        0,
+        missingAfterGeneral
       )
     );
 
 
-    setText(
-      'replenishmentPreviousAfter',
-      formatMoney(0)
+  /*
+    Lo que sobró del aporte nuevo
+    permanece dentro de la Bolsa General.
+  */
+
+  const unusedNewContribution =
+    roundMoney(
+      Math.max(
+        0,
+        (
+          preview.extraContribution ??
+          0
+        ) -
+        fromNewContribution
+      )
     );
 
 
-    setText(
-      'replenishmentTodayAfter',
-      formatMoney(0)
+  /*
+    preview.walletAfter YA incluye:
+
+    saldo anterior
+    + aporte adicional
+    - costo del gas
+
+    Por eso es la cifra correcta
+    que debe mostrarse como saldo final.
+  */
+
+  const generalAfter =
+    roundMoney(
+      preview.walletAfter ??
+      0
     );
 
 
-    setText(
-      'replenishmentContributionsAfter',
-      formatMoney(0)
-    );
+  setText(
+    'replenishmentGeneralAvailable',
+    formatMoney(
+      generalAvailable
+    )
+  );
 
-  }
+
+  setText(
+    'replenishmentUseGeneral',
+    formatMoney(
+      fromGeneral
+    )
+  );
 
 
+  setText(
+    'replenishmentGeneralAfter',
+    formatMoney(
+      generalAfter
+    )
+  );
+
+
+  setText(
+    'replenishmentGeneralFundingFormula',
+
+    `${formatMoney(
+      generalAvailable
+    )} bolsa + ${formatMoney(
+      preview.extraContribution ??
+      0
+    )} aporte − ${formatMoney(
+      preview.gasCost ??
+      0
+    )} costo = ${formatMoney(
+      generalAfter
+    )}`
+
+  );
+
+
+  /*
+    Campos del modelo exacto.
+
+    En modo GENERAL no existen
+    "anterior", "hoy" y "aportes"
+    separados por marca.
+  */
+
+  setText(
+    'replenishmentUsePrevious',
+    formatMoney(0)
+  );
+
+
+  setText(
+    'replenishmentUseToday',
+    formatMoney(0)
+  );
+
+
+  /*
+    Aquí mostramos únicamente cuánto
+    del aporte NUEVO realmente fue utilizado.
+  */
+
+  setText(
+    'replenishmentUseContributions',
+    formatMoney(
+      fromNewContribution
+    )
+  );
+
+
+  setText(
+    'replenishmentPreviousAfter',
+    formatMoney(0)
+  );
+
+
+  setText(
+    'replenishmentTodayAfter',
+    formatMoney(0)
+  );
+
+
+  /*
+    Si el usuario aportó más dinero del
+    estrictamente necesario, el sobrante
+    sigue perteneciendo a Bolsa General.
+  */
+
+  setText(
+    'replenishmentContributionsAfter',
+    formatMoney(
+      unusedNewContribution
+    )
+  );
+
+}
   /* =====================================================
      BOLSAS EXACTAS
   ===================================================== */
