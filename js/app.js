@@ -49,19 +49,16 @@ import {
 /* =========================================================
    ESTADO
 ========================================================= */
-
 import {
   getState,
   getActiveDay,
+  getGeneralWalletBalance,
   createDayRecord,
   createMovementBase,
   setActiveDayId,
   replaceState,
   touchState,
 } from './state.js';
-
-
-
 /* =========================================================
    ALMACENAMIENTO
 ========================================================= */
