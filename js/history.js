@@ -990,7 +990,6 @@ export function getReplenishmentsHistoryStats(
 /* =========================================================
    TARJETAS DE DÍAS CERRADOS
 ========================================================= */
-
 export function getClosedDaysHistory() {
 
   const state =
@@ -1107,13 +1106,36 @@ export function getClosedDaysHistory() {
             0
           ),
 
+        /*
+          CIERRES NUEVOS:
+          warehouse = diferencia física real en bodega.
+
+          CIERRES ANTIGUOS:
+          puede existir solamente controlled.
+
+          Nunca usamos controlled como primera opción
+          porque incluye cilindros en ruta y prestados.
+        */
+
         inventoryDifference:
           Number(
+
+            closing
+              ?.inventory
+              ?.warehouse
+              ?.difference
+
+            ??
+
             closing
               ?.inventory
               ?.controlled
-              ?.difference ??
+              ?.difference
+
+            ??
+
             0
+
           ),
 
         hasAnyDifference:
@@ -1132,8 +1154,6 @@ export function getClosedDaysHistory() {
   );
 
 }
-
-
 
 /* =========================================================
    DETALLE COMPLETO DE UN DÍA
