@@ -6097,6 +6097,9 @@ export function getProfitDistributed(
 /* =========================================================
    GANANCIA REALMENTE DISPONIBLE PARA REPARTIR
 ========================================================= */
+/* =========================================================
+   GANANCIA REALMENTE DISPONIBLE PARA REPARTIR
+========================================================= */
 
 export function getAvailableProfitForDistribution(
 
@@ -6119,25 +6122,19 @@ export function getAvailableProfitForDistribution(
     );
 
 
-  const profitBeforeDistribution =
-    roundMoney(
-      toNonNegativeNumber(
-        summary?.profit?.available
-      )
-    );
+  /*
+    getDayFinanceSummary() ya descuenta
+    todo lo repartido anteriormente.
 
-
-  const alreadyDistributed =
-    getProfitDistributed(
-      dayId
-    );
-
-
+    Por eso aquí NO debemos volver a
+    restar getProfitDistributed().
+  */
   return roundMoney(
     Math.max(
       0,
-      profitBeforeDistribution -
-      alreadyDistributed
+      toNonNegativeNumber(
+        summary?.profit?.available
+      )
     )
   );
 
