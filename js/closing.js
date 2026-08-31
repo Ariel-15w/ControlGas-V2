@@ -1182,6 +1182,10 @@ export function validateClosing({
     getActiveDay();
 
 
+  /* =====================================================
+     JORNADA
+  ===================================================== */
+
   if (!day) {
 
     errors.push(
@@ -1202,15 +1206,45 @@ export function validateClosing({
   }
 
 
-  /*
-    Cero es válido.
-    Vacío/null no lo es.
-  */
+  if (
+    day.status !==
+    DAY_STATUS.OPEN
+  ) {
+
+    errors.push(
+      'La jornada ya está cerrada.'
+    );
+
+  }
+
+
+  /* =====================================================
+     CAJA CONTADA
+  ===================================================== */
+
+  const cashIsEmpty =
+
+    cashCounted === null
+
+    ||
+
+    cashCounted === undefined
+
+    ||
+
+    (
+      typeof cashCounted ===
+        'string'
+
+      &&
+
+      cashCounted.trim() ===
+        ''
+    );
+
 
   if (
-    cashCounted === '' ||
-    cashCounted === null ||
-    cashCounted === undefined
+    cashIsEmpty
   ) {
 
     errors.push(
@@ -1218,24 +1252,46 @@ export function validateClosing({
     );
 
   }
+  else {
+
+    const cashNumber =
+      Number(
+        cashCounted
+      );
 
 
-  if (
-    Number(
-      cashCounted
-    ) < 0
-  ) {
+    if (
+      !Number.isFinite(
+        cashNumber
+      )
+    ) {
 
-    errors.push(
-      'El efectivo contado no puede ser negativo.'
-    );
+      errors.push(
+        'El efectivo contado debe ser un número válido.'
+      );
+
+    }
+    else if (
+      cashNumber < 0
+    ) {
+
+      errors.push(
+        'El efectivo contado no puede ser negativo.'
+      );
+
+    }
 
   }
 
 
+  /* =====================================================
+     INVENTARIO RECIBIDO
+  ===================================================== */
+
   if (
     !inventory ||
-    typeof inventory !== 'object'
+    typeof inventory !==
+      'object'
   ) {
 
     errors.push(
@@ -1245,19 +1301,17 @@ export function validateClosing({
   }
 
 
-  /*
-    Verificamos que llenos, vacíos y reservados
-    hayan llegado para ambas marcas.
-
-    Prestados puede omitirse y se usa
-    automáticamente el valor lógico registrado.
-  */
+  /* =====================================================
+     VALIDAR CONTEOS FÍSICOS
+  ===================================================== */
 
   GAS_ID_LIST.forEach(
     gasId => {
 
       const gas =
-        inventory?.[gasId];
+        inventory?.[
+          gasId
+        ];
 
 
       if (!gas) {
@@ -1266,38 +1320,108 @@ export function validateClosing({
           `Falta el conteo de ${getGasName(gasId)}.`
         );
 
-
         return;
 
       }
 
 
-      [
+      /*
+        Estos tres campos existen
+        obligatoriamente en la interfaz actual.
+      */
+
+      const requiredBuckets = [
+
         INVENTORY_BUCKETS.FULL,
+
         INVENTORY_BUCKETS.EMPTY,
+
         INVENTORY_BUCKETS.RESERVED,
-      ].forEach(
+
+      ];
+
+
+      requiredBuckets.forEach(
         bucket => {
 
           const value =
-            gas[bucket];
+            gas[
+              bucket
+            ];
+
+
+          const isEmpty =
+
+            value === null
+
+            ||
+
+            value === undefined
+
+            ||
+
+            (
+              typeof value ===
+                'string'
+
+              &&
+
+              value.trim() ===
+                ''
+            );
 
 
           if (
-            value === '' ||
-            value === null ||
-            value === undefined
+            isEmpty
           ) {
 
             errors.push(
               `Falta completar ${bucket} de ${getGasName(gasId)}.`
             );
 
+            return;
+
+          }
+
+
+          const number =
+            Number(
+              value
+            );
+
+
+          if (
+            !Number.isFinite(
+              number
+            )
+          ) {
+
+            errors.push(
+              `${bucket} de ${getGasName(gasId)} debe ser un número válido.`
+            );
+
+            return;
+
           }
 
 
           if (
-            Number(value) < 0
+            !Number.isInteger(
+              number
+            )
+          ) {
+
+            errors.push(
+              `${bucket} de ${getGasName(gasId)} debe ser una cantidad entera de cilindros.`
+            );
+
+            return;
+
+          }
+
+
+          if (
+            number < 0
           ) {
 
             errors.push(
@@ -1309,9 +1433,103 @@ export function validateClosing({
         }
       );
 
+
+      /*
+        ROUTE_RESERVED también es físico.
+
+        Todavía lo dejamos compatible
+        con la interfaz anterior:
+
+        - si app.js todavía no envía el campo,
+          closing.js usa el valor lógico esperado;
+
+        - cuando actualicemos la interfaz y el
+          campo sí llegue, aquí validamos que
+          sea un entero correcto.
+
+        Así NO rompemos el sistema durante
+        esta etapa de integración.
+      */
+
+      const routeReserved =
+        gas[
+          INVENTORY_BUCKETS
+            .ROUTE_RESERVED
+        ];
+
+
+      const routeReservedWasProvided =
+
+        routeReserved !== null
+
+        &&
+
+        routeReserved !== undefined
+
+        &&
+
+        !(
+          typeof routeReserved ===
+            'string'
+
+          &&
+
+          routeReserved.trim() ===
+            ''
+        );
+
+
+      if (
+        routeReservedWasProvided
+      ) {
+
+        const number =
+          Number(
+            routeReserved
+          );
+
+
+        if (
+          !Number.isFinite(
+            number
+          )
+        ) {
+
+          errors.push(
+            `Los apartados para vendedor de ${getGasName(gasId)} deben ser un número válido.`
+          );
+
+        }
+        else if (
+          !Number.isInteger(
+            number
+          )
+        ) {
+
+          errors.push(
+            `Los apartados para vendedor de ${getGasName(gasId)} deben ser una cantidad entera de cilindros.`
+          );
+
+        }
+        else if (
+          number < 0
+        ) {
+
+          errors.push(
+            `Los apartados para vendedor de ${getGasName(gasId)} no pueden ser negativos.`
+          );
+
+        }
+
+      }
+
     }
   );
 
+
+  /* =====================================================
+     PREVIEW
+  ===================================================== */
 
   const preview =
 
@@ -1340,9 +1558,6 @@ export function validateClosing({
   };
 
 }
-
-
-
 /* =========================================================
    MOVIMIENTO DE CIERRE
 ========================================================= */
