@@ -183,63 +183,84 @@ export function getSuggestedClosingCounts() {
     getInventorySnapshot();
 
 
-  return {
+  function buildGasCounts(
+    gasId
+  ) {
 
-    [GAS_IDS.DURAGAS]: {
+    const gas =
+      inventory?.[gasId] ??
+      {};
 
-      full:
-        inventory[
-          GAS_IDS.DURAGAS
-        ].full,
 
-      empty:
-        inventory[
-          GAS_IDS.DURAGAS
-        ].empty,
-
-      reserved:
-        inventory[
-          GAS_IDS.DURAGAS
-        ].reserved,
+    return {
 
       /*
-        "Prestados" no están físicamente en bodega.
+        CONTEO FÍSICO EN BODEGA
+      */
 
-        Este valor se utiliza como confirmación
-        del registro lógico.
+      full:
+        toNonNegativeInteger(
+          gas.full
+        ),
+
+      empty:
+        toNonNegativeInteger(
+          gas.empty
+        ),
+
+      reserved:
+        toNonNegativeInteger(
+          gas.reserved
+        ),
+
+      /*
+        Apartados para el vendedor.
+
+        Todavía están físicamente
+        dentro de la bodega,
+        por eso SÍ deben contarse.
+      */
+
+      routeReserved:
+        toNonNegativeInteger(
+          gas.routeReserved
+        ),
+
+
+      /*
+        ESTOS DOS SON SOLO INFORMATIVOS.
+
+        No se obliga al usuario a contarlos
+        físicamente porque están fuera
+        de la bodega.
       */
 
       loaned:
-        inventory[
-          GAS_IDS.DURAGAS
-        ].loaned,
+        toNonNegativeInteger(
+          gas.loaned
+        ),
 
-    },
+      route:
+        toNonNegativeInteger(
+          gas.route
+        ),
+
+    };
+
+  }
 
 
-    [GAS_IDS.KING_GAS]: {
+  return {
 
-      full:
-        inventory[
-          GAS_IDS.KING_GAS
-        ].full,
+    [GAS_IDS.DURAGAS]:
+      buildGasCounts(
+        GAS_IDS.DURAGAS
+      ),
 
-      empty:
-        inventory[
-          GAS_IDS.KING_GAS
-        ].empty,
-
-      reserved:
-        inventory[
-          GAS_IDS.KING_GAS
-        ].reserved,
-
-      loaned:
-        inventory[
-          GAS_IDS.KING_GAS
-        ].loaned,
-
-    },
+    [GAS_IDS.KING_GAS]:
+      buildGasCounts(
+        GAS_IDS.KING_GAS
+      ),
 
   };
 
@@ -257,6 +278,10 @@ function normalizeClosingGasInventory(
 ) {
 
   return {
+
+    /*
+      CONTEO FÍSICO
+    */
 
     full:
       toNonNegativeInteger(
@@ -280,11 +305,31 @@ function normalizeClosingGasInventory(
       ),
 
     /*
-      PRESTADOS NO SON CONTEO FÍSICO.
+      También está físicamente
+      dentro de la bodega.
 
-      Aunque alguien manipule el HTML,
-      siempre conservamos el valor lógico
-      registrado por ControlGas.
+      Si una interfaz antigua todavía
+      no envía routeReserved,
+      conservamos el valor esperado
+      para evitar diferencias falsas.
+    */
+
+    routeReserved:
+      toNonNegativeInteger(
+        raw.routeReserved ??
+        expected.routeReserved ??
+        0
+      ),
+
+
+    /*
+      PRESTADOS Y EN RUTA
+
+      No son conteo físico de bodega.
+
+      Conservamos siempre el valor lógico
+      registrado por ControlGas aunque
+      alguien manipule el formulario.
     */
 
     loaned:
@@ -293,9 +338,16 @@ function normalizeClosingGasInventory(
         0
       ),
 
+    route:
+      toNonNegativeInteger(
+        expected.route ??
+        0
+      ),
+
   };
 
 }
+
 
 
 function normalizeClosingInventory(
@@ -342,8 +394,21 @@ function normalizeClosingInventory(
 
 
 /* =========================================================
-   TOTAL DE UNA MARCA
+   TOTAL CONTROLADO DE UNA MARCA
 ========================================================= */
+
+/*
+  CONTROLADO significa:
+
+  - lo que está en bodega
+  - lo apartado para vendedor
+  - lo que está actualmente en ruta
+  - lo prestado
+
+  Aunque no todo esté físicamente
+  dentro del local, sigue siendo
+  propiedad controlada por ControlGas.
+*/
 
 function getGasControlledTotal(
   inventory,
@@ -351,7 +416,8 @@ function getGasControlledTotal(
 ) {
 
   const gas =
-    inventory?.[gasId] ?? {};
+    inventory?.[gasId] ??
+    {};
 
 
   return (
@@ -370,6 +436,18 @@ function getGasControlledTotal(
 
     toNonNegativeInteger(
       gas.reserved
+    )
+
+    +
+
+    toNonNegativeInteger(
+      gas.routeReserved
+    )
+
+    +
+
+    toNonNegativeInteger(
+      gas.route
     )
 
     +
@@ -385,8 +463,22 @@ function getGasControlledTotal(
 
 
 /* =========================================================
-   TOTAL EN BODEGA
+   TOTAL FÍSICO EN BODEGA
 ========================================================= */
+
+/*
+  Sí están físicamente:
+
+  - llenos
+  - vacíos
+  - reservas normales
+  - apartados para vendedor
+
+  NO están físicamente:
+
+  - cilindros en ruta
+  - cilindros prestados
+*/
 
 function getGasWarehouseTotal(
   inventory,
@@ -394,12 +486,9 @@ function getGasWarehouseTotal(
 ) {
 
   const gas =
-    inventory?.[gasId] ?? {};
+    inventory?.[gasId] ??
+    {};
 
-
-  /*
-    Prestados se excluyen porque están fuera.
-  */
 
   return (
 
@@ -419,12 +508,15 @@ function getGasWarehouseTotal(
       gas.reserved
     )
 
+    +
+
+    toNonNegativeInteger(
+      gas.routeReserved
+    )
+
   );
 
 }
-
-
-
 /* =========================================================
    RESUMEN DE DIFERENCIAS POR MARCA
 ========================================================= */
@@ -673,11 +765,19 @@ export function calculateClosingPreview({
   }
 
 
+  /* =====================================================
+     FINANZAS
+  ===================================================== */
+
   const finance =
     getDayFinanceSummary(
       day.id
     );
 
+
+  /* =====================================================
+     INVENTARIO
+  ===================================================== */
 
   const expectedInventory =
     getExpectedClosingInventory();
@@ -723,6 +823,10 @@ export function calculateClosingPreview({
   );
 
 
+  /* =====================================================
+     CAJA
+  ===================================================== */
+
   const expectedCash =
     roundMoney(
       finance.cash.expected
@@ -743,6 +847,10 @@ export function calculateClosingPreview({
       expectedCash
     );
 
+
+  /* =====================================================
+     TOTALES FÍSICOS DE BODEGA
+  ===================================================== */
 
   const totalWarehouseExpected =
 
@@ -773,6 +881,10 @@ export function calculateClosingPreview({
       GAS_IDS.KING_GAS
     );
 
+
+  /* =====================================================
+     TOTALES CONTROLADOS
+  ===================================================== */
 
   const totalControlledExpected =
 
@@ -814,56 +926,146 @@ export function calculateClosingPreview({
     totalWarehouseExpected;
 
 
+  /* =====================================================
+     CUENTAS PENDIENTES DE CLIENTES
+  ===================================================== */
+
   const pending =
     getAccountsSummary();
 
 
-  const wallets =
-    getWalletSummary();
+  /* =====================================================
+     OBLIGACIONES PENDIENTES DEL PROVEEDOR
+  ===================================================== */
 
+  const supplierPendingItems =
+    (
+      getState()
+        .supplierPayments ??
+      []
+    ).filter(
+      payment =>
+        payment.status ===
+        'pending'
+    );
+
+
+  const supplierPendingAmount =
+    roundMoney(
+
+      supplierPendingItems.reduce(
+        (
+          total,
+          payment
+        ) => {
+
+          return (
+            total +
+            toNonNegativeNumber(
+              payment.amount
+            )
+          );
+
+        },
+        0
+      )
+
+    );
+
+
+  const supplierPending = {
+
+    count:
+      supplierPendingItems.length,
+
+    amount:
+      supplierPendingAmount,
+
+    items:
+      cloneData(
+        supplierPendingItems
+      ),
+
+  };
+
+
+  /* =====================================================
+     BOLSAS
+  ===================================================== */
+
+  const wallets =
+    getWalletSummary(
+      day.id
+    );
+
+
+  /* =====================================================
+     DIFERENCIAS
+  ===================================================== */
 
   const hasCashDifference =
     Math.abs(
       cashDifference
     ) >= 0.005;
 
-const hasInventoryDifference =
 
-  GAS_ID_LIST.some(
-    gasId => {
+  const hasInventoryDifference =
 
-      const item =
-        byGas[gasId];
+    GAS_ID_LIST.some(
+      gasId => {
+
+        const item =
+          byGas[gasId];
 
 
-      /*
-        Solo comparamos físicamente lo que
-        debería encontrarse en la bodega.
+        /*
+          Solo revisamos físicamente
+          lo que debería estar en bodega:
 
-        Los prestados están fuera y no
-        deben producir un faltante.
-      */
+          - llenos
+          - vacíos
+          - reservas normales
+          - apartados para vendedor
 
-      return (
+          NO revisamos físicamente:
 
-        item.differences.full
-          .difference !== 0
+          - prestados
+          - en ruta
+        */
 
-        ||
+        return (
 
-        item.differences.empty
-          .difference !== 0
+          item.differences
+            .full
+            .difference !== 0
 
-        ||
+          ||
 
-        item.differences.reserved
-          .difference !== 0
+          item.differences
+            .empty
+            .difference !== 0
 
-      );
+          ||
 
-    }
-  );
+          item.differences
+            .reserved
+            .difference !== 0
 
+          ||
+
+          item.differences
+            .routeReserved
+            .difference !== 0
+
+        );
+
+      }
+    );
+
+
+  /* =====================================================
+     RESULTADO
+  ===================================================== */
 
   return {
 
@@ -878,6 +1080,8 @@ const hasInventoryDifference =
     wallets,
 
     pending,
+
+    supplierPending,
 
 
     cash: {
@@ -959,9 +1163,6 @@ const hasInventoryDifference =
   };
 
 }
-
-
-
 /* =========================================================
    VALIDAR CIERRE
 ========================================================= */
@@ -1247,7 +1448,6 @@ function createClosingMovement(
 /* =========================================================
    CERRAR JORNADA
 ========================================================= */
-
 export function closeDay({
 
   cashCounted,
@@ -1313,9 +1513,8 @@ export function closeDay({
       uid('closing');
 
 
-
     /* =====================================================
-       CREAR REGISTRO
+       CREAR REGISTRO DE CIERRE
     ===================================================== */
 
     const closing = {
@@ -1336,6 +1535,19 @@ export function closeDay({
 
 
       /*
+        Modo financiero utilizado durante
+        esta jornada.
+
+        Queda congelado históricamente.
+      */
+
+      financialMode:
+        preview.wallets
+          ?.financialMode ??
+        null,
+
+
+      /*
         Fotografía financiera completa.
       */
 
@@ -1346,10 +1558,16 @@ export function closeDay({
 
 
       /*
-        Las bolsas NO se reinician.
+        Fotografía REAL de las bolsas.
 
-        Solo guardamos la fotografía
-        de cómo quedaron al cerrar.
+        Incluye:
+
+        - modo financiero
+        - Bolsa General
+        - Duragas
+        - King Gas
+
+        Las bolsas NO se reinician al cerrar.
       */
 
       wallets:
@@ -1358,11 +1576,26 @@ export function closeDay({
         ),
 
 
+      /*
+        Caja esperada, contada
+        y diferencia encontrada.
+      */
+
       cash:
         cloneData(
           preview.cash
         ),
 
+
+      /*
+        Inventario:
+
+        - esperado
+        - contado
+        - diferencias
+        - físico en bodega
+        - total controlado
+      */
 
       inventory:
         cloneData(
@@ -1370,9 +1603,28 @@ export function closeDay({
         ),
 
 
+      /*
+        Cuentas pendientes de clientes
+        existentes al momento del cierre.
+      */
+
       pending:
         cloneData(
           preview.pending
+        ),
+
+
+      /*
+        Obligaciones pendientes con proveedores.
+
+        Ejemplo:
+        factura Duragas de $1.15 por cilindro
+        que todavía no haya sido pagada.
+      */
+
+      supplierPending:
+        cloneData(
+          preview.supplierPending
         ),
 
 
@@ -1394,7 +1646,6 @@ export function closeDay({
     };
 
 
-
     /* =====================================================
        GUARDAR CIERRE
     ===================================================== */
@@ -1404,7 +1655,6 @@ export function closeDay({
       .push(
         closing
       );
-
 
 
     /* =====================================================
@@ -1423,9 +1673,8 @@ export function closeDay({
       closing.id;
 
 
-
     /* =====================================================
-       MOVIMIENTO GENERAL
+       MOVIMIENTO GENERAL DE CIERRE
     ===================================================== */
 
     const movement =
@@ -1436,7 +1685,6 @@ export function closeDay({
 
     closing.movementId =
       movement.id;
-
 
 
     /* =====================================================
@@ -1450,7 +1698,6 @@ export function closeDay({
     touchState();
 
 
-
     /* =====================================================
        GUARDAR
     ===================================================== */
@@ -1458,6 +1705,9 @@ export function closeDay({
     saveState();
 
 
+    /* =====================================================
+       RESULTADO
+    ===================================================== */
 
     return {
 
@@ -1471,15 +1721,27 @@ export function closeDay({
           movement
         ),
 
+
       /*
-        Estas bolsas continúan disponibles
-        para el siguiente día.
+        Devolvemos exactamente la fotografía
+        financiera guardada en el cierre.
+
+        NO usamos getState().wallets porque
+        en modo GENERAL eso dejaría fuera
+        información importante de Bolsa General.
       */
 
       wallets:
         cloneData(
-          getState().wallets
+          closing.wallets
         ),
+
+
+      supplierPending:
+        cloneData(
+          closing.supplierPending
+        ),
+
 
       inventory:
         getInventorySnapshot(),
@@ -1488,6 +1750,11 @@ export function closeDay({
 
   }
   catch (error) {
+
+    /*
+      Si cualquier parte del cierre falla,
+      restauramos completamente el estado.
+    */
 
     replaceState(
       stateBefore
@@ -1501,7 +1768,11 @@ export function closeDay({
     }
     catch {
 
-      /* Mantener restauración en memoria. */
+      /*
+        Si localStorage falla,
+        mantenemos al menos la restauración
+        dentro de la memoria actual.
+      */
 
     }
 
@@ -1511,7 +1782,6 @@ export function closeDay({
   }
 
 }
-
 /* =========================================================
    ÚLTIMO INVENTARIO FÍSICO CERRADO
 ========================================================= */
