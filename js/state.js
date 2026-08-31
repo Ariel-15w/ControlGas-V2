@@ -1234,19 +1234,18 @@ generalWallet:
     source.generalWallet
   ),
 
-     dadays:
-  ensureArray(
-    source.days
-  ).map(
-    day =>
-      normalizeDay(day)
-  ),
+    days:
+      ensureArray(
+        source.days
+      ).map(
+        day =>
+          normalizeDay(day)
+      ),
 
     sales:
       ensureArray(
         source.sales
       ),
-
 
     saleLines:
       ensureArray(
