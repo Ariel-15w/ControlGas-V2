@@ -587,6 +587,189 @@
 
 
 
+
+      <!-- =================================================
+           REPARTO DE GANANCIA
+      ================================================== -->
+
+      <section class="card">
+
+        <div class="card-header">
+          <div>
+            <p class="eyebrow">
+              REPARTO
+            </p>
+
+            <h3>
+              Distribuir ganancia disponible
+            </h3>
+
+            <p>
+              Registra únicamente el reparto de la ganancia ya disponible.
+              El dinero de reposición no se toca.
+            </p>
+          </div>
+        </div>
+
+        <form id="profitDistributionForm">
+
+          <input
+            id="profitDistributionMode"
+            type="hidden"
+            value="half"
+          >
+
+          <div class="quick-picks">
+
+            <button
+              type="button"
+              class="quick-btn active"
+              data-profit-mode="half"
+            >
+              Mitad y mitad
+            </button>
+
+            <button
+              type="button"
+              class="quick-btn"
+              data-profit-mode="employee"
+            >
+              Empleado + propietario
+            </button>
+
+          </div>
+
+
+          <div
+            id="profitEmployeeBlock"
+            class="form-grid two"
+            hidden
+          >
+
+            <label>
+              Monto para el empleado
+
+              <input
+                id="profitEmployeeAmount"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.01"
+                value="0"
+              >
+            </label>
+
+          </div>
+
+
+          <div class="history-stat-grid">
+
+            <div>
+              <span>Ganancia disponible</span>
+              <strong id="profitAvailable">
+                $0.00
+              </strong>
+            </div>
+
+            <div>
+              <span>Se repartirá</span>
+              <strong id="profitDistributed">
+                $0.00
+              </strong>
+            </div>
+
+            <div>
+              <span>Quedará disponible</span>
+              <strong id="profitRemaining">
+                $0.00
+              </strong>
+            </div>
+
+          </div>
+
+
+          <div class="closing-brand-grid">
+
+            <div class="closing-brand-card">
+              <strong>
+                Mitad y mitad
+              </strong>
+
+              <div>
+                <span>Persona 1</span>
+                <strong id="profitPersonOne">
+                  $0.00
+                </strong>
+              </div>
+
+              <div>
+                <span>Persona 2</span>
+                <strong id="profitPersonTwo">
+                  $0.00
+                </strong>
+              </div>
+            </div>
+
+
+            <div class="closing-brand-card">
+              <strong>
+                Empleado + propietario
+              </strong>
+
+              <div>
+                <span>Empleado</span>
+                <strong id="profitEmployeeResult">
+                  $0.00
+                </strong>
+              </div>
+
+              <div>
+                <span>Propietario</span>
+                <strong id="profitOwnerResult">
+                  $0.00
+                </strong>
+              </div>
+            </div>
+
+          </div>
+
+
+          <label>
+            Nota del reparto
+
+            <input
+              id="profitDistributionNote"
+              type="text"
+              maxlength="250"
+              placeholder="Opcional"
+            >
+          </label>
+
+
+          <div
+            id="profitDistributionStatus"
+            class="operation-status"
+          >
+            Todavía no hay ganancia disponible para repartir.
+          </div>
+
+
+          <div class="form-actions">
+
+            <button
+              type="submit"
+              class="btn primary"
+            >
+              Registrar reparto
+            </button>
+
+          </div>
+
+        </form>
+
+      </section>
+
+
       <!-- =================================================
            INVENTARIO VISUAL
       ================================================== -->
@@ -702,26 +885,22 @@
 
           <table>
 
-            <thead>
+                        <thead>
 
               <tr>
 
                 <th>
-                  Hora
+                  Fecha y hora
                 </th>
-
                 <th>
                   Marca
                 </th>
-
                 <th>
                   Repuestos
                 </th>
-
                 <th>
-                  Pagado
+                  Costo gas
                 </th>
-
                 <th>
                   Bolsa después
                 </th>
@@ -778,26 +957,19 @@
 
           <table>
 
-            <thead>
+                        <thead>
 
               <tr>
 
                 <th>
-                  Hora
+                  Fecha y hora
                 </th>
-
                 <th>
                   Tipo
                 </th>
-
-                <th>
-                  Cliente / concepto
-                </th>
-
                 <th>
                   Detalle
                 </th>
-
                 <th>
                   Valor
                 </th>
@@ -811,7 +983,7 @@
 
               <tr>
 
-                <td colspan="5">
+                <td colspan="4">
                   Todavía no hay movimientos.
                 </td>
 
@@ -2734,160 +2906,248 @@
            ESTADO DE LAS BOLSAS
       ================================================== -->
 
-      <div class="reserve-wallet-grid">
+      <section class="card">
+
+        <div class="card-header">
+
+          <div>
+            <h3>
+              Dinero disponible para reposición
+            </h3>
+
+            <p>
+              El sistema usa el modo financiero definido al abrir la jornada.
+            </p>
+          </div>
+
+          <div>
+            <span>
+              Modo financiero:
+            </span>
+
+            <strong id="replenishmentFinancialMode">
+              Bolsas exactas
+            </strong>
+          </div>
+
+        </div>
 
 
-       <!-- DURAGAS -->
+        <!-- BOLSA GENERAL -->
 
-<article class="reserve-wallet duragas">
+        <div
+          id="replenishmentGeneralWalletBlock"
+          class="reserve-wallet-grid"
+          hidden
+        >
 
-  <div class="wallet-head">
+          <article class="reserve-wallet">
 
-    <div>
+            <div class="wallet-head">
 
-      <strong>
-        🟡 Bolsa Duragas
-      </strong>
+              <div>
+                <strong>
+                  💰 Bolsa General
+                </strong>
 
-      <small>
-        Disponible actualmente
-      </small>
+                <small>
+                  Disponible para Duragas y King Gas
+                </small>
+              </div>
 
-    </div>
-
-  </div>
-
-
-  <strong
-    id="replenishmentDuragasWallet"
-    class="wallet-money"
-  >
-    $0.00
-  </strong>
+            </div>
 
 
-  <div class="wallet-details">
-
-    <span>
-      Saldo anterior
-    </span>
-
-    <strong id="replenishmentDuragasPrevious">
-      $0.00
-    </strong>
+            <strong
+              id="replenishmentGeneralWallet"
+              class="wallet-money"
+            >
+              $0.00
+            </strong>
 
 
-    <span>
-      Generado hoy
-    </span>
+            <div class="wallet-details">
 
-    <strong id="replenishmentDuragasToday">
-      $0.00
-    </strong>
+              <span>
+                Reserva por cilindro vendido
+              </span>
 
-
-    <span>
-      Aportes
-    </span>
-
-    <strong id="replenishmentDuragasContributions">
-      $0.00
-    </strong>
+              <strong id="replenishmentGeneralReservePerUnit">
+                $1.70
+              </strong>
 
 
-    <span>
-      Equivale aproximadamente a
-    </span>
+              <small id="replenishmentGeneralWalletFormula">
+                Saldo común disponible para ambas marcas.
+              </small>
 
-    <strong id="replenishmentDuragasEquivalent">
-      0 tanques
-    </strong>
+            </div>
 
+          </article>
 
-    <small id="replenishmentDuragasWalletFormula">
-      Anterior $0.00 + hoy $0.00 + aportes $0.00 = $0.00
-    </small>
-
-  </div>
-
-</article>
+        </div>
 
 
+        <!-- BOLSAS EXACTAS -->
 
-<!-- KING GAS -->
-
-<article class="reserve-wallet kinggas">
-
-  <div class="wallet-head">
-
-    <div>
-
-      <strong>
-        🌸 Bolsa King Gas
-      </strong>
-
-      <small>
-        Disponible actualmente
-      </small>
-
-    </div>
-
-  </div>
+        <div
+          id="replenishmentExactWalletsBlock"
+          class="reserve-wallet-grid"
+        >
 
 
-  <strong
-    id="replenishmentKingGasWallet"
-    class="wallet-money"
-  >
-    $0.00
-  </strong>
+          <!-- DURAGAS -->
+
+          <article class="reserve-wallet duragas">
+
+            <div class="wallet-head">
+
+              <div>
+                <strong>
+                  🟡 Bolsa Duragas
+                </strong>
+
+                <small>
+                  Disponible actualmente
+                </small>
+              </div>
+
+            </div>
 
 
-  <div class="wallet-details">
-
-    <span>
-      Saldo anterior
-    </span>
-
-    <strong id="replenishmentKingGasPrevious">
-      $0.00
-    </strong>
+            <strong
+              id="replenishmentDuragasWallet"
+              class="wallet-money"
+            >
+              $0.00
+            </strong>
 
 
-    <span>
-      Generado hoy
-    </span>
+            <div class="wallet-details">
 
-    <strong id="replenishmentKingGasToday">
-      $0.00
-    </strong>
+              <span>
+                Saldo anterior
+              </span>
 
-
-    <span>
-      Aportes
-    </span>
-
-    <strong id="replenishmentKingGasContributions">
-      $0.00
-    </strong>
+              <strong id="replenishmentDuragasPrevious">
+                $0.00
+              </strong>
 
 
-    <span>
-      Equivale aproximadamente a
-    </span>
+              <span>
+                Generado hoy
+              </span>
 
-    <strong id="replenishmentKingGasEquivalent">
-      0 tanques
-    </strong>
+              <strong id="replenishmentDuragasToday">
+                $0.00
+              </strong>
 
 
-    <small id="replenishmentKingGasWalletFormula">
-      Anterior $0.00 + hoy $0.00 + aportes $0.00 = $0.00
-    </small>
+              <span>
+                Aportes
+              </span>
 
-  </div>
+              <strong id="replenishmentDuragasContributions">
+                $0.00
+              </strong>
 
-</article>
+
+              <span>
+                Equivale aproximadamente a
+              </span>
+
+              <strong id="replenishmentDuragasEquivalent">
+                0 tanques
+              </strong>
+
+
+              <small id="replenishmentDuragasWalletFormula">
+                Anterior $0.00 + hoy $0.00 + aportes $0.00 = $0.00
+              </small>
+
+            </div>
+
+          </article>
+
+
+          <!-- KING GAS -->
+
+          <article class="reserve-wallet kinggas">
+
+            <div class="wallet-head">
+
+              <div>
+                <strong>
+                  🌸 Bolsa King Gas
+                </strong>
+
+                <small>
+                  Disponible actualmente
+                </small>
+              </div>
+
+            </div>
+
+
+            <strong
+              id="replenishmentKingGasWallet"
+              class="wallet-money"
+            >
+              $0.00
+            </strong>
+
+
+            <div class="wallet-details">
+
+              <span>
+                Saldo anterior
+              </span>
+
+              <strong id="replenishmentKingGasPrevious">
+                $0.00
+              </strong>
+
+
+              <span>
+                Generado hoy
+              </span>
+
+              <strong id="replenishmentKingGasToday">
+                $0.00
+              </strong>
+
+
+              <span>
+                Aportes
+              </span>
+
+              <strong id="replenishmentKingGasContributions">
+                $0.00
+              </strong>
+
+
+              <span>
+                Equivale aproximadamente a
+              </span>
+
+              <strong id="replenishmentKingGasEquivalent">
+                0 tanques
+              </strong>
+
+
+              <small id="replenishmentKingGasWalletFormula">
+                Anterior $0.00 + hoy $0.00 + aportes $0.00 = $0.00
+              </small>
+
+            </div>
+
+          </article>
+
+        </div>
+
+      </section>
+
+
       <!-- =================================================
            FORMULARIO DE REPOSICIÓN
       ================================================== -->
@@ -3366,240 +3626,378 @@
              RESUMEN ANTES DE GUARDAR
         ================================================== -->
 
-        <div class="replenishment-summary">
+        <section class="counter-section">
 
+          <div class="subsection-heading">
 
-          <div>
+            <div>
+              <h3>
+                Resumen de la reposición
+              </h3>
 
-            <span>
-              Bolsa antes
-            </span>
+              <p>
+                Revisa el costo económico, el pago al proveedor y de qué fondo saldrá el dinero.
+              </p>
+            </div>
 
-            <strong id="replenishmentWalletBefore">
-              $0.00
-            </strong>
+            <div>
+              <span>
+                Modo financiero:
+              </span>
 
-          </div>
-
-
-          <div>
-
-            <span>
-              Aporte adicional
-            </span>
-
-            <strong id="replenishmentExtraPreview">
-              $0.00
-            </strong>
+              <strong id="replenishmentPreviewFinancialMode">
+                Bolsas exactas
+              </strong>
+            </div>
 
           </div>
 
 
-          <div>
+          <div class="replenishment-summary">
 
-            <span>
-              Costo del gas
-            </span>
+            <div>
+              <span>
+                Bolsa antes
+              </span>
 
-            <strong id="replenishmentGasCost">
-              $0.00
-            </strong>
+              <strong id="replenishmentWalletBefore">
+                $0.00
+              </strong>
+            </div>
 
-            <small id="replenishmentGasCostFormula">
-              0 × $1,70
-            </small>
+
+            <div>
+              <span>
+                Aporte adicional
+              </span>
+
+              <strong id="replenishmentExtraPreview">
+                $0.00
+              </strong>
+            </div>
+
+
+            <div>
+              <span>
+                Costo del gas
+              </span>
+
+              <strong id="replenishmentGasCost">
+                $0.00
+              </strong>
+
+              <small id="replenishmentGasCostFormula">
+                0 × $1.70
+              </small>
+            </div>
+
+
+            <div>
+              <span>
+                Costos adicionales
+              </span>
+
+              <strong id="replenishmentAdditionalCosts">
+                $0.00
+              </strong>
+            </div>
+
+
+            <div class="important">
+              <span>
+                Costo económico total
+              </span>
+
+              <strong id="replenishmentTotalPaid">
+                $0.00
+              </strong>
+
+              <small id="replenishmentTotalPaidFormula">
+                Gas + costos adicionales
+              </small>
+            </div>
+
+
+            <div class="important">
+              <span>
+                Bolsa después
+              </span>
+
+              <strong id="replenishmentWalletAfter">
+                $0.00
+              </strong>
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PAGO AL PROVEEDOR
+        ================================================== -->
+
+        <section class="counter-section">
+
+          <div class="subsection-heading">
+
+            <div>
+              <h3>
+                Pago al proveedor
+              </h3>
+
+              <p>
+                Duragas puede dejar parte de la factura pendiente.
+                King Gas se paga completo.
+              </p>
+            </div>
 
           </div>
 
 
-          <div>
+          <div class="replenishment-summary">
 
-            <span>
-              Costos adicionales
-            </span>
+            <div>
+              <span>
+                Pagado ahora
+              </span>
 
-            <strong id="replenishmentAdditionalCosts">
-              $0.00
-            </strong>
+              <strong id="replenishmentSupplierPaidNow">
+                $0.00
+              </strong>
+            </div>
+
+
+            <div>
+              <span>
+                Pendiente
+              </span>
+
+              <strong id="replenishmentSupplierPending">
+                $0.00
+              </strong>
+            </div>
+
+
+            <div>
+              <span>
+                Total comprometido
+              </span>
+
+              <strong id="replenishmentSupplierCommitted">
+                $0.00
+              </strong>
+            </div>
+
+          </div>
+
+
+          <div
+            id="replenishmentSupplierStatus"
+            class="operation-status"
+          >
+            Selecciona la marca y la cantidad para calcular el pago.
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             FINANCIACIÓN - BOLSA GENERAL
+        ================================================== -->
+
+        <section
+          id="replenishmentGeneralFundingBlock"
+          class="counter-section"
+          hidden
+        >
+
+          <div class="subsection-heading">
+
+            <div>
+              <h3>
+                Uso de Bolsa General
+              </h3>
+
+              <p>
+                El costo del gas se descuenta del fondo común.
+              </p>
+            </div>
 
           </div>
 
 
-          <div class="important">
+          <div class="replenishment-summary">
 
-            <span>
-              Total a pagar
-            </span>
+            <div>
+              <span>
+                Bolsa General disponible
+              </span>
 
-            <strong id="replenishmentTotalPaid">
-              $0.00
-            </strong>
+              <strong id="replenishmentGeneralAvailable">
+                $0.00
+              </strong>
+            </div>
 
-            <small id="replenishmentTotalPaidFormula">
-              Gas + costos adicionales
-            </small>
+
+            <div>
+              <span>
+                Se usará de Bolsa General
+              </span>
+
+              <strong id="replenishmentUseGeneral">
+                $0.00
+              </strong>
+            </div>
+
+
+            <div class="important">
+              <span>
+                Bolsa General después
+              </span>
+
+              <strong id="replenishmentGeneralAfter">
+                $0.00
+              </strong>
+            </div>
 
           </div>
 
 
-          <div class="important">
+          <small id="replenishmentGeneralFundingFormula">
+            $0.00 bolsa + $0.00 aporte − $0.00 costo = $0.00
+          </small>
 
-            <span>
-              Bolsa después
-            </span>
+        </section>
 
-            <strong id="replenishmentWalletAfter">
-              $0.00
-            </strong>
 
-          </div>
+        <!-- =================================================
+             FINANCIACIÓN - BOLSAS EXACTAS
+        ================================================== -->
+
+        <div id="replenishmentExactFundingBlock">
+
+
+          <section class="counter-section">
+
+            <div class="subsection-heading">
+
+              <div>
+                <h3>
+                  Dinero que se usará de la bolsa
+                </h3>
+
+                <p>
+                  Primero se utiliza el saldo anterior, después lo generado hoy y finalmente los aportes.
+                </p>
+              </div>
+
+            </div>
+
+
+            <div class="replenishment-summary">
+
+              <div>
+                <span>
+                  Del saldo anterior
+                </span>
+
+                <strong id="replenishmentUsePrevious">
+                  $0.00
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  De lo generado hoy
+                </span>
+
+                <strong id="replenishmentUseToday">
+                  $0.00
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  De aportes
+                </span>
+
+                <strong id="replenishmentUseContributions">
+                  $0.00
+                </strong>
+              </div>
+
+            </div>
+
+          </section>
+
+
+          <section class="counter-section">
+
+            <div class="subsection-heading">
+
+              <div>
+                <h3>
+                  Bolsa después de pagar el gas
+                </h3>
+              </div>
+
+            </div>
+
+
+            <div class="replenishment-summary">
+
+              <div>
+                <span>
+                  Saldo anterior
+                </span>
+
+                <strong id="replenishmentPreviousAfter">
+                  $0.00
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  Generado hoy
+                </span>
+
+                <strong id="replenishmentTodayAfter">
+                  $0.00
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  Aportes
+                </span>
+
+                <strong id="replenishmentContributionsAfter">
+                  $0.00
+                </strong>
+              </div>
+
+
+              <div class="important">
+                <span>
+                  Total restante
+                </span>
+
+                <strong id="replenishmentFundingAfterTotal">
+                  $0.00
+                </strong>
+              </div>
+
+            </div>
+
+          </section>
 
         </div>
 
-        <!-- =================================================
-     ORIGEN DEL DINERO QUE SE USARÁ
-================================================== -->
-
-<section class="counter-section">
-
-  <div class="subsection-heading">
-
-    <div>
-
-      <h3>
-        Dinero que se usará de la bolsa
-      </h3>
-
-      <p>
-        Primero se utiliza el saldo anterior y después el dinero generado hoy.
-      </p>
-
-    </div>
-
-  </div>
-
-
-  <div class="replenishment-summary">
-
-    <div>
-
-      <span>
-        Del saldo anterior
-      </span>
-
-      <strong id="replenishmentUsePrevious">
-        $0.00
-      </strong>
-
-    </div>
-
-
-    <div>
-
-      <span>
-        De lo generado hoy
-      </span>
-
-      <strong id="replenishmentUseToday">
-        $0.00
-      </strong>
-
-    </div>
-
-
-    <div>
-
-      <span>
-        De aportes
-      </span>
-
-      <strong id="replenishmentUseContributions">
-        $0.00
-      </strong>
-
-    </div>
-
-  </div>
-
-</section>
-
-
-
-<!-- =================================================
-     CÓMO QUEDARÁ LA BOLSA
-================================================== -->
-
-<section class="counter-section">
-
-  <div class="subsection-heading">
-
-    <div>
-
-      <h3>
-        Bolsa después de pagar el gas
-      </h3>
-
-    </div>
-
-  </div>
-
-
-  <div class="replenishment-summary">
-
-    <div>
-
-      <span>
-        Saldo anterior
-      </span>
-
-      <strong id="replenishmentPreviousAfter">
-        $0.00
-      </strong>
-
-    </div>
-
-
-    <div>
-
-      <span>
-        Generado hoy
-      </span>
-
-      <strong id="replenishmentTodayAfter">
-        $0.00
-      </strong>
-
-    </div>
-
-
-    <div>
-
-      <span>
-        Aportes
-      </span>
-
-      <strong id="replenishmentContributionsAfter">
-        $0.00
-      </strong>
-
-    </div>
-
-
-    <div class="important">
-
-      <span>
-        Total restante
-      </span>
-
-      <strong id="replenishmentFundingAfterTotal">
-        $0.00
-      </strong>
-
-    </div>
-
-  </div>
-
-</section>
 
         <div
           id="replenishmentStatus"
@@ -3667,38 +4065,31 @@
 
           <table>
 
-            <thead>
+                        <thead>
 
               <tr>
 
                 <th>
-                  Fecha
+                  Fecha y hora
                 </th>
-
                 <th>
                   Marca
                 </th>
-
                 <th>
                   Repuestos
                 </th>
-
                 <th>
                   Vacíos entregados
                 </th>
-
                 <th>
-                  Bolsa antes
+                  Costo gas
                 </th>
-
+                <th>
+                  Costos adicionales
+                </th>
                 <th>
                   Aporte
                 </th>
-
-                <th>
-                  Total pagado
-                </th>
-
                 <th>
                   Bolsa después
                 </th>
@@ -3739,7 +4130,6 @@
       <div class="section-heading">
 
         <div>
-
           <p class="eyebrow">
             CUENTAS ABIERTAS
           </p>
@@ -3749,16 +4139,14 @@
           </h2>
 
           <p>
-            Dinero, tanques y productos pagados pendientes de retirar.
+            Dinero, tanques, proveedor y operaciones del vendedor que siguen abiertos.
           </p>
-
         </div>
 
       </div>
 
 
-
-      <!-- RESUMEN DE PENDIENTES -->
+      <!-- RESUMEN DE CLIENTES -->
 
       <div
         id="accountsSummary"
@@ -3767,22 +4155,791 @@
       </div>
 
 
+      <!-- =================================================
+           PROVEEDOR
+      ================================================== -->
 
-      <!-- CONTENEDOR GENERADO POR JS -->
+      <section class="card">
 
-      <div
-        id="accountsCards"
-        class="pending-sections"
-      >
+        <div class="card-header">
 
-        <div class="empty-state">
-          No existen pendientes.
+          <div>
+            <p class="eyebrow">
+              PROVEEDOR
+            </p>
+
+            <h3>
+              Pagos pendientes al proveedor
+            </h3>
+
+            <p>
+              Principalmente facturas Duragas que quedaron pendientes después de la llegada.
+            </p>
+          </div>
+
         </div>
 
-      </div>
+
+        <div class="inventory-control-summary">
+
+          <div>
+            <span>
+              Facturas pendientes
+            </span>
+
+            <strong id="supplierPendingCount">
+              0
+            </strong>
+          </div>
+
+
+          <div>
+            <span>
+              Valor pendiente
+            </span>
+
+            <strong id="supplierPendingAmount">
+              $0.00
+            </strong>
+          </div>
+
+        </div>
+
+
+        <div
+          id="supplierPaymentsList"
+          class="pending-sections"
+        >
+          <div class="empty-state">
+            No existen pagos pendientes al proveedor.
+          </div>
+        </div>
+
+
+        <div
+          id="supplierPaymentStatus"
+          class="operation-status"
+        >
+        </div>
+
+      </section>
+
+
+      <!-- =================================================
+           VENDEDOR / RUTAS
+      ================================================== -->
+
+      <section class="card">
+
+        <div class="card-header">
+
+          <div>
+            <p class="eyebrow">
+              VENDEDOR
+            </p>
+
+            <h3>
+              Rutas y liquidaciones
+            </h3>
+
+            <p>
+              Aparta cilindros, envíalos a ruta, liquida viajes y registra abonos.
+            </p>
+          </div>
+
+        </div>
+
+
+        <div
+          id="routeAccountsSummary"
+          class="metric-grid"
+        >
+        </div>
+
+
+        <div
+          id="routeAccountsList"
+          class="pending-sections"
+        >
+          <div class="empty-state">
+            Todavía no existen cuentas de vendedor.
+          </div>
+        </div>
+
+
+        <!-- CREAR CUENTA -->
+
+        <form
+          id="routeAccountForm"
+          class="card form-card"
+        >
+
+          <div class="subsection-heading">
+            <div>
+              <h3>
+                Crear cuenta de vendedor
+              </h3>
+            </div>
+          </div>
+
+
+          <div class="form-grid two">
+
+            <label>
+              Nombre
+
+              <input
+                id="routeAccountName"
+                type="text"
+                maxlength="120"
+                required
+              >
+            </label>
+
+
+            <label>
+              Referencia
+
+              <input
+                id="routeAccountReference"
+                type="text"
+                maxlength="120"
+                placeholder="Opcional"
+              >
+            </label>
+
+          </div>
+
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn primary"
+            >
+              Crear vendedor
+            </button>
+          </div>
+
+        </form>
+
+
+        <!-- APARTAR -->
+
+        <form
+          id="routeReserveForm"
+          class="card form-card"
+        >
+
+          <div class="subsection-heading">
+            <div>
+              <h3>
+                Apartar cilindros para vendedor
+              </h3>
+
+              <p>
+                Los cilindros permanecen físicamente en bodega como apartados.
+              </p>
+            </div>
+          </div>
+
+
+          <div class="form-grid two">
+
+            <label>
+              Vendedor
+
+              <select
+                id="routeReserveAccountId"
+                required
+              >
+                <option value="">
+                  Selecciona vendedor
+                </option>
+              </select>
+            </label>
+
+
+            <label>
+              Duragas
+
+              <input
+                id="routeReserveDuragas"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              King Gas
+
+              <input
+                id="routeReserveKingGas"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              Nota
+
+              <input
+                id="routeReserveNote"
+                type="text"
+                maxlength="250"
+                placeholder="Opcional"
+              >
+            </label>
+
+          </div>
+
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn primary"
+            >
+              Apartar cilindros
+            </button>
+          </div>
+
+        </form>
+
+
+        <!-- RETIRAR APARTADO -->
+
+        <form
+          id="routePickupForm"
+          class="card form-card"
+        >
+
+          <div class="subsection-heading">
+            <div>
+              <h3>
+                Retirar apartado y enviar a ruta
+              </h3>
+            </div>
+          </div>
+
+
+          <div class="form-grid two">
+
+            <label>
+              Apartado
+
+              <select
+                id="routePickupReservationId"
+                required
+              >
+                <option value="">
+                  Selecciona apartado
+                </option>
+              </select>
+            </label>
+
+
+            <label>
+              Duragas a retirar
+
+              <input
+                id="routePickupDuragas"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              King Gas a retirar
+
+              <input
+                id="routePickupKingGas"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              Nota
+
+              <input
+                id="routePickupNote"
+                type="text"
+                maxlength="250"
+                placeholder="Opcional"
+              >
+            </label>
+
+          </div>
+
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn primary"
+            >
+              Pasar a ruta
+            </button>
+          </div>
+
+        </form>
+
+
+        <!-- LIBERAR APARTADO -->
+
+        <form
+          id="routeReleaseForm"
+          class="card form-card"
+        >
+
+          <div class="subsection-heading">
+            <div>
+              <h3>
+                Liberar apartado
+              </h3>
+
+              <p>
+                Devuelve cilindros apartados a disponibilidad normal de bodega.
+              </p>
+            </div>
+          </div>
+
+
+          <div class="form-grid two">
+
+            <label>
+              Apartado
+
+              <select
+                id="routeReleaseReservationId"
+                required
+              >
+                <option value="">
+                  Selecciona apartado
+                </option>
+              </select>
+            </label>
+
+
+            <label>
+              Duragas a liberar
+
+              <input
+                id="routeReleaseDuragas"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              King Gas a liberar
+
+              <input
+                id="routeReleaseKingGas"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              Nota
+
+              <input
+                id="routeReleaseNote"
+                type="text"
+                maxlength="250"
+                placeholder="Opcional"
+              >
+            </label>
+
+          </div>
+
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn secondary"
+            >
+              Liberar apartado
+            </button>
+          </div>
+
+        </form>
+
+
+        <!-- INICIAR VIAJE -->
+
+        <form
+          id="routeStartForm"
+          class="card form-card"
+        >
+
+          <div class="subsection-heading">
+            <div>
+              <h3>
+                Iniciar viaje directo
+              </h3>
+
+              <p>
+                Envía cilindros a ruta sin crear un apartado previo.
+              </p>
+            </div>
+          </div>
+
+
+          <div class="form-grid two">
+
+            <label>
+              Vendedor
+
+              <select
+                id="routeStartAccountId"
+                required
+              >
+                <option value="">
+                  Selecciona vendedor
+                </option>
+              </select>
+            </label>
+
+
+            <label>
+              Duragas
+
+              <input
+                id="routeStartDuragas"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              King Gas
+
+              <input
+                id="routeStartKingGas"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              Nota
+
+              <input
+                id="routeStartNote"
+                type="text"
+                maxlength="250"
+                placeholder="Opcional"
+              >
+            </label>
+
+          </div>
+
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn primary"
+            >
+              Iniciar viaje
+            </button>
+          </div>
+
+        </form>
+
+
+        <!-- LIQUIDAR VIAJE -->
+
+        <form
+          id="routeSettleForm"
+          class="card form-card"
+        >
+
+          <div class="subsection-heading">
+            <div>
+              <h3>
+                Liquidar viaje
+              </h3>
+
+              <p>
+                Registra vendidos, retornados, vacíos recibidos y dinero entregado.
+              </p>
+            </div>
+          </div>
+
+
+          <div class="form-grid two">
+
+            <label>
+              Viaje abierto
+
+              <select
+                id="routeSettleTripId"
+                required
+              >
+                <option value="">
+                  Selecciona viaje
+                </option>
+              </select>
+            </label>
+
+
+            <label>
+              Duragas vendidos
+
+              <input
+                id="routeSettleSoldDuragas"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              King Gas vendidos
+
+              <input
+                id="routeSettleSoldKingGas"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              Duragas retornados llenos
+
+              <input
+                id="routeSettleReturnedDuragas"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              King Gas retornados llenos
+
+              <input
+                id="routeSettleReturnedKingGas"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              Vacíos Duragas recibidos
+
+              <input
+                id="routeSettleEmptyDuragas"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              Vacíos King Gas recibidos
+
+              <input
+                id="routeSettleEmptyKingGas"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              Dinero entregado
+
+              <input
+                id="routeSettleMoneyPaid"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.01"
+                value="0"
+              >
+            </label>
+
+
+            <label>
+              Nota
+
+              <input
+                id="routeSettleNote"
+                type="text"
+                maxlength="250"
+                placeholder="Opcional"
+              >
+            </label>
+
+          </div>
+
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn primary"
+            >
+              Liquidar viaje
+            </button>
+          </div>
+
+        </form>
+
+
+        <!-- ABONO -->
+
+        <form
+          id="routeAccountPaymentForm"
+          class="card form-card"
+        >
+
+          <div class="subsection-heading">
+            <div>
+              <h3>
+                Registrar abono del vendedor
+              </h3>
+            </div>
+          </div>
+
+
+          <div class="form-grid two">
+
+            <label>
+              Vendedor
+
+              <select
+                id="routePaymentAccountId"
+                required
+              >
+                <option value="">
+                  Selecciona vendedor
+                </option>
+              </select>
+            </label>
+
+
+            <label>
+              Monto del abono
+
+              <input
+                id="routePaymentAmount"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.01"
+                value="0"
+                required
+              >
+            </label>
+
+
+            <label>
+              Nota
+
+              <input
+                id="routePaymentNote"
+                type="text"
+                maxlength="250"
+                placeholder="Opcional"
+              >
+            </label>
+
+          </div>
+
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn primary"
+            >
+              Registrar abono
+            </button>
+          </div>
+
+        </form>
+
+
+        <div
+          id="routeStatus"
+          class="operation-status"
+        >
+        </div>
+
+      </section>
+
+
+      <!-- =================================================
+           CLIENTES
+      ================================================== -->
+
+      <section class="card">
+
+        <div class="card-header">
+
+          <div>
+            <h3>
+              Pendientes de clientes
+            </h3>
+
+            <p>
+              Dinero, tanques y productos pagados pendientes de retirar.
+            </p>
+          </div>
+
+        </div>
+
+
+        <div
+          id="accountsCards"
+          class="pending-sections"
+        >
+          <div class="empty-state">
+            No existen pendientes abiertos.
+          </div>
+        </div>
+
+      </section>
 
     </section>
-
 
 
     <!-- ===================================================
@@ -3835,7 +4992,6 @@
               </span>
 
               <div>
-
                 <h3>
                   Duragas
                 </h3>
@@ -3843,7 +4999,6 @@
                 <small>
                   Amarillo
                 </small>
-
               </div>
 
             </div>
@@ -3864,95 +5019,73 @@
           </div>
 
 
-
           <div class="inventory-number-grid">
 
-
             <div class="inventory-number available">
-
-              <span>
-                Llenos disponibles
-              </span>
-
-              <strong id="inventoryDuragasFull">
-                0
-              </strong>
-
-              <small>
-                Se pueden vender
-              </small>
-
+              <span>Llenos disponibles</span>
+              <strong id="inventoryDuragasFull">0</strong>
+              <small>En bodega y disponibles</small>
             </div>
-
 
             <div class="inventory-number empty">
-
-              <span>
-                Vacíos
-              </span>
-
-              <strong id="inventoryDuragasEmpty">
-                0
-              </strong>
-
-              <small>
-                En la bodega
-              </small>
-
+              <span>Vacíos</span>
+              <strong id="inventoryDuragasEmpty">0</strong>
+              <small>En bodega</small>
             </div>
-
 
             <div class="inventory-number reserved">
-
-              <span>
-                Reservados
-              </span>
-
-              <strong id="inventoryDuragasReserved">
-                0
-              </strong>
-
-              <small>
-                Ya tienen dueño
-              </small>
-
+              <span>Reservados</span>
+              <strong id="inventoryDuragasReserved">0</strong>
+              <small>En bodega</small>
             </div>
 
+            <div class="inventory-number reserved">
+              <span>Apartados vendedor</span>
+              <strong id="inventoryDuragasRouteReserved">0</strong>
+              <small>Siguen físicamente en bodega</small>
+            </div>
+
+            <div class="inventory-number">
+              <span>En ruta</span>
+              <strong id="inventoryDuragasRoute">0</strong>
+              <small>Fuera de bodega</small>
+            </div>
 
             <div class="inventory-number loaned">
-
-              <span>
-                Prestados
-              </span>
-
-              <strong id="inventoryDuragasLoaned">
-                0
-              </strong>
-
-              <small>
-                Fuera de la bodega
-              </small>
-
+              <span>Prestados</span>
+              <strong id="inventoryDuragasLoaned">0</strong>
+              <small>Fuera de bodega</small>
             </div>
 
           </div>
 
 
+          <div class="inventory-control-summary">
 
-          <div class="inventory-ownership">
+            <div>
+              <span>
+                Físico en bodega
+              </span>
 
-            <span>
-              Cilindros Duragas que siguen bajo control
-            </span>
+              <strong id="inventoryDuragasPhysical">
+                0
+              </strong>
+            </div>
 
-            <strong id="inventoryDuragasControlled">
-              0
-            </strong>
+
+            <div>
+              <span>
+                Total controlado
+              </span>
+
+              <strong id="inventoryDuragasControlled">
+                0
+              </strong>
+            </div>
 
           </div>
 
         </article>
-
 
 
         <!-- KING GAS -->
@@ -3967,7 +5100,6 @@
               </span>
 
               <div>
-
                 <h3>
                   King Gas
                 </h3>
@@ -3975,7 +5107,6 @@
                 <small>
                   Rosado
                 </small>
-
               </div>
 
             </div>
@@ -3996,90 +5127,69 @@
           </div>
 
 
-
           <div class="inventory-number-grid">
 
-
             <div class="inventory-number available">
-
-              <span>
-                Llenos disponibles
-              </span>
-
-              <strong id="inventoryKingGasFull">
-                0
-              </strong>
-
-              <small>
-                Se pueden vender
-              </small>
-
+              <span>Llenos disponibles</span>
+              <strong id="inventoryKingGasFull">0</strong>
+              <small>En bodega y disponibles</small>
             </div>
-
 
             <div class="inventory-number empty">
-
-              <span>
-                Vacíos
-              </span>
-
-              <strong id="inventoryKingGasEmpty">
-                0
-              </strong>
-
-              <small>
-                En la bodega
-              </small>
-
+              <span>Vacíos</span>
+              <strong id="inventoryKingGasEmpty">0</strong>
+              <small>En bodega</small>
             </div>
-
 
             <div class="inventory-number reserved">
-
-              <span>
-                Reservados
-              </span>
-
-              <strong id="inventoryKingGasReserved">
-                0
-              </strong>
-
-              <small>
-                Ya tienen dueño
-              </small>
-
+              <span>Reservados</span>
+              <strong id="inventoryKingGasReserved">0</strong>
+              <small>En bodega</small>
             </div>
 
+            <div class="inventory-number reserved">
+              <span>Apartados vendedor</span>
+              <strong id="inventoryKingGasRouteReserved">0</strong>
+              <small>Siguen físicamente en bodega</small>
+            </div>
+
+            <div class="inventory-number">
+              <span>En ruta</span>
+              <strong id="inventoryKingGasRoute">0</strong>
+              <small>Fuera de bodega</small>
+            </div>
 
             <div class="inventory-number loaned">
-
-              <span>
-                Prestados
-              </span>
-
-              <strong id="inventoryKingGasLoaned">
-                0
-              </strong>
-
-              <small>
-                Fuera de la bodega
-              </small>
-
+              <span>Prestados</span>
+              <strong id="inventoryKingGasLoaned">0</strong>
+              <small>Fuera de bodega</small>
             </div>
 
           </div>
 
 
+          <div class="inventory-control-summary">
 
-          <div class="inventory-ownership">
+            <div>
+              <span>
+                Físico en bodega
+              </span>
 
-            <span>
-              Cilindros King Gas que siguen bajo control
-            </span>
+              <strong id="inventoryKingGasPhysical">
+                0
+              </strong>
+            </div>
 
-            <strong id="inventoryKingGasControlled">
-              0
-            </strong>
+
+            <div>
+              <span>
+                Total controlado
+              </span>
+
+              <strong id="inventoryKingGasControlled">
+                0
+              </strong>
+            </div>
 
           </div>
 
@@ -4088,9 +5198,8 @@
       </div>
 
 
-
       <!-- =================================================
-           RESUMEN TOTAL DE BODEGA
+           RESUMEN TOTAL
       ================================================== -->
 
       <section class="card">
@@ -4098,15 +5207,14 @@
         <div class="card-header">
 
           <div>
-
             <h3>
               Control total de cilindros
             </h3>
 
             <p>
-              Permite comprobar que los cilindros sigan identificados aunque estén prestados o reservados.
+              El físico de bodega incluye llenos, vacíos, reservados y apartados de vendedor.
+              Ruta y prestados solo forman parte del total controlado.
             </p>
-
           </div>
 
         </div>
@@ -4114,22 +5222,40 @@
 
         <div class="inventory-control-summary">
 
-
           <div>
-
             <span>
-              En bodega físicamente
+              Físico en bodega
             </span>
 
             <strong id="inventoryPhysicalTotal">
               0
             </strong>
-
           </div>
 
 
           <div>
+            <span>
+              Apartados vendedor
+            </span>
 
+            <strong id="inventoryRouteReservedTotal">
+              0
+            </strong>
+          </div>
+
+
+          <div>
+            <span>
+              En ruta
+            </span>
+
+            <strong id="inventoryRouteTotal">
+              0
+            </strong>
+          </div>
+
+
+          <div>
             <span>
               Prestados
             </span>
@@ -4137,12 +5263,10 @@
             <strong id="inventoryLoanedTotal">
               0
             </strong>
-
           </div>
 
 
           <div>
-
             <span>
               Total bajo control
             </span>
@@ -4150,13 +5274,11 @@
             <strong id="inventoryControlledTotal">
               0
             </strong>
-
           </div>
 
         </div>
 
       </section>
-
 
 
       <!-- =================================================
@@ -4186,32 +5308,24 @@
 
           <table>
 
-            <thead>
+                        <thead>
 
               <tr>
 
                 <th>
-                  Fecha
+                  Fecha y hora
                 </th>
-
                 <th>
                   Tipo
                 </th>
-
                 <th>
                   Marca
                 </th>
-
-                <th>
-                  Existencia
-                </th>
-
-                <th>
-                  Movimiento
-                </th>
-
                 <th>
                   Detalle
+                </th>
+                <th>
+                  Referencia
                 </th>
 
               </tr>
@@ -4223,7 +5337,7 @@
 
               <tr>
 
-                <td colspan="6">
+                <td colspan="5">
                   Todavía no existen movimientos.
                 </td>
 
@@ -5100,7 +6214,6 @@
           <div class="subsection-heading">
 
             <div>
-
               <h3>
                 Dinero apartado para reposición
               </h3>
@@ -5108,21 +6221,76 @@
               <p>
                 Este dinero continúa existiendo aunque cierres el día.
               </p>
+            </div>
 
+
+            <div>
+              <span>
+                Modo financiero:
+              </span>
+
+              <strong id="closingFinancialMode">
+                Bolsas exactas
+              </strong>
             </div>
 
           </div>
 
 
-          <div class="reserve-wallet-grid">
+          <!-- BOLSA GENERAL -->
 
+          <div
+            id="closingGeneralWalletBlock"
+            class="reserve-wallet-grid"
+            hidden
+          >
+
+            <article class="reserve-wallet">
+
+              <div class="wallet-head">
+                <div>
+                  <strong>
+                    💰 Bolsa General
+                  </strong>
+
+                  <small>
+                    Saldo que pasa a la siguiente jornada
+                  </small>
+                </div>
+              </div>
+
+
+              <strong
+                id="closingGeneralWallet"
+                class="wallet-money"
+              >
+                $0.00
+              </strong>
+
+
+              <small>
+                Reserva por cilindro:
+                <strong id="closingGeneralReservePerUnit">
+                  $1.70
+                </strong>
+              </small>
+
+            </article>
+
+          </div>
+
+
+          <!-- BOLSAS EXACTAS -->
+
+          <div
+            id="closingExactWalletsBlock"
+            class="reserve-wallet-grid"
+          >
 
             <article class="reserve-wallet duragas">
 
               <div class="wallet-head">
-
                 <div>
-
                   <strong>
                     🟡 Bolsa Duragas
                   </strong>
@@ -5130,9 +6298,7 @@
                   <small>
                     Saldo que pasa al siguiente día
                   </small>
-
                 </div>
-
               </div>
 
 
@@ -5145,19 +6311,16 @@
 
 
               <small id="closingDuragasWalletEquivalent">
-                Aproximadamente 0 reposiciones
+                0 tanque(s)
               </small>
 
             </article>
 
 
-
             <article class="reserve-wallet kinggas">
 
               <div class="wallet-head">
-
                 <div>
-
                   <strong>
                     🌸 Bolsa King Gas
                   </strong>
@@ -5165,9 +6328,7 @@
                   <small>
                     Saldo que pasa al siguiente día
                   </small>
-
                 </div>
-
               </div>
 
 
@@ -5180,7 +6341,7 @@
 
 
               <small id="closingKingGasWalletEquivalent">
-                Aproximadamente 0 reposiciones
+                0 tanque(s)
               </small>
 
             </article>
@@ -5188,7 +6349,6 @@
           </div>
 
         </section>
-
 
 
         <!-- =================================================
@@ -5470,7 +6630,7 @@
 
 
         <!-- =================================================
-             CONTEO FÍSICO DURAGAS
+             CONTEO FÍSICO DE INVENTARIO
         ================================================== -->
 
         <section class="closing-section">
@@ -5478,15 +6638,14 @@
           <div class="subsection-heading">
 
             <div>
-
               <h3>
                 Conteo físico de cilindros
               </h3>
 
               <p>
-                Confirma lo que realmente existe al terminar la jornada.
+                Confirma únicamente lo que debe estar físicamente en bodega.
+                Ruta y prestados se muestran como control lógico.
               </p>
-
             </div>
 
           </div>
@@ -5507,18 +6666,24 @@
               <div class="expected-inventory-banner">
 
                 <span>
-                  Total esperado bajo control
+                  Físico esperado en bodega
                 </span>
 
                 <strong id="closingDuragasExpectedTotal">
                   0
                 </strong>
 
+                <small>
+                  Total controlado:
+                  <strong id="closingDuragasExpectedControlledTotal">
+                    0
+                  </strong>
+                </small>
+
               </div>
 
 
               <label>
-
                 Llenos encontrados
 
                 <input
@@ -5527,7 +6692,7 @@
                   inputmode="numeric"
                   min="0"
                   step="1"
-                  value="1"
+                  value="0"
                 >
 
                 <small>
@@ -5536,12 +6701,10 @@
                     0
                   </strong>
                 </small>
-
               </label>
 
 
               <label>
-
                 Vacíos encontrados
 
                 <input
@@ -5550,7 +6713,7 @@
                   inputmode="numeric"
                   min="0"
                   step="1"
-                  value="1"
+                  value="0"
                 >
 
                 <small>
@@ -5559,12 +6722,10 @@
                     0
                   </strong>
                 </small>
-
               </label>
 
 
               <label>
-
                 Reservados encontrados
 
                 <input
@@ -5573,7 +6734,7 @@
                   inputmode="numeric"
                   min="0"
                   step="1"
-                  value="1"
+                  value="0"
                 >
 
                 <small>
@@ -5582,22 +6743,61 @@
                     0
                   </strong>
                 </small>
-
               </label>
 
 
               <label>
+                Apartados de vendedor encontrados
 
+                <input
+                  id="closingDuragasRouteReserved"
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  step="1"
+                  value="0"
+                >
+
+                <small>
+                  Esperado:
+                  <strong id="closingExpectedDuragasRouteReserved">
+                    0
+                  </strong>
+                </small>
+              </label>
+
+
+              <label>
+                En ruta registrados
+
+                <input
+                  id="closingDuragasRoute"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value="0"
+                  readonly
+                >
+
+                <small>
+                  Esperado:
+                  <strong id="closingExpectedDuragasRoute">
+                    0
+                  </strong>
+                </small>
+              </label>
+
+
+              <label>
                 Prestados registrados
 
                 <input
                   id="closingDuragasLoaned"
-  type="number"
-  inputmode="numeric"
-  min="0"
-  step="1"
-  value="0"
-  readonly
+                  type="number"
+                  min="0"
+                  step="1"
+                  value="0"
+                  readonly
                 >
 
                 <small>
@@ -5606,14 +6806,13 @@
                     0
                   </strong>
                 </small>
-
               </label>
 
 
               <div class="closing-brand-difference">
 
                 <span>
-                  Diferencia total Duragas
+                  Diferencia física Duragas
                 </span>
 
                 <strong id="closingDuragasDifference">
@@ -5623,7 +6822,6 @@
               </div>
 
             </fieldset>
-
 
 
             <!-- KING GAS -->
@@ -5638,18 +6836,24 @@
               <div class="expected-inventory-banner">
 
                 <span>
-                  Total esperado bajo control
+                  Físico esperado en bodega
                 </span>
 
                 <strong id="closingKingGasExpectedTotal">
                   0
                 </strong>
 
+                <small>
+                  Total controlado:
+                  <strong id="closingKingGasExpectedControlledTotal">
+                    0
+                  </strong>
+                </small>
+
               </div>
 
 
               <label>
-
                 Llenos encontrados
 
                 <input
@@ -5658,7 +6862,7 @@
                   inputmode="numeric"
                   min="0"
                   step="1"
-                  value="1"
+                  value="0"
                 >
 
                 <small>
@@ -5667,12 +6871,10 @@
                     0
                   </strong>
                 </small>
-
               </label>
 
 
               <label>
-
                 Vacíos encontrados
 
                 <input
@@ -5681,7 +6883,7 @@
                   inputmode="numeric"
                   min="0"
                   step="1"
-                  value="1"
+                  value="0"
                 >
 
                 <small>
@@ -5690,12 +6892,10 @@
                     0
                   </strong>
                 </small>
-
               </label>
 
 
               <label>
-
                 Reservados encontrados
 
                 <input
@@ -5704,7 +6904,7 @@
                   inputmode="numeric"
                   min="0"
                   step="1"
-                  value="1"
+                  value="0"
                 >
 
                 <small>
@@ -5713,22 +6913,61 @@
                     0
                   </strong>
                 </small>
-
               </label>
 
 
               <label>
+                Apartados de vendedor encontrados
 
+                <input
+                  id="closingKingGasRouteReserved"
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  step="1"
+                  value="0"
+                >
+
+                <small>
+                  Esperado:
+                  <strong id="closingExpectedKingGasRouteReserved">
+                    0
+                  </strong>
+                </small>
+              </label>
+
+
+              <label>
+                En ruta registrados
+
+                <input
+                  id="closingKingGasRoute"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value="0"
+                  readonly
+                >
+
+                <small>
+                  Esperado:
+                  <strong id="closingExpectedKingGasRoute">
+                    0
+                  </strong>
+                </small>
+              </label>
+
+
+              <label>
                 Prestados registrados
 
                 <input
                   id="closingKingGasLoaned"
-  type="number"
-  inputmode="numeric"
-  min="0"
-  step="1"
-  value="0"
-  readonly
+                  type="number"
+                  min="0"
+                  step="1"
+                  value="0"
+                  readonly
                 >
 
                 <small>
@@ -5737,14 +6976,13 @@
                     0
                   </strong>
                 </small>
-
               </label>
 
 
               <div class="closing-brand-difference">
 
                 <span>
-                  Diferencia total King Gas
+                  Diferencia física King Gas
                 </span>
 
                 <strong id="closingKingGasDifference">
@@ -5758,7 +6996,6 @@
           </div>
 
         </section>
-
 
 
         <!-- =================================================
@@ -5786,6 +7023,22 @@
 
           <div
             id="closingPendingSummary"
+            class="closing-pending-summary"
+          >
+          </div>
+
+
+          <div class="subsection-heading">
+            <div>
+              <h4>
+                Proveedor
+              </h4>
+            </div>
+          </div>
+
+
+          <div
+            id="closingSupplierPendingSummary"
             class="closing-pending-summary"
           >
           </div>
@@ -6213,60 +7466,45 @@
 
             <table>
 
-              <thead>
+                          <thead>
 
-                <tr>
+              <tr>
 
-                  <th>
-                    Fecha
-                  </th>
+                <th>
+                  Fecha y hora
+                </th>
+                <th>
+                  Cliente
+                </th>
+                <th>
+                  Vendido
+                </th>
+                <th>
+                  Unidades
+                </th>
+                <th>
+                  Precio
+                </th>
+                <th>
+                  Total
+                </th>
+                <th>
+                  Ganancia
+                </th>
+                <th>
+                  Pago
+                </th>
 
-                  <th>
-                    Hora
-                  </th>
+              </tr>
 
-                  <th>
-                    Cliente
-                  </th>
-
-                  <th>
-                    Vendido
-                  </th>
-
-                  <th>
-                    Vacíos recibidos
-                  </th>
-
-                  <th>
-                    Precio
-                  </th>
-
-                  <th>
-                    Total
-                  </th>
-
-                  <th>
-                    Pago
-                  </th>
-
-                  <th>
-                    Ganancia
-                  </th>
-
-                  <th>
-                    Estado
-                  </th>
-
-                </tr>
-
-              </thead>
+            </thead>
 
 
               <tbody id="historySalesBody">
 
                 <tr>
 
-                  <td colspan="10">
+                  <td colspan="8">
                     No existen ventas para mostrar.
                   </td>
 
@@ -6346,7 +7584,7 @@
 
               Tipo
 
-              <select id="historyMovementType">
+              <select id="historyMovementsType">
 
                 <option value="all">
                   Todos
@@ -6400,48 +7638,39 @@
 
             <table>
 
-              <thead>
+                          <thead>
 
-                <tr>
+              <tr>
 
-                  <th>
-                    Fecha
-                  </th>
+                <th>
+                  Fecha y hora
+                </th>
+                <th>
+                  Tipo
+                </th>
+                <th>
+                  Marca
+                </th>
+                <th>
+                  Referencia
+                </th>
+                <th>
+                  Detalle
+                </th>
+                <th>
+                  Valor
+                </th>
 
-                  <th>
-                    Hora
-                  </th>
+              </tr>
 
-                  <th>
-                    Tipo
-                  </th>
-
-                  <th>
-                    Marca
-                  </th>
-
-                  <th>
-                    Cliente / referencia
-                  </th>
-
-                  <th>
-                    Detalle
-                  </th>
-
-                  <th>
-                    Valor
-                  </th>
-
-                </tr>
-
-              </thead>
+            </thead>
 
 
               <tbody id="historyMovementsBody">
 
                 <tr>
 
-                  <td colspan="7">
+                  <td colspan="6">
                     No existen movimientos para mostrar.
                   </td>
 
@@ -6490,6 +7719,51 @@
 
 
 
+          <div class="history-filter-grid compact">
+
+            <label>
+              Desde
+
+              <input
+                id="historyReplenishmentsFrom"
+                type="date"
+              >
+            </label>
+
+
+            <label>
+              Hasta
+
+              <input
+                id="historyReplenishmentsTo"
+                type="date"
+              >
+            </label>
+
+
+            <label>
+              Marca
+
+              <select id="historyReplenishmentsGasType">
+
+                <option value="all">
+                  Todas
+                </option>
+
+                <option value="duragas">
+                  Duragas
+                </option>
+
+                <option value="kinggas">
+                  King Gas
+                </option>
+
+              </select>
+            </label>
+
+          </div>
+
+
           <div class="history-stat-grid">
 
 
@@ -6499,7 +7773,7 @@
                 Duragas repuestos
               </span>
 
-              <strong id="historyReplenishedDuragas">
+              <strong id="historyReplenishmentDuragas">
                 0
               </strong>
 
@@ -6512,7 +7786,7 @@
                 King Gas repuestos
               </span>
 
-              <strong id="historyReplenishedKingGas">
+              <strong id="historyReplenishmentKinggas">
                 0
               </strong>
 
@@ -6525,7 +7799,7 @@
                 Pagado en reposiciones
               </span>
 
-              <strong id="historyReplenishmentTotalPaid">
+              <strong id="historyReplenishmentPaid">
                 $0.00
               </strong>
 
@@ -6538,7 +7812,7 @@
                 Aportes adicionales
               </span>
 
-              <strong id="historyReplenishmentExtraContributions">
+              <strong id="historyReplenishmentContributions">
                 $0.00
               </strong>
 
@@ -6552,45 +7826,38 @@
 
             <table>
 
-              <thead>
+                          <thead>
 
-                <tr>
+              <tr>
 
-                  <th>
-                    Fecha
-                  </th>
+                <th>
+                  Fecha y hora
+                </th>
+                <th>
+                  Marca
+                </th>
+                <th>
+                  Cantidad
+                </th>
+                <th>
+                  Vacíos entregados
+                </th>
+                <th>
+                  Costo gas
+                </th>
+                <th>
+                  Costos adicionales
+                </th>
+                <th>
+                  Aporte
+                </th>
+                <th>
+                  Bolsa después
+                </th>
 
-                  <th>
-                    Marca
-                  </th>
+              </tr>
 
-                  <th>
-                    Cantidad
-                  </th>
-
-                  <th>
-                    Vacíos entregados
-                  </th>
-
-                  <th>
-                    Bolsa antes
-                  </th>
-
-                  <th>
-                    Aporte
-                  </th>
-
-                  <th>
-                    Pagado
-                  </th>
-
-                  <th>
-                    Bolsa después
-                  </th>
-
-                </tr>
-
-              </thead>
+            </thead>
 
 
               <tbody id="historyReplenishmentsBody">
@@ -6677,7 +7944,7 @@
               🟡 Duragas
             </span>
 
-            <strong>
+            <strong id="settingsDuragasCost">
               $1.70
             </strong>
 
@@ -6694,7 +7961,7 @@
               🌸 King Gas
             </span>
 
-            <strong>
+            <strong id="settingsKingGasCost">
               $1.48
             </strong>
 
