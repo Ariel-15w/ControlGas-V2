@@ -40,6 +40,7 @@ import {
   ADJUSTMENT_DIRECTIONS,
   LOAN_ACTIONS,
   MOVEMENT_TYPES,
+  FINANCIAL_MODES,
   isValidSalePrice,
 } from './config.js';
 
@@ -92,10 +93,10 @@ import {
 
 import {
   getWalletsSnapshot,
+  getFinancialMode,
   setOpeningWalletBalance,
+  setOpeningGeneralWalletBalance,
 } from './finance.js';
-
-
 
 /* =========================================================
    VENTAS
@@ -500,7 +501,6 @@ function dayHasBusinessActivity(
 
 }
 
-
 function readInitialWalletBalances() {
 
   return {
@@ -526,6 +526,103 @@ function readInitialWalletBalances() {
   };
 
 }
+
+
+
+/* =========================================================
+   APERTURA - BOLSA GENERAL INICIAL
+========================================================= */
+
+function readInitialGeneralWalletBalance() {
+
+  const input =
+    byId(
+      'openingInitialGeneralWallet'
+    );
+
+
+  /*
+    Compatibilidad:
+
+    Mientras index.html todavía no tenga
+    este campo, simplemente usamos $0.
+
+    Cuando actualicemos la interfaz,
+    app.js ya estará preparado.
+  */
+
+  if (!input) {
+
+    return 0;
+
+  }
+
+
+  return roundMoney(
+    toNonNegativeNumber(
+      getValue(
+        'openingInitialGeneralWallet'
+      )
+    )
+  );
+
+}
+
+
+
+/* =========================================================
+   APERTURA - MODO FINANCIERO
+========================================================= */
+
+function readOpeningFinancialMode() {
+
+  const input =
+    byId(
+      'openingFinancialMode'
+    );
+
+
+  /*
+    Mientras la interfaz antigua todavía
+    no tenga selector, seguimos trabajando
+    en modo EXACTO.
+
+    Así no rompemos el sistema actual.
+  */
+
+  if (!input) {
+
+    return (
+      DEFAULTS.financialMode ??
+      FINANCIAL_MODES.EXACT
+    );
+
+  }
+
+
+  const value =
+    getValue(
+      'openingFinancialMode'
+    );
+
+
+  return (
+    value ===
+      FINANCIAL_MODES.GENERAL
+
+      ? FINANCIAL_MODES.GENERAL
+
+      : FINANCIAL_MODES.EXACT
+  );
+
+}
+
+
+
+/* =========================================================
+   CARGAR INVENTARIO EN APERTURA
+========================================================= */
+
 function loadCurrentInventoryIntoOpeningForm() {
 
   const activeDay =
@@ -533,13 +630,11 @@ function loadCurrentInventoryIntoOpeningForm() {
 
 
   /*
-    Si ya existe una jornada abierta,
-    respetamos el inventario con el que
-    ESA jornada fue abierta.
+    Si existe jornada abierta:
+    usamos la fotografía de su apertura.
 
-    Si todavía no existe jornada,
-    usamos como referencia el último
-    conteo físico del cierre.
+    Si no existe:
+    usamos el último cierre físico.
   */
 
   const inventory =
@@ -553,58 +648,80 @@ function loadCurrentInventoryIntoOpeningForm() {
     getLastClosingInventory();
 
 
-
   setValue(
     'duragasFull',
-    inventory[GAS_IDS.DURAGAS].full
+    inventory[
+      GAS_IDS.DURAGAS
+    ].full
   );
 
 
   setValue(
     'duragasEmpty',
-    inventory[GAS_IDS.DURAGAS].empty
+    inventory[
+      GAS_IDS.DURAGAS
+    ].empty
   );
 
 
   setValue(
     'duragasReserved',
-    inventory[GAS_IDS.DURAGAS].reserved
+    inventory[
+      GAS_IDS.DURAGAS
+    ].reserved
   );
 
 
   setValue(
     'duragasLoaned',
-    inventory[GAS_IDS.DURAGAS].loaned
+    inventory[
+      GAS_IDS.DURAGAS
+    ].loaned
   );
 
 
   setValue(
     'kinggasFull',
-    inventory[GAS_IDS.KING_GAS].full
+    inventory[
+      GAS_IDS.KING_GAS
+    ].full
   );
 
 
   setValue(
     'kinggasEmpty',
-    inventory[GAS_IDS.KING_GAS].empty
+    inventory[
+      GAS_IDS.KING_GAS
+    ].empty
   );
 
 
   setValue(
     'kinggasReserved',
-    inventory[GAS_IDS.KING_GAS].reserved
+    inventory[
+      GAS_IDS.KING_GAS
+    ].reserved
   );
 
 
   setValue(
     'kinggasLoaned',
-    inventory[GAS_IDS.KING_GAS].loaned
+    inventory[
+      GAS_IDS.KING_GAS
+    ].loaned
   );
 
 
   renderOpeningTotals();
 
 }
+
+
+
+/* =========================================================
+   PREPARAR MODO DE APERTURA
+========================================================= */
+
 function prepareOpeningMode() {
 
   const activeDay =
@@ -617,32 +734,126 @@ function prepareOpeningMode() {
 
   const hasActivity =
     activeDay
+
       ? dayHasBusinessActivity(
           activeDay.id
         )
+
       : false;
 
 
   /*
-    En la primera configuración se permite
-    ingresar el dinero histórico de las bolsas.
+    MODO FINANCIERO
 
-    En los días siguientes esas bolsas vienen
-    automáticamente del sistema.
+    Si la jornada ya existe usamos
+    el modo guardado en ella.
+
+    Si todavía no existe jornada,
+    usamos el modo predeterminado.
+  */
+
+  const financialMode =
+
+    activeDay
+      ?.financialMode
+
+    ??
+
+    DEFAULTS.financialMode
+
+    ??
+
+    FINANCIAL_MODES.EXACT;
+
+
+  const modeInput =
+    byId(
+      'openingFinancialMode'
+    );
+
+
+  if (
+    modeInput
+  ) {
+
+    if (
+      !hasActivity
+    ) {
+
+      setValue(
+        'openingFinancialMode',
+        financialMode
+      );
+
+    }
+
+
+    modeInput.disabled =
+      hasActivity;
+
+  }
+
+
+  const selectedMode =
+    readOpeningFinancialMode();
+
+
+  const isGeneral =
+    selectedMode ===
+    FINANCIAL_MODES.GENERAL;
+
+
+  const isExact =
+    !isGeneral;
+
+
+  /*
+    PRIMERA CONFIGURACIÓN
+
+    Solo en la primera apertura se permite
+    ingresar dinero histórico inicial.
   */
 
   setVisible(
     'openingInitialWalletsBlock',
-    firstOpening
+    firstOpening &&
+    isExact
+  );
+
+
+  setVisible(
+    'openingInitialGeneralWalletBlock',
+    firstOpening &&
+    isGeneral
   );
 
 
   /*
-    Si no es la primera apertura,
-    cargamos como referencia:
+    Compatibilidad con los nombres que
+    utilizaremos después en index.html.
+  */
 
-    - la apertura ya guardada del día actual, o
-    - el conteo físico del último cierre.
+  setVisible(
+    'openingExactWalletsBlock',
+    firstOpening &&
+    isExact
+  );
+
+
+  setVisible(
+    'openingGeneralWalletBlock',
+    firstOpening &&
+    isGeneral
+  );
+
+
+  /*
+    INVENTARIO
+
+    Mientras la jornada todavía no tenga
+    movimientos se puede corregir.
+
+    Después queda bloqueado.
   */
 
   if (
@@ -653,13 +864,6 @@ function prepareOpeningMode() {
 
   }
 
-
-  /*
-    El inventario puede corregirse mientras
-    todavía no exista actividad del día.
-
-    Después del primer movimiento queda bloqueado.
-  */
 
   const inventoryIds = [
 
@@ -695,8 +899,7 @@ function prepareOpeningMode() {
 
 
   /*
-    Las bolsas iniciales solamente se pueden
-    escribir durante la primera configuración.
+    BOLSAS EXACTAS INICIALES
   */
 
   [
@@ -713,7 +916,8 @@ function prepareOpeningMode() {
 
         input.readOnly =
           !firstOpening ||
-          hasActivity;
+          hasActivity ||
+          !isExact;
 
       }
 
@@ -722,9 +926,32 @@ function prepareOpeningMode() {
 
 
   /*
-    Primera configuración:
-    mostrar en los campos el saldo actual
-    existente de las bolsas.
+    BOLSA GENERAL INICIAL
+  */
+
+  const generalInput =
+    byId(
+      'openingInitialGeneralWallet'
+    );
+
+
+  if (
+    generalInput
+  ) {
+
+    generalInput.readOnly =
+      !firstOpening ||
+      hasActivity ||
+      !isGeneral;
+
+  }
+
+
+  /*
+    Primera configuración sin actividad:
+
+    mostramos los saldos reales actualmente
+    guardados en el sistema.
   */
 
   if (
@@ -738,21 +965,38 @@ function prepareOpeningMode() {
 
     setValue(
       'openingInitialDuragasWallet',
-      wallets[GAS_IDS.DURAGAS]
+      wallets[
+        GAS_IDS.DURAGAS
+      ] ??
+      0
     );
 
 
     setValue(
       'openingInitialKingGasWallet',
-      wallets[GAS_IDS.KING_GAS]
+      wallets[
+        GAS_IDS.KING_GAS
+      ] ??
+      0
     );
+
+
+    if (
+      generalInput
+    ) {
+
+      setValue(
+        'openingInitialGeneralWallet',
+        getGeneralWalletBalance()
+      );
+
+    }
 
   }
 
 
   /*
-    Mensaje de ayuda según el estado
-    de la jornada.
+    MENSAJE DE AYUDA
   */
 
   let modeText;
@@ -764,8 +1008,14 @@ function prepareOpeningMode() {
 
     modeText =
       hasActivity
+
         ? 'La configuración inicial ya tiene movimientos y no puede modificarse.'
-        : 'Primera configuración: ingresa el inventario y el dinero de reposición que ya existían antes de comenzar a usar ControlGas.';
+
+        : isGeneral
+
+          ? 'Primera configuración: usarás una sola Bolsa General. Ingresa el inventario y el dinero histórico que ya existía antes de comenzar.'
+
+          : 'Primera configuración: usarás bolsas separadas por marca. Ingresa el inventario y los saldos históricos existentes.';
 
   }
   else if (
@@ -774,7 +1024,7 @@ function prepareOpeningMode() {
   ) {
 
     modeText =
-      'La jornada ya tiene movimientos. La apertura quedó bloqueada para conservar el registro original.';
+      'La jornada ya tiene movimientos. El inventario y el modo financiero quedaron bloqueados para conservar el registro original.';
 
   }
   else if (
@@ -782,13 +1032,17 @@ function prepareOpeningMode() {
   ) {
 
     modeText =
-      'La jornada está abierta pero todavía no tiene movimientos. Puedes corregir el conteo físico antes de comenzar a trabajar.';
+      isGeneral
+
+        ? 'La jornada está abierta en modo Bolsa General y todavía no tiene movimientos. Puedes corregir la apertura antes de comenzar.'
+
+        : 'La jornada está abierta con bolsas exactas por marca y todavía no tiene movimientos. Puedes corregir la apertura antes de comenzar.';
 
   }
   else {
 
     modeText =
-      'El último cierre aparece como referencia. Cuenta físicamente los cilindros y corrige cualquier diferencia antes de iniciar la jornada.';
+      'El último cierre aparece como referencia. Revisa el inventario y selecciona cómo manejarás las bolsas durante esta jornada.';
 
   }
 
@@ -809,8 +1063,7 @@ function prepareOpeningMode() {
 
 
   /*
-    Bloquear también el botón Guardar apertura
-    cuando ya existen movimientos.
+    BOTÓN GUARDAR
   */
 
   const submitButton =
@@ -833,8 +1086,10 @@ function prepareOpeningMode() {
 
 }
 
+
+
 /* =========================================================
-   REGISTRAR APERTURA
+   REGISTRAR / ACTUALIZAR APERTURA
 ========================================================= */
 
 function openBusinessDay() {
@@ -873,18 +1128,41 @@ function openBusinessDay() {
       isFirstSystemOpening();
 
 
+    const financialMode =
+      readOpeningFinancialMode();
+
+
     const dayId =
+      activeDay
+        ?.id ??
       uid('day');
 
 
     const inventory =
-  readOpeningInventory();
+      readOpeningInventory();
 
+
+    /*
+      Saldos actuales / iniciales
+      de cada sistema financiero.
+    */
 
     const wallets =
+
       firstOpening
+
         ? readInitialWalletBalances()
+
         : getWalletsSnapshot();
+
+
+    const generalWallet =
+
+      firstOpening
+
+        ? readInitialGeneralWalletBalance()
+
+        : getGeneralWalletBalance();
 
 
     const openingCashFund =
@@ -903,85 +1181,210 @@ function openBusinessDay() {
           'openingNote'
         )
       );
-/*
-  El conteo físico escrito en Apertura
-  pasa a ser el inventario real con el
-  que comienza esta jornada.
-*/
 
-applyOpeningInventory(
-  inventory
-);
 
+    /*
+      El conteo físico escrito en apertura
+      pasa a ser el inventario real.
+    */
+
+    applyOpeningInventory(
+      inventory
+    );
+
+
+    /* =====================================================
+       ACTUALIZAR JORNADA YA ABIERTA
+    ===================================================== */
 
     if (
       activeDay
     ) {
+
+      activeDay.financialMode =
+        financialMode;
+
 
       activeDay.opening.inventory =
         cloneData(
           inventory
         );
 
+
       activeDay.opening.wallets =
         cloneData(
           wallets
         );
 
+
+      activeDay.opening.generalWallet =
+        roundMoney(
+          generalWallet
+        );
+
+
       activeDay.opening.cashFund =
         openingCashFund;
 
+
       activeDay.opening.note =
         note;
+
+
+      /*
+        Durante la primera configuración
+        sí podemos establecer dinero histórico.
+      */
 
       if (
         firstOpening
       ) {
 
-        setOpeningWalletBalance({
+        if (
+          financialMode ===
+          FINANCIAL_MODES.GENERAL
+        ) {
 
-          gasId:
-            GAS_IDS.DURAGAS,
+          /*
+            Solo una Bolsa General.
 
-          amount:
-            wallets[GAS_IDS.DURAGAS],
+            Dejamos las bolsas exactas en cero
+            para no duplicar dinero inicial.
+          */
 
-          dayId:
-            activeDay.id,
+          setOpeningWalletBalance({
 
-          createdAt:
-            openedAt,
+            gasId:
+              GAS_IDS.DURAGAS,
 
-        });
+            amount: 0,
 
-        setOpeningWalletBalance({
+            dayId:
+              activeDay.id,
 
-          gasId:
-            GAS_IDS.KING_GAS,
+            createdAt:
+              openedAt,
 
-          amount:
-            wallets[GAS_IDS.KING_GAS],
+          });
 
-          dayId:
-            activeDay.id,
 
-          createdAt:
-            openedAt,
+          setOpeningWalletBalance({
 
-        });
+            gasId:
+              GAS_IDS.KING_GAS,
+
+            amount: 0,
+
+            dayId:
+              activeDay.id,
+
+            createdAt:
+              openedAt,
+
+          });
+
+
+          setOpeningGeneralWalletBalance({
+
+            amount:
+              generalWallet,
+
+            dayId:
+              activeDay.id,
+
+            createdAt:
+              openedAt,
+
+          });
+
+        }
+        else {
+
+          /*
+            Bolsas exactas por marca.
+
+            Bolsa General queda en cero.
+          */
+
+          setOpeningGeneralWalletBalance({
+
+            amount: 0,
+
+            dayId:
+              activeDay.id,
+
+            createdAt:
+              openedAt,
+
+          });
+
+
+          setOpeningWalletBalance({
+
+            gasId:
+              GAS_IDS.DURAGAS,
+
+            amount:
+              wallets[
+                GAS_IDS.DURAGAS
+              ],
+
+            dayId:
+              activeDay.id,
+
+            createdAt:
+              openedAt,
+
+          });
+
+
+          setOpeningWalletBalance({
+
+            gasId:
+              GAS_IDS.KING_GAS,
+
+            amount:
+              wallets[
+                GAS_IDS.KING_GAS
+              ],
+
+            dayId:
+              activeDay.id,
+
+            createdAt:
+              openedAt,
+
+          });
+
+        }
 
       }
 
-      const openingMovement =
-        getState().movements.find(
-          movement =>
-            movement.dayId ===
-              activeDay.id &&
-            movement.type ===
-              MOVEMENT_TYPES.OPENING
-        );
 
-      if (openingMovement) {
+      /*
+        Actualizar también el movimiento
+        histórico de apertura.
+      */
+
+      const openingMovement =
+        getState()
+          .movements
+          .find(
+            movement =>
+
+              movement.dayId ===
+                activeDay.id
+
+              &&
+
+              movement.type ===
+                MOVEMENT_TYPES.OPENING
+          );
+
+
+      if (
+        openingMovement
+      ) {
 
         openingMovement.metadata = {
 
@@ -995,20 +1398,33 @@ applyOpeningInventory(
               wallets
             ),
 
+          openingGeneralWallet:
+            roundMoney(
+              generalWallet
+            ),
+
+          financialMode,
+
           openingCashFund,
 
         };
 
       }
 
+
       touchState();
+
       saveState();
+
 
       return activeDay;
 
     }
 
 
+    /* =====================================================
+       CREAR NUEVA JORNADA
+    ===================================================== */
 
     const day =
       createDayRecord({
@@ -1023,18 +1439,22 @@ applyOpeningInventory(
 
         openedAt,
 
+        financialMode,
+
         openingInventory:
           inventory,
 
         openingWallets:
           wallets,
 
+        openingGeneralWallet:
+          generalWallet,
+
         openingCashFund,
 
         note,
 
       });
-
 
 
     getState()
@@ -1049,49 +1469,125 @@ applyOpeningInventory(
     );
 
 
+    /* =====================================================
+       PRIMEROS SALDOS HISTÓRICOS
+    ===================================================== */
+
     if (
       firstOpening
     ) {
 
-      setOpeningWalletBalance({
+      if (
+        financialMode ===
+        FINANCIAL_MODES.GENERAL
+      ) {
 
-        gasId:
-          GAS_IDS.DURAGAS,
+        setOpeningWalletBalance({
 
-        amount:
-          wallets[GAS_IDS.DURAGAS],
+          gasId:
+            GAS_IDS.DURAGAS,
 
-        dayId:
-          day.id,
+          amount: 0,
 
-        createdAt:
-          openedAt,
+          dayId:
+            day.id,
 
-      });
+          createdAt:
+            openedAt,
 
-      setOpeningWalletBalance({
+        });
 
-        gasId:
-          GAS_IDS.KING_GAS,
 
-        amount:
-          wallets[GAS_IDS.KING_GAS],
+        setOpeningWalletBalance({
 
-        dayId:
-          day.id,
+          gasId:
+            GAS_IDS.KING_GAS,
 
-        createdAt:
-          openedAt,
+          amount: 0,
 
-      });
+          dayId:
+            day.id,
+
+          createdAt:
+            openedAt,
+
+        });
+
+
+        setOpeningGeneralWalletBalance({
+
+          amount:
+            generalWallet,
+
+          dayId:
+            day.id,
+
+          createdAt:
+            openedAt,
+
+        });
+
+      }
+      else {
+
+        setOpeningGeneralWalletBalance({
+
+          amount: 0,
+
+          dayId:
+            day.id,
+
+          createdAt:
+            openedAt,
+
+        });
+
+
+        setOpeningWalletBalance({
+
+          gasId:
+            GAS_IDS.DURAGAS,
+
+          amount:
+            wallets[
+              GAS_IDS.DURAGAS
+            ],
+
+          dayId:
+            day.id,
+
+          createdAt:
+            openedAt,
+
+        });
+
+
+        setOpeningWalletBalance({
+
+          gasId:
+            GAS_IDS.KING_GAS,
+
+          amount:
+            wallets[
+              GAS_IDS.KING_GAS
+            ],
+
+          dayId:
+            day.id,
+
+          createdAt:
+            openedAt,
+
+        });
+
+      }
 
     }
 
 
-
-    /*
-      Registrar apertura en bitácora.
-    */
+    /* =====================================================
+       MOVIMIENTO DE APERTURA
+    ===================================================== */
 
     const movement =
       createMovementBase({
@@ -1115,7 +1611,12 @@ applyOpeningInventory(
           `Apertura ${day.dateKey}`,
 
         detail:
-          'Inicio de jornada.',
+          financialMode ===
+            FINANCIAL_MODES.GENERAL
+
+            ? 'Inicio de jornada - Bolsa General.'
+
+            : 'Inicio de jornada - Bolsas exactas.',
 
         value: 0,
 
@@ -1130,6 +1631,13 @@ applyOpeningInventory(
             cloneData(
               wallets
             ),
+
+          openingGeneralWallet:
+            roundMoney(
+              generalWallet
+            ),
+
+          financialMode,
 
           openingCashFund,
 
@@ -1167,7 +1675,10 @@ applyOpeningInventory(
     }
     catch {
 
-      /* Mantener restauración en memoria. */
+      /*
+        Estado restaurado al menos
+        dentro de memoria.
+      */
 
     }
 
@@ -1209,6 +1720,24 @@ function bindOpeningForm() {
   );
 
 
+  /*
+    Cuando agreguemos el selector al HTML,
+    cambiar Exacta / General actualizará
+    inmediatamente los campos visibles.
+  */
+
+  byId(
+    'openingFinancialMode'
+  )?.addEventListener(
+    'change',
+    () => {
+
+      prepareOpeningMode();
+
+    }
+  );
+
+
   form.addEventListener(
     'submit',
     event => {
@@ -1218,12 +1747,21 @@ function bindOpeningForm() {
 
       try {
 
-        openBusinessDay();
+        const day =
+          openBusinessDay();
 
 
         showToast(
-          'Jornada abierta correctamente.',
+
+          day.financialMode ===
+            FINANCIAL_MODES.GENERAL
+
+            ? 'Jornada abierta con Bolsa General.'
+
+            : 'Jornada abierta con bolsas exactas.',
+
           'good'
+
         );
 
 
@@ -1255,9 +1793,6 @@ function bindOpeningForm() {
   );
 
 }
-
-
-
 /* =========================================================
    VENTA - LEER CANTIDADES
 ========================================================= */
@@ -4005,30 +4540,93 @@ function readClosingInventory() {
     getInventorySnapshot();
 
 
+  function readPhysicalValue(
+    inputId,
+    fallback
+  ) {
+
+    const input =
+      byId(
+        inputId
+      );
+
+
+    /*
+      Compatibilidad con HTML anterior.
+
+      Si todavía no existe el campo,
+      conservamos el valor lógico esperado.
+    */
+
+    if (!input) {
+
+      return fallback;
+
+    }
+
+
+    return getValue(
+      inputId
+    );
+
+  }
+
+
   return {
 
     [GAS_IDS.DURAGAS]: {
 
       full:
-        getValue(
-          'closingDuragasFull'
+        readPhysicalValue(
+          'closingDuragasFull',
+          logicalInventory[
+            GAS_IDS.DURAGAS
+          ].full
         ),
 
       empty:
-        getValue(
-          'closingDuragasEmpty'
+        readPhysicalValue(
+          'closingDuragasEmpty',
+          logicalInventory[
+            GAS_IDS.DURAGAS
+          ].empty
         ),
 
       reserved:
-        getValue(
-          'closingDuragasReserved'
+        readPhysicalValue(
+          'closingDuragasReserved',
+          logicalInventory[
+            GAS_IDS.DURAGAS
+          ].reserved
         ),
 
       /*
-        Los prestados están fuera de la bodega.
-        No se cuentan físicamente.
-        Siempre usamos el valor lógico registrado.
+        Apartados para vendedor.
+
+        Todavía están físicamente
+        dentro de la bodega.
       */
+
+      routeReserved:
+        readPhysicalValue(
+          'closingDuragasRouteReserved',
+          logicalInventory[
+            GAS_IDS.DURAGAS
+          ].routeReserved
+        ),
+
+
+      /*
+        Fuera de la bodega.
+
+        No se cuentan físicamente;
+        usamos el dato lógico real.
+      */
+
+      route:
+        logicalInventory[
+          GAS_IDS.DURAGAS
+        ].route,
 
       loaned:
         logicalInventory[
@@ -4041,19 +4639,41 @@ function readClosingInventory() {
     [GAS_IDS.KING_GAS]: {
 
       full:
-        getValue(
-          'closingKingGasFull'
+        readPhysicalValue(
+          'closingKingGasFull',
+          logicalInventory[
+            GAS_IDS.KING_GAS
+          ].full
         ),
 
       empty:
-        getValue(
-          'closingKingGasEmpty'
+        readPhysicalValue(
+          'closingKingGasEmpty',
+          logicalInventory[
+            GAS_IDS.KING_GAS
+          ].empty
         ),
 
       reserved:
-        getValue(
-          'closingKingGasReserved'
+        readPhysicalValue(
+          'closingKingGasReserved',
+          logicalInventory[
+            GAS_IDS.KING_GAS
+          ].reserved
         ),
+
+      routeReserved:
+        readPhysicalValue(
+          'closingKingGasRouteReserved',
+          logicalInventory[
+            GAS_IDS.KING_GAS
+          ].routeReserved
+        ),
+
+      route:
+        logicalInventory[
+          GAS_IDS.KING_GAS
+        ].route,
 
       loaned:
         logicalInventory[
@@ -4065,6 +4685,7 @@ function readClosingInventory() {
   };
 
 }
+
 
 
 /* =========================================================
@@ -4082,20 +4703,40 @@ function prepareClosingInputsIfEmpty() {
   }
 
 
+  /*
+    Campos que realmente existen
+    actualmente en la interfaz.
+
+    Cuando agreguemos routeReserved
+    en index.html entrará automáticamente.
+  */
+
   const physicalIds = [
 
     'closingDuragasFull',
     'closingDuragasEmpty',
     'closingDuragasReserved',
+    'closingDuragasRouteReserved',
 
     'closingKingGasFull',
     'closingKingGasEmpty',
     'closingKingGasReserved',
+    'closingKingGasRouteReserved',
 
-  ];
+  ].filter(
+    id =>
+      Boolean(
+        byId(id)
+      )
+  );
 
 
   const allPhysicalEmpty =
+
+    physicalIds.length > 0
+
+    &&
+
     physicalIds.every(
       id =>
         getValue(id) === ''
@@ -4107,11 +4748,11 @@ function prepareClosingInputsIfEmpty() {
   ) {
 
     /*
-      Ponemos como ayuda el inventario
-      que el sistema espera encontrar.
+      Cargar como referencia
+      lo que el sistema espera encontrar.
 
-      Si físicamente hay una diferencia,
-      el usuario cambia solamente ese valor.
+      El usuario solamente modifica
+      lo que físicamente sea diferente.
     */
 
     renderExpectedClosingInventory(
@@ -4120,7 +4761,8 @@ function prepareClosingInputsIfEmpty() {
 
 
     /*
-      La caja contada SIEMPRE es manual.
+      El efectivo contado nunca
+      se autocompleta.
     */
 
     setValue(
@@ -4152,9 +4794,11 @@ function prepareClosingInputsIfEmpty() {
 }
 
 
+
 /* =========================================================
    PREVISUALIZAR CIERRE
 ========================================================= */
+
 function updateClosingPreview() {
 
   if (
@@ -4175,21 +4819,23 @@ function updateClosingPreview() {
   try {
 
     /*
-      =====================================================
-      CALCULAR SIEMPRE EL INVENTARIO
+      Siempre calculamos primero
+      el inventario.
 
-      Aunque todavía no se haya escrito
-      el efectivo contado, las diferencias
-      físicas de cilindros deben actualizarse.
-      =====================================================
+      Aunque todavía no se haya contado
+      la caja, las diferencias físicas
+      deben poder verse.
     */
 
     const preview =
       calculateClosingPreview({
 
         cashCounted:
+
           cashRaw === ''
+
             ? 0
+
             : toNonNegativeNumber(
                 cashRaw
               ),
@@ -4208,12 +4854,7 @@ function updateClosingPreview() {
 
 
     /*
-      =====================================================
-      CAJA TODAVÍA SIN CONTAR
-
-      Actualizamos inventario, pero NO mostramos
-      una falsa diferencia de dinero.
-      =====================================================
+      EFECTIVO TODAVÍA SIN CONTAR
     */
 
     if (
@@ -4239,7 +4880,8 @@ function updateClosingPreview() {
       setText(
         'closingDuragasDifference',
         String(
-          duragas.warehouseDifference
+          duragas
+            .warehouseDifference
         )
       );
 
@@ -4247,7 +4889,8 @@ function updateClosingPreview() {
       setText(
         'closingKingGasDifference',
         String(
-          kinggas.warehouseDifference
+          kinggas
+            .warehouseDifference
         )
       );
 
@@ -4265,15 +4908,23 @@ function updateClosingPreview() {
 
 
       setOperationStatus(
+
         'closingStatus',
 
-        preview.hasInventoryDifference
+        preview
+          .hasInventoryDifference
+
           ? 'Hay diferencias en el conteo físico de cilindros.'
+
           : 'El conteo físico coincide. Falta escribir el efectivo contado.',
 
-        preview.hasInventoryDifference
+        preview
+          .hasInventoryDifference
+
           ? 'warn'
+
           : 'good'
+
       );
 
 
@@ -4283,12 +4934,14 @@ function updateClosingPreview() {
 
 
     /*
-      =====================================================
-      CAJA YA CONTADA
+      EFECTIVO YA CONTADO
 
-      Ahora sí mostramos todo el cierre:
-      inventario + efectivo.
-      =====================================================
+      ui.js muestra ahora:
+
+      - caja
+      - inventario
+      - bolsas
+      - obligaciones pendientes
     */
 
     renderClosingPreview(
@@ -4313,6 +4966,8 @@ function updateClosingPreview() {
   }
 
 }
+
+
 
 /* =========================================================
    FORMULARIO CIERRE
@@ -4384,16 +5039,23 @@ function bindClosingForm() {
         );
 
 
+        /*
+          El cierre ya trae la fotografía
+          financiera completa de la jornada.
+        */
+
         showToast(
 
-          result.closing
+          result
+            .closing
             .hasAnyDifference
 
             ? 'Jornada cerrada con diferencias registradas.'
 
             : 'Jornada cerrada correctamente.',
 
-          result.closing
+          result
+            .closing
             .hasAnyDifference
 
             ? 'warn'
@@ -4423,9 +5085,6 @@ function bindClosingForm() {
   );
 
 }
-
-
-
 /* =========================================================
    NAVEGACIÓN
 ========================================================= */
