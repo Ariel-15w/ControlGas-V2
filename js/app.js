@@ -6513,7 +6513,6 @@ function bindNumericInputs() {
   Evita que un submit se ejecute dos veces
   por doble toque rápido en celular.
 */
-
 function bindSubmitProtection() {
 
   document.addEventListener(
@@ -6546,12 +6545,23 @@ function bindSubmitProtection() {
       }
 
 
+      /*
+        Si ya hubo un envío reciente,
+        detenemos COMPLETAMENTE el segundo evento.
+
+        preventDefault() por sí solo no basta,
+        porque los listeners JavaScript del formulario
+        igualmente podrían ejecutarse.
+      */
+
       if (
         submit.dataset.busy ===
         'true'
       ) {
 
         event.preventDefault();
+
+        event.stopImmediatePropagation();
 
         return;
 
@@ -6565,7 +6575,9 @@ function bindSubmitProtection() {
       setTimeout(
         () => {
 
-          delete submit.dataset.busy;
+          delete submit
+            .dataset
+            .busy;
 
         },
         700
@@ -6576,9 +6588,6 @@ function bindSubmitProtection() {
   );
 
 }
-
-
-
 /* =========================================================
    CERRAR DIALOG AL PULSAR BOTÓN/CANCELAR
 ========================================================= */
@@ -6984,36 +6993,6 @@ function bindRouteForms() {
           event.preventDefault();
 
 
-          const submit =
-            form.querySelector(
-              'button[type="submit"]'
-            );
-
-
-          /*
-            Protección contra doble clic.
-          */
-
-          if (
-            submit?.dataset.busy ===
-            'true'
-          ) {
-
-            return;
-
-          }
-
-
-          if (submit) {
-
-            submit.dataset.busy =
-              'true';
-
-            submit.disabled =
-              true;
-
-          }
-
 
           try {
 
@@ -7055,20 +7034,7 @@ function bindRouteForms() {
             );
 
           }
-          finally {
-
-            if (submit) {
-
-              delete submit
-                .dataset
-                .busy;
-
-              submit.disabled =
-                false;
-
-            }
-
-          }
+         
 
         }
       );
