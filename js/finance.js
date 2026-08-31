@@ -1531,11 +1531,12 @@ createdAt =
 const currentBalance =
   getGeneralWalletBalance();
 
-
 const committed =
-  getSupplierCommittedAmount();
-
-
+  getSupplierCommittedAmount({
+    financialMode:
+      FINANCIAL_MODES.GENERAL,
+  });
+   
 const available =
   allowCommitted
 
@@ -1751,12 +1752,12 @@ const currentBalance =
     gasId
   );
 
-
 const committed =
   getSupplierCommittedAmount({
     gasId,
+    financialMode:
+      FINANCIAL_MODES.EXACT,
   });
-
 
 const available =
   allowCommitted
@@ -2029,12 +2030,17 @@ export function calculateSupplierPaymentPlan({
 /* =========================================================
    DINERO COMPROMETIDO CON EL PROVEEDOR
 ========================================================= */
-
 export function getSupplierCommittedAmount({
+
   gasId = null,
+
+  financialMode = null,
+
 } = {}) {
 
-  if (gasId !== null) {
+  if (
+    gasId !== null
+  ) {
 
     assertGasType(
       gasId
@@ -2064,10 +2070,26 @@ export function getSupplierCommittedAmount({
         }
 
 
+        const paymentMode =
+          getFinancialMode(
+            payment.dayId ??
+            null
+          );
+
+
+        if (
+          financialMode !== null &&
+          paymentMode !== financialMode
+        ) {
+
+          return false;
+
+        }
+
+
         if (
           gasId &&
-          payment.gasId !==
-          gasId
+          payment.gasId !== gasId
         ) {
 
           return false;
@@ -2091,7 +2113,6 @@ export function getSupplierCommittedAmount({
   );
 
 }
-
 /* =========================================================
    DINERO REALMENTE DISPONIBLE PARA NUEVA REPOSICIÓN
 ========================================================= */
@@ -2121,10 +2142,11 @@ export function getAvailableReplacementWalletBalance({
       getGeneralWalletBalance();
 
 
-    const committed =
-      getSupplierCommittedAmount();
-
-
+   const committed =
+  getSupplierCommittedAmount({
+    financialMode:
+      FINANCIAL_MODES.GENERAL,
+  });
     return {
 
       financialMode:
@@ -2158,13 +2180,12 @@ export function getAvailableReplacementWalletBalance({
       gasId
     );
 
-
-  const committed =
-    getSupplierCommittedAmount({
-      gasId,
-    });
-
-
+const committed =
+  getSupplierCommittedAmount({
+    gasId,
+    financialMode:
+      FINANCIAL_MODES.EXACT,
+  });
   return {
 
     financialMode:
@@ -3294,25 +3315,32 @@ createdAt,
       effectiveDayId
     );
 
-
-  const available =
-    getGasWalletBalance(
-      gasId
-    );
-
-
-  if (
-    value >
-    available + 0.005
-  ) {
-
-    throw new Error(
-      `La bolsa ${getGasName(gasId)} tiene ${available.toFixed(2)} y necesitas ${value.toFixed(2)}.`
-    );
-
-  }
+const walletInfo =
+  getAvailableReplacementWalletBalance({
+    gasId,
+    dayId:
+      effectiveDayId,
+  });
 
 
+const available =
+  allowCommitted
+
+    ? walletInfo.balance
+
+    : walletInfo.available;
+
+
+if (
+  value >
+  available + 0.005
+) {
+
+  throw new Error(
+    `La bolsa ${getGasName(gasId)} solo tiene $${available.toFixed(2)} disponibles y necesitas $${value.toFixed(2)}.`
+  );
+
+}
   let remaining =
     value;
 
@@ -4051,16 +4079,15 @@ function getProfitReinvested(
             }
 
 
-            if (
-              gasId &&
-              movement.gasId !==
-                gasId
-            ) {
+           if (
+  gasId &&
+  movement.gasId !== gasId &&
+  movement.metadata?.gasId !== gasId
+) {
 
-              return false;
+  return false;
 
-            }
-
+}
 
             return true;
 
@@ -5398,18 +5425,83 @@ if (
   financialMode ===
   FINANCIAL_MODES.GENERAL
 ) {
-const walletInfo =
-  getAvailableReplacementWalletBalance({
-    dayId,
-  });
 
-const walletInfo =
-  getAvailableReplacementWalletBalance({
+  const walletInfo =
+    getAvailableReplacementWalletBalance({
+      dayId,
+    });
+
+
+  const walletBefore =
+    walletInfo.available;
+
+
+  const walletUsed =
+    roundMoney(
+      Math.min(
+        walletBefore,
+        gasCost
+      )
+    );
+
+
+  const extraNeeded =
+    roundMoney(
+      Math.max(
+        0,
+        gasCost -
+        walletBefore
+      )
+    );
+
+
+  const walletRemainingWithoutExtra =
+    roundMoney(
+      Math.max(
+        0,
+        walletBefore -
+        gasCost
+      )
+    );
+
+
+  return {
+
     gasId,
-    dayId,
-  });
 
+    quantity:
+      qty,
 
+    gasCost,
+
+    financialMode:
+      FINANCIAL_MODES.GENERAL,
+
+    walletBefore,
+
+    extraNeeded,
+
+    walletRemainingWithoutExtra,
+
+    fundingBreakdown: {
+
+      generalAvailable:
+        walletBefore,
+
+      fromGeneralWallet:
+        walletUsed,
+
+      fromExtraContribution:
+        extraNeeded,
+
+      generalAfter:
+        walletRemainingWithoutExtra,
+
+    },
+
+  };
+
+}
 const walletBefore =
   walletInfo.available;
 
@@ -5574,48 +5666,59 @@ const walletRemainingWithoutExtra =
   };
 
 }
-  const walletBefore =
-    getGasWalletBalance(
-      gasId
-    );
+const walletInfo =
+  getAvailableReplacementWalletBalance({
+    gasId,
+    dayId,
+  });
 
 
-  /*
-    Obtenemos cómo está compuesta
-    la bolsa EN ESTE MOMENTO.
-  */
-
-  const breakdown =
-    getWalletDayBreakdown(
-      gasId
-    );
+const walletBefore =
+  walletInfo.available;
 
 
-  let remainingCost =
-    gasCost;
+/*
+  Obtenemos cómo está compuesta
+  la bolsa EN ESTE MOMENTO.
+*/
+const breakdown =
+  getWalletDayBreakdown(
+    gasId,
+    dayId
+  );
 
 
-  /* =======================================================
-     1. USAR PRIMERO SALDO ANTERIOR
-  ======================================================= */
-
-  const fromPrevious =
-    roundMoney(
-      Math.min(
-        breakdown.previousRemaining,
-        remainingCost
-      )
-    );
+let remainingWalletTarget =
+  roundMoney(
+    Math.min(
+      gasCost,
+      walletBefore
+    )
+  );
 
 
-  remainingCost =
-    roundMoney(
-      Math.max(
-        0,
-        remainingCost -
-        fromPrevious
-      )
-    );
+/* =======================================================
+   1. USAR PRIMERO SALDO ANTERIOR
+======================================================= */
+
+const fromPrevious =
+  roundMoney(
+    Math.min(
+      breakdown.previousRemaining,
+      remainingWalletTarget
+    )
+  );
+
+
+remainingWalletTarget =
+  roundMoney(
+    Math.max(
+      0,
+      remainingWalletTarget -
+      fromPrevious
+    )
+  );
+
 
 /* =======================================================
    2. DESPUÉS USAR APORTES ADICIONALES
@@ -5625,20 +5728,19 @@ const fromContributions =
   roundMoney(
     Math.min(
       breakdown.contributionsRemaining,
-      remainingCost
+      remainingWalletTarget
     )
   );
 
 
-remainingCost =
+remainingWalletTarget =
   roundMoney(
     Math.max(
       0,
-      remainingCost -
+      remainingWalletTarget -
       fromContributions
     )
   );
-
 
 
 /* =======================================================
@@ -5649,56 +5751,51 @@ const fromToday =
   roundMoney(
     Math.min(
       breakdown.todayReserveRemaining,
-      remainingCost
+      remainingWalletTarget
     )
   );
 
 
-remainingCost =
+remainingWalletTarget =
   roundMoney(
     Math.max(
       0,
-      remainingCost -
+      remainingWalletTarget -
       fromToday
     )
   );
 
-  /* =======================================================
-     4. SI TODAVÍA FALTA DINERO
-  ======================================================= */
 
-  const extraNeeded =
-    roundMoney(
-      remainingCost
-    );
-
-
-  const walletUsed =
-    roundMoney(
-
-      fromPrevious
-
-      +
-
-      fromToday
-
-      +
-
-      fromContributions
-
-    );
+const walletUsed =
+  roundMoney(
+    fromPrevious +
+    fromContributions +
+    fromToday
+  );
 
 
-  const walletRemainingWithoutExtra =
-    roundMoney(
-      Math.max(
-        0,
-        walletBefore -
-        walletUsed
-      )
-    );
+/* =======================================================
+   4. SI TODAVÍA FALTA DINERO
+======================================================= */
+
+const extraNeeded =
+  roundMoney(
+    Math.max(
+      0,
+      gasCost -
+      walletUsed
+    )
+  );
 
 
+const walletRemainingWithoutExtra =
+  roundMoney(
+    Math.max(
+      0,
+      walletBefore -
+      walletUsed
+    )
+  );
 
   /* =======================================================
      SALDOS QUE QUEDARÍAN
