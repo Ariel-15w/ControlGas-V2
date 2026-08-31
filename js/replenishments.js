@@ -55,10 +55,10 @@ import {
   getActiveDay,
   getReplenishmentById,
   createMovementBase,
+  createSupplierPaymentRecord,
   replaceState,
   touchState,
 } from './state.js';
-
 
 import {
   getInventoryQuantity,
@@ -68,7 +68,9 @@ import {
 
 import {
   getGasWalletBalance,
+  getFinancialMode,
   calculateReplacementCost,
+  calculateSupplierPaymentPlan,
   calculateReplenishmentFunding,
   registerExtraContribution,
   payReplacementFromWallet,
@@ -193,8 +195,11 @@ export function calculateReplenishmentPreview({
 
   extraContribution = 0,
 
-}) {
+  dayId =
+    getActiveDay()?.id ??
+    null,
 
+}) {
   assertGasType(
     gasId
   );
@@ -250,6 +255,15 @@ export function calculateReplenishmentPreview({
       qty
     );
 
+   const supplierPaymentPlan =
+  calculateSupplierPaymentPlan({
+
+    gasId,
+
+    quantity:
+      qty,
+
+  });
 
   const additionalCosts =
     roundMoney(
@@ -270,25 +284,6 @@ export function calculateReplenishmentPreview({
       additionalCosts
     );
 
-const walletBefore =
-  getGasWalletBalance(
-    gasId
-  );
-
-
-/*
-  =====================================================
-  ORIGEN DEL DINERO DE LA BOLSA
-
-  finance.js calcula cuánto de esta reposición
-  puede salir de:
-
-  - saldo anterior
-  - reserva generada hoy
-  - aportes que ya existan
-  =====================================================
-*/
-
 const fundingPlan =
   calculateReplenishmentFunding({
 
@@ -297,8 +292,25 @@ const fundingPlan =
     quantity:
       qty,
 
+    dayId,
+
   });
 
+
+/*
+  fundingPlan.walletBefore ya representa
+  la bolsa correcta según la jornada:
+
+  - EXACT  -> bolsa de la marca
+  - GENERAL -> Bolsa General
+
+  Además ya excluye dinero comprometido
+  con obligaciones pendientes.
+*/
+const walletBefore =
+  roundMoney(
+    fundingPlan.walletBefore
+  );
 
 const extraNeededBeforeContribution =
   fundingPlan.extraNeeded;
@@ -392,6 +404,29 @@ const extraNeededBeforeContribution =
     unitCost,
 
     gasCost,
+     supplierPayment: {
+
+  paidNow:
+    roundMoney(
+      supplierPaymentPlan
+        .paidNow
+        .amount
+    ),
+
+  pending:
+    roundMoney(
+      supplierPaymentPlan
+        .pending
+        .amount
+    ),
+
+  committed:
+    roundMoney(
+      supplierPaymentPlan
+        .committedAmount
+    ),
+
+},
 
     transportCost:
       transport,
@@ -965,56 +1000,281 @@ export function registerReplenishment({
       Volvemos a consultar la bolsa después
       de registrar el aporte.
     */
+const fundingAfterContribution =
+  calculateReplenishmentFunding({
 
-    const walletAvailable =
-      getGasWalletBalance(
-        gasId
-      );
+    gasId,
 
+    quantity:
+      preview.quantity,
 
-    if (
-      walletAvailable + 0.005 <
-      preview.gasCost
-    ) {
+    dayId:
+      day.id,
 
-      throw new Error(
-        `La bolsa ${getGasName(gasId)} no tiene suficiente dinero para pagar el gas.`
-      );
-
-    }
+  });
 
 
+if (
+  fundingAfterContribution
+    .extraNeeded > 0.005
+) {
 
+  throw new Error(
+    `Todavía faltan $${fundingAfterContribution.extraNeeded.toFixed(2)} para cubrir completamente esta reposición.`
+  );
+
+}
     /* =====================================================
        3. PAGAR GAS DESDE LA BOLSA
     ===================================================== */
 
-    const walletPayment =
-      payReplacementFromWallet({
+  /* =====================================================
+   3. REGISTRAR Y PAGAR OBLIGACIONES DEL PROVEEDOR
+===================================================== */
 
-        gasId,
+const supplierPlan =
+  calculateSupplierPaymentPlan({
 
-        amount:
-          preview.gasCost,
+    gasId,
 
-        dayId:
-          day.id,
+    quantity:
+      preview.quantity,
 
-        replenishmentId,
+  });
 
+
+let walletPayment =
+  null;
+
+
+/* =====================================================
+   DURAGAS
+   - $0.55 se paga ahora
+   - $1.15 queda pendiente
+===================================================== */
+
+if (
+  gasId ===
+  GAS_IDS.DURAGAS
+) {
+
+  const arrivalPayment =
+    createSupplierPaymentRecord({
+
+      id:
+        uid(
+          'supplier_payment'
+        ),
+
+      replenishmentId,
+
+      dayId:
+        day.id,
+
+      gasId,
+
+      type:
+        'duragas_arrival',
+
+      status:
+        'paid',
+
+      quantity:
+        preview.quantity,
+
+      unitCost:
+        supplierPlan
+          .paidNow
+          .unitCost,
+
+      amount:
+        supplierPlan
+          .paidNow
+          .amount,
+
+      createdAt,
+
+      paidAt:
         createdAt,
 
-      });
+      note:
+        'Pago realizado al llegar Duragas',
+
+    });
 
 
+  const invoicePayment =
+    createSupplierPaymentRecord({
 
-    const walletAfter =
-      getGasWalletBalance(
-        gasId
-      );
+      id:
+        uid(
+          'supplier_payment'
+        ),
+
+      replenishmentId,
+
+      dayId:
+        day.id,
+
+      gasId,
+
+      type:
+        'duragas_invoice',
+
+      status:
+        'pending',
+
+      quantity:
+        preview.quantity,
+
+      unitCost:
+        supplierPlan
+          .pending
+          .unitCost,
+
+      amount:
+        supplierPlan
+          .pending
+          .amount,
+
+      createdAt,
+
+      paidAt:
+        null,
+
+      note:
+        'Factura Duragas pendiente de pago',
+
+    });
 
 
+  /*
+    Primero registramos la obligación pendiente.
 
+    Así finance.js protege inmediatamente
+    esos $1.15 por cilindro.
+  */
+  getState()
+    .supplierPayments
+    .push(
+      invoicePayment
+    );
+
+
+  walletPayment =
+    payReplacementFromWallet({
+
+      gasId,
+
+      amount:
+        supplierPlan
+          .paidNow
+          .amount,
+
+      dayId:
+        day.id,
+
+      replenishmentId,
+
+      createdAt,
+
+    });
+
+
+  getState()
+    .supplierPayments
+    .push(
+      arrivalPayment
+    );
+
+}
+
+
+/* =====================================================
+   KING GAS
+   - $1.48 se paga completo ahora
+===================================================== */
+
+else {
+
+  walletPayment =
+    payReplacementFromWallet({
+
+      gasId,
+
+      amount:
+        supplierPlan
+          .paidNow
+          .amount,
+
+      dayId:
+        day.id,
+
+      replenishmentId,
+
+      createdAt,
+
+    });
+
+
+  const totalPayment =
+    createSupplierPaymentRecord({
+
+      id:
+        uid(
+          'supplier_payment'
+        ),
+
+      replenishmentId,
+
+      dayId:
+        day.id,
+
+      gasId,
+
+      type:
+        'kinggas_total',
+
+      status:
+        'paid',
+
+      quantity:
+        preview.quantity,
+
+      unitCost:
+        supplierPlan
+          .paidNow
+          .unitCost,
+
+      amount:
+        supplierPlan
+          .paidNow
+          .amount,
+
+      createdAt,
+
+      paidAt:
+        createdAt,
+
+      note:
+        'Pago completo King Gas',
+
+    });
+
+
+  getState()
+    .supplierPayments
+    .push(
+      totalPayment
+    );
+
+}
+const walletAfter =
+  roundMoney(
+    walletPayment
+      ?.balanceAfter ??
+    0
+  );
     /* =====================================================
        4. REGISTRAR TRANSPORTE
     ===================================================== */
@@ -1111,11 +1371,16 @@ export function registerReplenishment({
         replenishmentId,
 
       dayId:
-        day.id,
+  day.id,
 
-      createdAt,
+financialMode:
+  getFinancialMode(
+    day.id
+  ),
 
-      gasId,
+createdAt,
+
+gasId,
 
       gasName:
         getGasName(
@@ -1165,8 +1430,36 @@ export function registerReplenishment({
         exclusivamente para comprar el gas.
       */
 
-      walletPayment:
-        preview.gasCost,
+     walletPayment:
+  roundMoney(
+    supplierPlan
+      .paidNow
+      .amount
+  ),
+
+supplierPayment: {
+
+  paidNow:
+    roundMoney(
+      supplierPlan
+        .paidNow
+        .amount
+    ),
+
+  pending:
+    roundMoney(
+      supplierPlan
+        .pending
+        .amount
+    ),
+
+  committed:
+    roundMoney(
+      supplierPlan
+        .committedAmount
+    ),
+
+},
 
       walletBefore:
         preview.walletBefore,
@@ -1286,11 +1579,25 @@ walletAfterBreakdown:
       contributionMovementId:
         contributionMovement?.id ??
         null,
-
+       
       walletPaymentMovementId:
         walletPayment?.id ??
         null,
 
+       supplierPaymentIds:
+  getState()
+    .supplierPayments
+    .filter(
+      payment =>
+        payment.replenishmentId ===
+        replenishmentId
+    )
+    .map(
+      payment =>
+        payment.id
+    ),
+
+       
       transportExpenseId:
         transportExpense?.id ??
         null,
@@ -1353,22 +1660,32 @@ walletAfterBreakdown:
         cloneData(
           inventoryResult
         ),
+wallet: {
 
-      wallet: {
+  before:
+    preview.walletBefore,
 
-        before:
-          preview.walletBefore,
+  contribution:
+    preview.extraContribution,
 
-        contribution:
-          preview.extraContribution,
+  paid:
+    roundMoney(
+      supplierPlan
+        .paidNow
+        .amount
+    ),
 
-        paid:
-          preview.gasCost,
+  pending:
+    roundMoney(
+      supplierPlan
+        .pending
+        .amount
+    ),
 
-        after:
-          walletAfter,
+  after:
+    walletAfter,
 
-      },
+},
 
       expenses: {
 
@@ -1492,7 +1809,15 @@ export function getReplenishmentDetail(
         movement.referenceId ===
         replenishmentId
     );
-
+const supplierPayments =
+  (
+    state.supplierPayments ??
+    []
+  ).filter(
+    payment =>
+      payment.replenishmentId ===
+      replenishmentId
+  );
 
   return {
 
@@ -1510,7 +1835,12 @@ export function getReplenishmentDetail(
       cloneData(
         walletMovements
       ),
-
+     
+supplierPayments:
+  cloneData(
+    supplierPayments
+  ),
+     
     movements:
       cloneData(
         relatedMovements
@@ -1617,8 +1947,10 @@ export function getReplenishmentSummary(
       emptyOut: 0,
 
       gasCost: 0,
+supplierPaidNow: 0,
 
-      transportCost: 0,
+supplierPending: 0,
+       transportCost: 0,
 
       otherCost: 0,
 
@@ -1674,7 +2006,42 @@ export function getReplenishmentSummary(
         byGas[
           item.gasId
         ];
+const relatedSupplierPayments =
+  (
+    getState()
+      .supplierPayments ??
+    []
+  ).filter(
+    payment =>
+      payment.replenishmentId ===
+      item.id
+  );
 
+
+const currentSupplierPending =
+  relatedSupplierPayments.length > 0
+
+    ? roundMoney(
+        sumBy(
+          relatedSupplierPayments.filter(
+            payment =>
+              payment.status ===
+              'pending'
+          ),
+          payment =>
+            toNonNegativeNumber(
+              payment.amount
+            )
+        )
+      )
+
+    : roundMoney(
+        toNonNegativeNumber(
+          item.supplierPayment
+            ?.pending ??
+          0
+        )
+      );
 
       target.operations +=
         1;
@@ -1704,8 +2071,47 @@ export function getReplenishmentSummary(
           )
 
         );
+target.supplierPaidNow =
+  roundMoney(
 
+    target.supplierPaidNow
 
+    +
+
+    (
+      relatedSupplierPayments.length > 0
+
+        ? sumBy(
+            relatedSupplierPayments.filter(
+              payment =>
+                payment.status ===
+                'paid'
+            ),
+            payment =>
+              toNonNegativeNumber(
+                payment.amount
+              )
+          )
+
+        : toNonNegativeNumber(
+            item.supplierPayment
+              ?.paidNow ??
+            item.walletPayment ??
+            0
+          )
+    )
+
+  );
+target.supplierPending =
+  roundMoney(
+
+    target.supplierPending
+
+    +
+
+    currentSupplierPending
+
+  );
       target.transportCost =
         roundMoney(
 
@@ -1821,6 +2227,36 @@ export function getReplenishmentSummary(
       ),
 
 
+     supplierPaidNow:
+  roundMoney(
+
+    byGas[
+      GAS_IDS.DURAGAS
+    ].supplierPaidNow
+
+    +
+
+    byGas[
+      GAS_IDS.KING_GAS
+    ].supplierPaidNow
+
+  ),
+
+
+supplierPending:
+  roundMoney(
+
+    byGas[
+      GAS_IDS.DURAGAS
+    ].supplierPending
+
+    +
+
+    byGas[
+      GAS_IDS.KING_GAS
+    ].supplierPending
+
+  ),
     additionalCosts:
       roundMoney(
 
