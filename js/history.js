@@ -889,7 +889,6 @@ export function getReplenishmentsHistory({
 /* =========================================================
    ESTADÍSTICAS DE REPOSICIONES
 ========================================================= */
-
 export function getReplenishmentsHistoryStats(
   filters = {}
 ) {
@@ -930,6 +929,123 @@ export function getReplenishmentsHistoryStats(
     );
 
 
+  /*
+    COSTO ECONÓMICO DEL GAS
+
+    Este valor puede incluir dinero que todavía
+    esté pendiente con el proveedor.
+
+    Ejemplo Duragas:
+      50 × $1.70 = $85.00
+  */
+
+  const economicGasCost =
+    roundMoney(
+      sumBy(
+        items,
+        item =>
+          toNonNegativeNumber(
+            item.gasCost
+          )
+      )
+    );
+
+
+  /*
+    DINERO REALMENTE PAGADO AL PROVEEDOR
+    DURANTE LA REPOSICIÓN.
+
+    Registros nuevos:
+      supplierPayment.paidNow
+
+    Compatibilidad:
+      walletPayment
+
+    Registros antiguos:
+      gasCost
+  */
+
+  const gasPaid =
+    roundMoney(
+      sumBy(
+        items,
+        item =>
+          toNonNegativeNumber(
+
+            item
+              ?.supplierPayment
+              ?.paidNow
+
+            ??
+
+            item?.walletPayment
+
+            ??
+
+            item?.gasCost
+
+            ??
+
+            0
+
+          )
+      )
+    );
+
+
+  const additionalCosts =
+    roundMoney(
+      sumBy(
+        items,
+        item =>
+          toNonNegativeNumber(
+            item.additionalCosts
+          )
+      )
+    );
+
+
+  /*
+    DINERO QUE REALMENTE SALIÓ
+    DURANTE LAS REPOSICIONES.
+
+    No incluye obligaciones del proveedor
+    que todavía estaban pendientes.
+  */
+
+  const totalPaid =
+    roundMoney(
+      gasPaid +
+      additionalCosts
+    );
+
+
+  /*
+    Conservamos también el costo económico
+    total para auditoría.
+
+    No se utiliza como "pagado".
+  */
+
+  const economicTotal =
+    roundMoney(
+      economicGasCost +
+      additionalCosts
+    );
+
+
+  const extraContributions =
+    roundMoney(
+      sumBy(
+        items,
+        item =>
+          toNonNegativeNumber(
+            item.extraContribution
+          )
+      )
+    );
+
+
   return {
 
     operations:
@@ -945,48 +1061,21 @@ export function getReplenishmentsHistoryStats(
       duragasQuantity +
       kinggasQuantity,
 
-    gasPaid:
-      roundMoney(
-        sumBy(
-          items,
-          item =>
-            item.gasCost
-        )
-      ),
+    gasPaid,
 
-    additionalCosts:
-      roundMoney(
-        sumBy(
-          items,
-          item =>
-            item.additionalCosts
-        )
-      ),
+    additionalCosts,
 
-    totalPaid:
-      roundMoney(
-        sumBy(
-          items,
-          item =>
-            item.totalPaid
-        )
-      ),
+    totalPaid,
 
-    extraContributions:
-      roundMoney(
-        sumBy(
-          items,
-          item =>
-            item.extraContribution
-        )
-      ),
+    economicGasCost,
+
+    economicTotal,
+
+    extraContributions,
 
   };
 
 }
-
-
-
 /* =========================================================
    TARJETAS DE DÍAS CERRADOS
 ========================================================= */
