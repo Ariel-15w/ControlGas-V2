@@ -5012,20 +5012,27 @@ const availableProfit =
     },
 
 
-    wallets: {
+wallets: {
 
-      [GAS_IDS.DURAGAS]:
-        getGasWalletBalance(
-          GAS_IDS.DURAGAS
-        ),
+  financialMode:
+    getFinancialMode(
+      dayId
+    ),
 
-      [GAS_IDS.KING_GAS]:
-        getGasWalletBalance(
-          GAS_IDS.KING_GAS
-        ),
+  general:
+    getGeneralWalletBalance(),
 
-    },
+  [GAS_IDS.DURAGAS]:
+    getGasWalletBalance(
+      GAS_IDS.DURAGAS
+    ),
 
+  [GAS_IDS.KING_GAS]:
+    getGasWalletBalance(
+      GAS_IDS.KING_GAS
+    ),
+
+},
 
     byGas,
 
