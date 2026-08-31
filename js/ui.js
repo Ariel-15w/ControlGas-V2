@@ -62,13 +62,12 @@ import {
   describeSaleEmpties,
 } from './sales.js';
 
-
 import {
   getOpenAccounts,
   getAccountsSummary,
   getAvailableAccountActions,
+  searchRouteAccountSummaries,
 } from './accounts.js';
-
 
 import {
   getRecentReplenishments,
@@ -600,7 +599,6 @@ function metricCard(
 /* =========================================================
    DASHBOARD
 ========================================================= */
-
 export function renderDashboard() {
 
   const day =
@@ -612,7 +610,10 @@ export function renderDashboard() {
 
 
   const wallets =
-    getWalletSummary();
+    getWalletSummary(
+      day?.id ??
+      null
+    );
 
 
   const accounts =
@@ -627,100 +628,77 @@ export function renderDashboard() {
       : null;
 
 
+  const supplierPending =
+    getSupplierPendingSnapshot();
+
+
+  const isGeneral =
+    Boolean(
+      wallets
+        ?.general
+        ?.active
+    );
+
+
+  /* =====================================================
+     MÉTRICAS PRINCIPALES
+  ===================================================== */
+
   const metrics = [];
 
-
-  /*
-    =====================================================
-    VENTAS REGISTRADAS HOY
-    =====================================================
-  */
 
   metrics.push(
     metricCard(
       'Ventas hoy',
       String(
-        finance?.sales?.count ??
+        finance
+          ?.sales
+          ?.count ??
         0
       )
     )
   );
 
-
-  /*
-    =====================================================
-    CILINDROS VENDIDOS HOY
-    =====================================================
-  */
 
   metrics.push(
     metricCard(
       'Cilindros vendidos',
       String(
-        finance?.sales?.units ??
+        finance
+          ?.sales
+          ?.units ??
         0
       )
     )
   );
 
-
-  /*
-    =====================================================
-    CAJA ACTUAL ESTIMADA
-
-    Fondo inicial
-    + efectivo cobrado
-    - dinero enviado a bolsas
-    - gastos
-    =====================================================
-  */
 
   metrics.push(
     metricCard(
       'Caja actual',
       formatMoney(
-        finance?.cash?.expected ??
+        finance
+          ?.cash
+          ?.expected ??
         0
       ),
-      `Fondo ${formatMoney(
-        finance?.cash?.openingFund ??
-        0
-      )} + cobrado ${formatMoney(
-        finance?.cash?.collected ??
-        0
-      )} - bolsas ${formatMoney(
-        finance?.cash?.transferredToWallets ??
-        0
-      )} - gastos ${formatMoney(
-        finance?.cash?.expenses ??
-        0
-      )}`
+      'Caja esperada después de bolsas, gastos y reparto de ganancia.'
     )
   );
 
-
-  /*
-    =====================================================
-    VALOR TOTAL DE VENTAS
-    =====================================================
-  */
 
   metrics.push(
     metricCard(
       'Ventas $',
       formatMoney(
-        finance?.sales?.revenue ??
+        finance
+          ?.sales
+          ?.revenue ??
         0
       )
     )
   );
 
-
-  /*
-    =====================================================
-    DINERO REALMENTE COBRADO
-    =====================================================
-  */
 
   metrics.push(
     metricCard(
@@ -735,27 +713,30 @@ export function renderDashboard() {
   );
 
 
-  /*
-    =====================================================
-    DINERO PENDIENTE
-    =====================================================
-  */
-
   metrics.push(
     metricCard(
-      'Pendiente dinero',
+      'Pendiente clientes',
       formatMoney(
-        accounts.moneyDue
+        accounts
+          ?.moneyDue ??
+        0
       )
     )
   );
 
 
-  /*
-    =====================================================
-    GANANCIA DISPONIBLE
-    =====================================================
-  */
+  metrics.push(
+    metricCard(
+      'Pendiente proveedor',
+      formatMoney(
+        supplierPending.amount
+      ),
+      supplierPending.count > 0
+        ? `${supplierPending.count} obligación(es) pendiente(s)`
+        : 'Sin obligaciones pendientes'
+    )
+  );
+
 
   metrics.push(
     metricCard(
@@ -776,95 +757,186 @@ export function renderDashboard() {
   );
 
 
+  /* =====================================================
+     MODO FINANCIERO
+  ===================================================== */
 
-  /* =======================================================
-     BOLSAS
-  ======================================================= */
+  setText(
+    'dashboardFinancialMode',
+    isGeneral
+      ? 'Bolsa General'
+      : 'Bolsas exactas'
+  );
+
+
+  setVisible(
+    'dashboardGeneralWalletBlock',
+    isGeneral
+  );
+
+
+  setVisible(
+    'dashboardExactWalletsBlock',
+    !isGeneral
+  );
+
+
+  /* =====================================================
+     BOLSA GENERAL
+  ===================================================== */
+
+  setText(
+    'dashboardGeneralWallet',
+    formatMoney(
+      wallets
+        ?.general
+        ?.balance ??
+      0
+    )
+  );
+
+
+  setText(
+    'dashboardGeneralReservePerUnit',
+    formatMoney(
+      wallets
+        ?.general
+        ?.reservePerUnit ??
+      0
+    )
+  );
+
+
+  setText(
+    'dashboardGeneralWalletFormula',
+    `Bolsa común para ambas marcas · reserva ${formatMoney(
+      wallets
+        ?.general
+        ?.reservePerUnit ??
+      0
+    )} por cilindro vendido`
+  );
+
+
+  /* =====================================================
+     BOLSA EXACTA DURAGAS
+  ===================================================== */
+
+  const duragasWallet =
+    wallets?.[
+      GAS_IDS.DURAGAS
+    ] ?? {};
+
 
   setText(
     'dashboardDuragasWallet',
     formatMoney(
-      wallets[
-        GAS_IDS.DURAGAS
-      ].balance
+      duragasWallet.balance ??
+      0
     )
   );
 
 
   setText(
     'dashboardDuragasEquivalent',
-    `${wallets[
-      GAS_IDS.DURAGAS
-    ].equivalentUnits} × ${formatMoney(
+    `${duragasWallet.equivalentUnits ?? 0} × ${formatMoney(
+      duragasWallet.replacementCost ??
       getReplacementCost(
         GAS_IDS.DURAGAS
       )
     )}`
   );
 
-setText(
-  'dashboardDuragasWalletFormula',
-  `Anterior ${formatMoney(
-    wallets[GAS_IDS.DURAGAS]
-      .previousRemaining ?? 0
-  )} + hoy ${formatMoney(
-    wallets[GAS_IDS.DURAGAS]
-      .todayReserveRemaining ?? 0
-  )} + aportes ${formatMoney(
-    wallets[GAS_IDS.DURAGAS]
-      .contributionsRemaining ?? 0
-  )} = ${formatMoney(
-    wallets[GAS_IDS.DURAGAS]
-      .balance
-  )}`
-);
+
+  setText(
+    'dashboardDuragasWalletFormula',
+    `Anterior ${formatMoney(
+      duragasWallet.previousRemaining ??
+      0
+    )} + hoy ${formatMoney(
+      duragasWallet.todayReserveRemaining ??
+      0
+    )} + aportes ${formatMoney(
+      duragasWallet.contributionsRemaining ??
+      0
+    )} = ${formatMoney(
+      duragasWallet.balance ??
+      0
+    )}`
+  );
+
+
+  /* =====================================================
+     BOLSA EXACTA KING GAS
+  ===================================================== */
+
+  const kingGasWallet =
+    wallets?.[
+      GAS_IDS.KING_GAS
+    ] ?? {};
+
+
   setText(
     'dashboardKingGasWallet',
     formatMoney(
-      wallets[
-        GAS_IDS.KING_GAS
-      ].balance
+      kingGasWallet.balance ??
+      0
     )
   );
 
 
   setText(
     'dashboardKingGasEquivalent',
-    `${wallets[
-      GAS_IDS.KING_GAS
-    ].equivalentUnits} × ${formatMoney(
+    `${kingGasWallet.equivalentUnits ?? 0} × ${formatMoney(
+      kingGasWallet.replacementCost ??
       getReplacementCost(
         GAS_IDS.KING_GAS
       )
     )}`
   );
-setText(
-  'dashboardKingGasWalletFormula',
-  `Anterior ${formatMoney(
-    wallets[GAS_IDS.KING_GAS]
-      .previousRemaining ?? 0
-  )} + hoy ${formatMoney(
-    wallets[GAS_IDS.KING_GAS]
-      .todayReserveRemaining ?? 0
-  )} + aportes ${formatMoney(
-    wallets[GAS_IDS.KING_GAS]
-      .contributionsRemaining ?? 0
-  )} = ${formatMoney(
-    wallets[GAS_IDS.KING_GAS]
-      .balance
-  )}`
-);
-  /* =======================================================
+
+
+  setText(
+    'dashboardKingGasWalletFormula',
+    `Anterior ${formatMoney(
+      kingGasWallet.previousRemaining ??
+      0
+    )} + hoy ${formatMoney(
+      kingGasWallet.todayReserveRemaining ??
+      0
+    )} + aportes ${formatMoney(
+      kingGasWallet.contributionsRemaining ??
+      0
+    )} = ${formatMoney(
+      kingGasWallet.balance ??
+      0
+    )}`
+  );
+
+
+  /* =====================================================
      GANANCIAS
-  ======================================================= */
+  ===================================================== */
+
+  const duragasFinance =
+    finance
+      ?.byGas
+      ?.[GAS_IDS.DURAGAS] ??
+    {};
+
+
+  const kingGasFinance =
+    finance
+      ?.byGas
+      ?.[GAS_IDS.KING_GAS] ??
+    {};
+
 
   setText(
     'dashboardDuragasProfit',
     formatMoney(
-      finance
-        ?.byGas
-        ?.[GAS_IDS.DURAGAS]
-        ?.availableProfit ??
+      duragasFinance
+        .availableProfit ??
       0
     )
   );
@@ -873,10 +945,8 @@ setText(
   setText(
     'dashboardKingGasProfit',
     formatMoney(
-      finance
-        ?.byGas
-        ?.[GAS_IDS.KING_GAS]
-        ?.availableProfit ??
+      kingGasFinance
+        .availableProfit ??
       0
     )
   );
@@ -896,16 +966,10 @@ setText(
   setText(
     'dashboardDuragasProfitFormula',
     `Ventas ${formatMoney(
-      finance
-        ?.byGas
-        ?.[GAS_IDS.DURAGAS]
-        ?.revenue ??
+      duragasFinance.revenue ??
       0
     )} − reposición ${formatMoney(
-      finance
-        ?.byGas
-        ?.[GAS_IDS.DURAGAS]
-        ?.reserveRequired ??
+      duragasFinance.reserveRequired ??
       0
     )}`
   );
@@ -914,20 +978,14 @@ setText(
   setText(
     'dashboardDuragasReserveFormula',
     `Reposición: ${
-      finance
-        ?.byGas
-        ?.[GAS_IDS.DURAGAS]
-        ?.units ??
+      duragasFinance.units ??
       0
     } × ${formatMoney(
       getReplacementCost(
         GAS_IDS.DURAGAS
       )
     )} = ${formatMoney(
-      finance
-        ?.byGas
-        ?.[GAS_IDS.DURAGAS]
-        ?.reserveRequired ??
+      duragasFinance.reserveRequired ??
       0
     )}`
   );
@@ -936,16 +994,10 @@ setText(
   setText(
     'dashboardKingGasProfitFormula',
     `Ventas ${formatMoney(
-      finance
-        ?.byGas
-        ?.[GAS_IDS.KING_GAS]
-        ?.revenue ??
+      kingGasFinance.revenue ??
       0
     )} − reposición ${formatMoney(
-      finance
-        ?.byGas
-        ?.[GAS_IDS.KING_GAS]
-        ?.reserveRequired ??
+      kingGasFinance.reserveRequired ??
       0
     )}`
   );
@@ -954,20 +1006,14 @@ setText(
   setText(
     'dashboardKingGasReserveFormula',
     `Reposición: ${
-      finance
-        ?.byGas
-        ?.[GAS_IDS.KING_GAS]
-        ?.units ??
+      kingGasFinance.units ??
       0
     } × ${formatMoney(
       getReplacementCost(
         GAS_IDS.KING_GAS
       )
     )} = ${formatMoney(
-      finance
-        ?.byGas
-        ?.[GAS_IDS.KING_GAS]
-        ?.reserveRequired ??
+      kingGasFinance.reserveRequired ??
       0
     )}`
   );
@@ -976,16 +1022,17 @@ setText(
   setText(
     'dashboardCollectedProfitFormula',
     `Cobrado después de separar reposición: ${formatMoney(
-      finance?.collection?.profit ??
+      finance
+        ?.collection
+        ?.profit ??
       0
     )}`
   );
 
 
-
-  /* =======================================================
+  /* =====================================================
      INVENTARIO ACTUAL
-  ======================================================= */
+  ===================================================== */
 
   setHtml(
     'inventorySnapshot',
@@ -995,24 +1042,17 @@ setText(
         ${dashboardGasInventoryCard(
           GAS_IDS.DURAGAS,
           inventory.duragas,
-          finance
-            ?.byGas
-            ?.[GAS_IDS.DURAGAS]
-            ?.units ??
-          0
+          duragasFinance.units ?? 0
         )}
 
         ${dashboardGasInventoryCard(
           GAS_IDS.KING_GAS,
           inventory.kinggas,
-          finance
-            ?.byGas
-            ?.[GAS_IDS.KING_GAS]
-            ?.units ??
-          0
+          kingGasFinance.units ?? 0
         )}
 
       </div>
+
 
       <div class="inventory-control-summary">
 
@@ -1023,12 +1063,54 @@ setText(
           </strong>
         </div>
 
+
+        <div>
+          <span>Apartados vendedor</span>
+          <strong>
+            ${
+              toNonNegativeInteger(
+                inventory
+                  .duragas
+                  .routeReserved
+              )
+              +
+              toNonNegativeInteger(
+                inventory
+                  .kinggas
+                  .routeReserved
+              )
+            }
+          </strong>
+        </div>
+
+
+        <div>
+          <span>En ruta</span>
+          <strong>
+            ${
+              toNonNegativeInteger(
+                inventory
+                  .duragas
+                  .route
+              )
+              +
+              toNonNegativeInteger(
+                inventory
+                  .kinggas
+                  .route
+              )
+            }
+          </strong>
+        </div>
+
+
         <div>
           <span>Prestados</span>
           <strong>
             ${inventory.totals.loaned}
           </strong>
         </div>
+
 
         <div>
           <span>Total controlado</span>
@@ -1042,10 +1124,9 @@ setText(
   );
 
 
-
-  /* =======================================================
+  /* =====================================================
      PENDIENTES
-  ======================================================= */
+  ===================================================== */
 
   setHtml(
     'pendingSnapshot',
@@ -1055,23 +1136,41 @@ setText(
         <div>
           <span>Cuentas abiertas</span>
           <strong>
-            ${accounts.openAccounts}
+            ${accounts.openAccounts ?? 0}
           </strong>
         </div>
 
+
         <div>
-          <span>Dinero pendiente</span>
+          <span>Dinero clientes</span>
           <strong>
             ${formatMoney(
-              accounts.moneyDue
+              accounts.moneyDue ??
+              0
             )}
           </strong>
         </div>
 
+
         <div>
           <span>Tanques pendientes</span>
           <strong>
-            ${accounts.tanksDue.total}
+            ${
+              accounts
+                .tanksDue
+                ?.total ??
+              0
+            }
+          </strong>
+        </div>
+
+
+        <div>
+          <span>Proveedor pendiente</span>
+          <strong>
+            ${formatMoney(
+              supplierPending.amount
+            )}
           </strong>
         </div>
 
@@ -1079,6 +1178,8 @@ setText(
     `
   );
 
+
+  renderSupplierPendingPayments();
 
   renderRecentReplenishments();
 
@@ -1100,6 +1201,27 @@ function dashboardGasInventoryCard(
 
   const gas =
     GAS_TYPES[gasId];
+
+
+  const routeReserved =
+    toNonNegativeInteger(
+      inventory
+        ?.routeReserved
+    );
+
+
+  const route =
+    toNonNegativeInteger(
+      inventory
+        ?.route
+    );
+
+
+  const loaned =
+    toNonNegativeInteger(
+      inventory
+        ?.loaned
+    );
 
 
   return `
@@ -1139,11 +1261,15 @@ function dashboardGasInventoryCard(
         <div class="inventory-number available">
 
           <span>
-            Llenos ahora
+            Llenos
           </span>
 
           <strong>
-            ${inventory.full}
+            ${
+              toNonNegativeInteger(
+                inventory?.full
+              )
+            }
           </strong>
 
         </div>
@@ -1152,11 +1278,15 @@ function dashboardGasInventoryCard(
         <div class="inventory-number empty">
 
           <span>
-            Vacíos ahora
+            Vacíos
           </span>
 
           <strong>
-            ${inventory.empty}
+            ${
+              toNonNegativeInteger(
+                inventory?.empty
+              )
+            }
           </strong>
 
         </div>
@@ -1169,7 +1299,37 @@ function dashboardGasInventoryCard(
           </span>
 
           <strong>
-            ${inventory.reserved}
+            ${
+              toNonNegativeInteger(
+                inventory?.reserved
+              )
+            }
+          </strong>
+
+        </div>
+
+
+        <div class="inventory-number reserved">
+
+          <span>
+            Apartados vendedor
+          </span>
+
+          <strong>
+            ${routeReserved}
+          </strong>
+
+        </div>
+
+
+        <div class="inventory-number">
+
+          <span>
+            En ruta
+          </span>
+
+          <strong>
+            ${route}
           </strong>
 
         </div>
@@ -1182,9 +1342,37 @@ function dashboardGasInventoryCard(
           </span>
 
           <strong>
-            ${inventory.loaned}
+            ${loaned}
           </strong>
 
+        </div>
+
+      </div>
+
+
+      <div class="inventory-control-summary">
+
+        <div>
+          <span>Físico en bodega</span>
+          <strong>
+            ${
+              toNonNegativeInteger(
+                inventory?.physical
+              )
+            }
+          </strong>
+        </div>
+
+
+        <div>
+          <span>Total controlado</span>
+          <strong>
+            ${
+              toNonNegativeInteger(
+                inventory?.controlled
+              )
+            }
+          </strong>
         </div>
 
       </div>
@@ -1194,31 +1382,112 @@ function dashboardGasInventoryCard(
 
 }
 
+
+
 /* =========================================================
    APERTURA
 ========================================================= */
 
 export function renderOpening() {
 
+  const day =
+    getActiveDay();
+
+
   const wallets =
-    getWalletSummary();
+    getWalletSummary(
+      day?.id ??
+      null
+    );
+
+
+  const isGeneral =
+    Boolean(
+      wallets
+        ?.general
+        ?.active
+    );
+
+
+  /* =====================================================
+     MODO FINANCIERO ACTUAL
+  ===================================================== */
+
+  setText(
+    'openingFinancialModeText',
+    isGeneral
+      ? 'Bolsa General'
+      : 'Bolsas exactas'
+  );
+
+
+  setVisible(
+    'openingCurrentGeneralWalletBlock',
+    isGeneral
+  );
+
+
+  setVisible(
+    'openingCurrentExactWalletsBlock',
+    !isGeneral
+  );
+
+
+  /* =====================================================
+     BOLSA GENERAL
+  ===================================================== */
+
+  setText(
+    'openingGeneralWallet',
+    formatMoney(
+      wallets
+        ?.general
+        ?.balance ??
+      0
+    )
+  );
+
+
+  setText(
+    'openingGeneralReservePerUnit',
+    formatMoney(
+      wallets
+        ?.general
+        ?.reservePerUnit ??
+      0
+    )
+  );
+
+
+  /* =====================================================
+     BOLSAS EXACTAS
+  ===================================================== */
+
+  const duragas =
+    wallets?.[
+      GAS_IDS.DURAGAS
+    ] ?? {};
+
+
+  const kingGas =
+    wallets?.[
+      GAS_IDS.KING_GAS
+    ] ?? {};
 
 
   setText(
     'openingDuragasWallet',
     formatMoney(
-      wallets[
-        GAS_IDS.DURAGAS
-      ].balance
+      duragas.balance ??
+      0
     )
   );
 
 
   setText(
     'openingDuragasWalletEquivalent',
-    `${wallets[
-      GAS_IDS.DURAGAS
-    ].equivalentUnits} × ${formatMoney(
+    `${duragas.equivalentUnits ?? 0} × ${formatMoney(
+      duragas.replacementCost ??
       getReplacementCost(
         GAS_IDS.DURAGAS
       )
@@ -1229,18 +1498,16 @@ export function renderOpening() {
   setText(
     'openingKingGasWallet',
     formatMoney(
-      wallets[
-        GAS_IDS.KING_GAS
-      ].balance
+      kingGas.balance ??
+      0
     )
   );
 
 
   setText(
     'openingKingGasWalletEquivalent',
-    `${wallets[
-      GAS_IDS.KING_GAS
-    ].equivalentUnits} × ${formatMoney(
+    `${kingGas.equivalentUnits ?? 0} × ${formatMoney(
+      kingGas.replacementCost ??
       getReplacementCost(
         GAS_IDS.KING_GAS
       )
@@ -1248,15 +1515,20 @@ export function renderOpening() {
   );
 
 
-  const day =
-    getActiveDay();
-
+  /* =====================================================
+     ESTADO DE JORNADA
+  ===================================================== */
 
   setOperationStatus(
     'openingWarning',
 
     day
-      ? 'Ya existe una jornada abierta.'
+      ? (
+          isGeneral
+            ? 'Existe una jornada abierta con Bolsa General.'
+            : 'Existe una jornada abierta con bolsas exactas.'
+        )
+
       : 'No existe una jornada abierta.',
 
     day
@@ -1353,19 +1625,20 @@ export function renderOpeningTotals() {
 
   setText(
     'duragasOpeningTotal',
-    String(duragas)
+    String(
+      duragas
+    )
   );
 
 
   setText(
     'kinggasOpeningTotal',
-    String(kinggas)
+    String(
+      kinggas
+    )
   );
 
 }
-
-
-
 /* =========================================================
    DISPONIBILIDAD PARA VENTA
 ========================================================= */
@@ -1824,31 +2097,101 @@ export function renderSalesTable() {
 ========================================================= */
 export function renderReplenishmentWallets() {
 
-  const wallets =
-    getWalletSummary();
+  const day =
+    getActiveDay();
 
+
+  const wallets =
+    getWalletSummary(
+      day?.id ??
+      null
+    );
+
+
+  const isGeneral =
+    Boolean(
+      wallets
+        ?.general
+        ?.active
+    );
+
+
+  /* =====================================================
+     MODO FINANCIERO
+  ===================================================== */
+
+  setText(
+    'replenishmentFinancialMode',
+    isGeneral
+      ? 'Bolsa General'
+      : 'Bolsas exactas'
+  );
+
+
+  setVisible(
+    'replenishmentGeneralWalletBlock',
+    isGeneral
+  );
+
+
+  setVisible(
+    'replenishmentExactWalletsBlock',
+    !isGeneral
+  );
+
+
+  /* =====================================================
+     BOLSA GENERAL
+  ===================================================== */
+
+  setText(
+    'replenishmentGeneralWallet',
+    formatMoney(
+      wallets
+        ?.general
+        ?.balance ??
+      0
+    )
+  );
+
+
+  setText(
+    'replenishmentGeneralReservePerUnit',
+    formatMoney(
+      wallets
+        ?.general
+        ?.reservePerUnit ??
+      0
+    )
+  );
+
+
+  setText(
+    'replenishmentGeneralWalletFormula',
+    `Saldo común disponible para Duragas y King Gas: ${formatMoney(
+      wallets
+        ?.general
+        ?.balance ??
+      0
+    )}`
+  );
+
+
+  /* =====================================================
+     DURAGAS - MODO EXACTO
+  ===================================================== */
 
   const duragas =
-    wallets[
+    wallets?.[
       GAS_IDS.DURAGAS
-    ];
+    ] ?? {};
 
-
-  const kingGas =
-    wallets[
-      GAS_IDS.KING_GAS
-    ];
-
-
-
-  /* =======================================================
-     DURAGAS
-  ======================================================= */
 
   setText(
     'replenishmentDuragasWallet',
     formatMoney(
-      duragas.balance
+      duragas.balance ??
+      0
     )
   );
 
@@ -1882,7 +2225,8 @@ export function renderReplenishmentWallets() {
 
   setText(
     'replenishmentDuragasEquivalent',
-    `${duragas.equivalentUnits} × ${formatMoney(
+    `${duragas.equivalentUnits ?? 0} × ${formatMoney(
+      duragas.replacementCost ??
       getReplacementCost(
         GAS_IDS.DURAGAS
       )
@@ -1902,20 +2246,27 @@ export function renderReplenishmentWallets() {
       duragas.contributionsRemaining ??
       0
     )} aportes = ${formatMoney(
-      duragas.balance
+      duragas.balance ??
+      0
     )}`
   );
 
 
+  /* =====================================================
+     KING GAS - MODO EXACTO
+  ===================================================== */
 
-  /* =======================================================
-     KING GAS
-  ======================================================= */
+  const kingGas =
+    wallets?.[
+      GAS_IDS.KING_GAS
+    ] ?? {};
+
 
   setText(
     'replenishmentKingGasWallet',
     formatMoney(
-      kingGas.balance
+      kingGas.balance ??
+      0
     )
   );
 
@@ -1949,7 +2300,8 @@ export function renderReplenishmentWallets() {
 
   setText(
     'replenishmentKingGasEquivalent',
-    `${kingGas.equivalentUnits} × ${formatMoney(
+    `${kingGas.equivalentUnits ?? 0} × ${formatMoney(
+      kingGas.replacementCost ??
       getReplacementCost(
         GAS_IDS.KING_GAS
       )
@@ -1969,11 +2321,15 @@ export function renderReplenishmentWallets() {
       kingGas.contributionsRemaining ??
       0
     )} aportes = ${formatMoney(
-      kingGas.balance
+      kingGas.balance ??
+      0
     )}`
   );
 
 }
+
+
+
 /* =========================================================
    PREVISUALIZACIÓN DE REPOSICIÓN
 ========================================================= */
@@ -1989,6 +2345,54 @@ export function renderReplenishmentPreview(
   }
 
 
+  const wallets =
+    getWalletSummary(
+      getActiveDay()?.id ??
+      null
+    );
+
+
+  const isGeneral =
+    Boolean(
+      wallets
+        ?.general
+        ?.active
+    );
+
+
+  const funding =
+    preview.fundingBreakdown ??
+    {};
+
+
+  /* =====================================================
+     MODO
+  ===================================================== */
+
+  setText(
+    'replenishmentPreviewFinancialMode',
+    isGeneral
+      ? 'Bolsa General'
+      : 'Bolsa exacta'
+  );
+
+
+  setVisible(
+    'replenishmentGeneralFundingBlock',
+    isGeneral
+  );
+
+
+  setVisible(
+    'replenishmentExactFundingBlock',
+    !isGeneral
+  );
+
+
+  /* =====================================================
+     APORTE ADICIONAL
+  ===================================================== */
+
   const contributionSection =
     byId(
       'replenishmentExtraContributionSection'
@@ -2002,6 +2406,10 @@ export function renderReplenishmentPreview(
 
   }
 
+
+  /* =====================================================
+     COSTO
+  ===================================================== */
 
   setText(
     'replenishmentUnitCost',
@@ -2020,9 +2428,10 @@ export function renderReplenishmentPreview(
     )}`
   );
 
-  /* =======================================================
-     INVENTARIO ACTUAL DE LA MARCA
-  ======================================================= */
+
+  /* =====================================================
+     INVENTARIO
+  ===================================================== */
 
   setText(
     'replenishmentCurrentFull',
@@ -2050,7 +2459,12 @@ export function renderReplenishmentPreview(
       preview.walletBefore
     )
   );
-   
+
+
+  /* =====================================================
+     DURAGAS - COMPOSICIÓN PROVEEDOR
+  ===================================================== */
+
   const composition =
     byId(
       'replenishmentDuragasComposition'
@@ -2068,29 +2482,97 @@ export function renderReplenishmentPreview(
 
   setText(
     'replenishmentOrderCostFormula',
-    `Pedido: ${preview.quantity} × $1,15 = ${formatMoney(
-      preview.quantity * 1.15
+    `Factura pendiente: ${preview.quantity} × $1,15 = ${formatMoney(
+      preview.quantity *
+      1.15
     )}`
   );
 
 
   setText(
     'replenishmentArrivalCostFormula',
-    `Llegada carro: ${preview.quantity} × $0,55 = ${formatMoney(
-      preview.quantity * 0.55
+    `Pago al llegar: ${preview.quantity} × $0,55 = ${formatMoney(
+      preview.quantity *
+      0.55
     )}`
   );
 
 
   setText(
     'replenishmentTotalCostFormula',
-    `Total: ${preview.quantity} × ${formatMoney(
+    `Costo económico total: ${preview.quantity} × ${formatMoney(
       preview.unitCost
     )} = ${formatMoney(
       preview.gasCost
     )}`
   );
 
+
+  /* =====================================================
+     PROVEEDOR
+  ===================================================== */
+
+  const supplierPayment =
+    preview.supplierPayment ??
+    {};
+
+
+  setText(
+    'replenishmentSupplierPaidNow',
+    formatMoney(
+      supplierPayment.paidNow ??
+      0
+    )
+  );
+
+
+  setText(
+    'replenishmentSupplierPending',
+    formatMoney(
+      supplierPayment.pending ??
+      0
+    )
+  );
+
+
+  setText(
+    'replenishmentSupplierCommitted',
+    formatMoney(
+      supplierPayment.committed ??
+      0
+    )
+  );
+
+
+  setOperationStatus(
+
+    'replenishmentSupplierStatus',
+
+    (supplierPayment.pending ?? 0) > 0
+
+      ? `Se pagarán ${formatMoney(
+          supplierPayment.paidNow ??
+          0
+        )} ahora y quedarán ${formatMoney(
+          supplierPayment.pending ??
+          0
+        )} comprometidos para pagar después.`
+
+      : `El proveedor se pagará completo ahora: ${formatMoney(
+          supplierPayment.paidNow ??
+          0
+        )}.`,
+
+    (supplierPayment.pending ?? 0) > 0
+      ? 'warn'
+      : 'good'
+
+  );
+
+
+  /* =====================================================
+     BOLSA ANTES / DESPUÉS
+  ===================================================== */
 
   setText(
     'replenishmentWalletBefore',
@@ -2132,6 +2614,13 @@ export function renderReplenishmentPreview(
   );
 
 
+  /*
+    totalPaid es el costo ECONÓMICO completo.
+
+    En Duragas puede incluir una factura
+    que todavía no salió de la bolsa.
+  */
+
   setText(
     'replenishmentTotalPaid',
     formatMoney(
@@ -2157,163 +2646,285 @@ export function renderReplenishmentPreview(
     )
   );
 
-   /* =======================================================
-   ORIGEN DEL DINERO PARA LA REPOSICIÓN
-======================================================= */
 
-const funding =
-  preview.fundingBreakdown ??
-  {};
+  /* =====================================================
+     BOLSA GENERAL
+  ===================================================== */
 
+  if (isGeneral) {
 
-const fromPrevious =
-  roundMoney(
-    funding.fromPrevious ??
-    0
-  );
-
-
-const fromToday =
-  roundMoney(
-    funding.fromToday ??
-    0
-  );
+    const generalAvailable =
+      roundMoney(
+        funding.generalAvailable ??
+        preview.walletBefore ??
+        0
+      );
 
 
-const fromExistingContributions =
-  roundMoney(
-    funding.fromContributions ??
-    0
-  );
+    const fromGeneral =
+      roundMoney(
+        funding.fromGeneralWallet ??
+        0
+      );
 
 
-const alreadyCovered =
-  roundMoney(
-    fromPrevious +
-    fromToday +
-    fromExistingContributions
-  );
+    const generalAfter =
+      roundMoney(
+        funding.generalAfter ??
+        Math.max(
+          0,
+          generalAvailable -
+          fromGeneral
+        )
+      );
 
 
-const stillNeeded =
-  roundMoney(
-    Math.max(
-      0,
-      preview.gasCost -
-      alreadyCovered
+    setText(
+      'replenishmentGeneralAvailable',
+      formatMoney(
+        generalAvailable
+      )
+    );
+
+
+    setText(
+      'replenishmentUseGeneral',
+      formatMoney(
+        fromGeneral
+      )
+    );
+
+
+    setText(
+      'replenishmentGeneralAfter',
+      formatMoney(
+        generalAfter
+      )
+    );
+
+
+    setText(
+      'replenishmentGeneralFundingFormula',
+      `${formatMoney(
+        generalAvailable
+      )} disponibles − ${formatMoney(
+        fromGeneral
+      )} usados = ${formatMoney(
+        generalAfter
+      )}`
+    );
+
+
+    /*
+      Dejamos los campos antiguos
+      en cero por compatibilidad.
+    */
+
+    setText(
+      'replenishmentUsePrevious',
+      formatMoney(0)
+    );
+
+
+    setText(
+      'replenishmentUseToday',
+      formatMoney(0)
+    );
+
+
+    setText(
+      'replenishmentUseContributions',
+      formatMoney(
+        preview.extraContribution ??
+        0
+      )
+    );
+
+
+    setText(
+      'replenishmentPreviousAfter',
+      formatMoney(0)
+    );
+
+
+    setText(
+      'replenishmentTodayAfter',
+      formatMoney(0)
+    );
+
+
+    setText(
+      'replenishmentContributionsAfter',
+      formatMoney(0)
+    );
+
+  }
+
+
+  /* =====================================================
+     BOLSAS EXACTAS
+  ===================================================== */
+
+  else {
+
+    const fromPrevious =
+      roundMoney(
+        funding.fromPrevious ??
+        0
+      );
+
+
+    const fromToday =
+      roundMoney(
+        funding.fromToday ??
+        0
+      );
+
+
+    const fromExistingContributions =
+      roundMoney(
+        funding.fromContributions ??
+        0
+      );
+
+
+    const alreadyCovered =
+      roundMoney(
+        fromPrevious +
+        fromToday +
+        fromExistingContributions
+      );
+
+
+    const stillNeeded =
+      roundMoney(
+        Math.max(
+          0,
+          preview.gasCost -
+          alreadyCovered
+        )
+      );
+
+
+    const fromNewContribution =
+      roundMoney(
+        Math.min(
+          preview.extraContribution ??
+          0,
+          stillNeeded
+        )
+      );
+
+
+    const totalFromContributions =
+      roundMoney(
+        fromExistingContributions +
+        fromNewContribution
+      );
+
+
+    setText(
+      'replenishmentUsePrevious',
+      formatMoney(
+        fromPrevious
+      )
+    );
+
+
+    setText(
+      'replenishmentUseToday',
+      formatMoney(
+        fromToday
+      )
+    );
+
+
+    setText(
+      'replenishmentUseContributions',
+      formatMoney(
+        totalFromContributions
+      )
+    );
+
+
+    const previousAfter =
+      roundMoney(
+        funding.previousAfter ??
+        0
+      );
+
+
+    const todayAfter =
+      roundMoney(
+        funding.todayAfter ??
+        0
+      );
+
+
+    const existingContributionsAfter =
+      roundMoney(
+        funding.contributionsAfter ??
+        0
+      );
+
+
+    const unusedNewContribution =
+      roundMoney(
+        Math.max(
+          0,
+          (
+            preview.extraContribution ??
+            0
+          ) -
+          fromNewContribution
+        )
+      );
+
+
+    const contributionsAfter =
+      roundMoney(
+        existingContributionsAfter +
+        unusedNewContribution
+      );
+
+
+    setText(
+      'replenishmentPreviousAfter',
+      formatMoney(
+        previousAfter
+      )
+    );
+
+
+    setText(
+      'replenishmentTodayAfter',
+      formatMoney(
+        todayAfter
+      )
+    );
+
+
+    setText(
+      'replenishmentContributionsAfter',
+      formatMoney(
+        contributionsAfter
+      )
+    );
+
+  }
+
+
+  setText(
+    'replenishmentFundingAfterTotal',
+    formatMoney(
+      preview.walletAfter
     )
   );
 
 
-const fromNewContribution =
-  roundMoney(
-    Math.min(
-      preview.extraContribution ??
-      0,
-      stillNeeded
-    )
-  );
-
-
-const totalFromContributions =
-  roundMoney(
-    fromExistingContributions +
-    fromNewContribution
-  );
-
-
-setText(
-  'replenishmentUsePrevious',
-  formatMoney(
-    fromPrevious
-  )
-);
-
-
-setText(
-  'replenishmentUseToday',
-  formatMoney(
-    fromToday
-  )
-);
-
-
-setText(
-  'replenishmentUseContributions',
-  formatMoney(
-    totalFromContributions
-  )
-);
-
-
-const previousAfter =
-  roundMoney(
-    funding.previousAfter ??
-    0
-  );
-
-
-const todayAfter =
-  roundMoney(
-    funding.todayAfter ??
-    0
-  );
-
-
-const existingContributionsAfter =
-  roundMoney(
-    funding.contributionsAfter ??
-    0
-  );
-
-
-const unusedNewContribution =
-  roundMoney(
-    Math.max(
-      0,
-      (preview.extraContribution ?? 0) -
-      fromNewContribution
-    )
-  );
-
-
-const contributionsAfter =
-  roundMoney(
-    existingContributionsAfter +
-    unusedNewContribution
-  );
-
-
-setText(
-  'replenishmentPreviousAfter',
-  formatMoney(
-    previousAfter
-  )
-);
-
-
-setText(
-  'replenishmentTodayAfter',
-  formatMoney(
-    todayAfter
-  )
-);
-
-
-setText(
-  'replenishmentContributionsAfter',
-  formatMoney(
-    contributionsAfter
-  )
-);
-
-
-setText(
-  'replenishmentFundingAfterTotal',
-  formatMoney(
-    preview.walletAfter
-  )
-);
+  /* =====================================================
+     VALIDACIÓN VISUAL
+  ===================================================== */
 
   const messages = [];
 
@@ -2336,7 +2947,7 @@ setText(
     messages.push(
       `Faltan ${formatMoney(
         preview.remainingMissing
-      )} para pagar el gas.`
+      )} para financiar la reposición.`
     );
 
   }
@@ -2356,17 +2967,24 @@ setText(
   else {
 
     setOperationStatus(
+
       'replenishmentStatus',
-      'Reposición lista para registrar.',
-      'good'
+
+      (supplierPayment.pending ?? 0) > 0
+
+        ? 'Reposición financiada. Parte del pago al proveedor quedará pendiente.'
+
+        : 'Reposición lista para registrar.',
+
+      (supplierPayment.pending ?? 0) > 0
+        ? 'warn'
+        : 'good'
+
     );
 
   }
 
 }
-
-
-
 /* =========================================================
    TABLA DE REPOSICIONES
 ========================================================= */
@@ -2667,19 +3285,28 @@ export function renderRecentMovements() {
 /* =========================================================
    INVENTARIO
 ========================================================= */
-
 export function renderInventory() {
 
   const inventory =
     getInventorySummary();
 
 
+  const duragas =
+    inventory.duragas;
+
+
+  const kinggas =
+    inventory.kinggas;
+
+
+  /* =====================================================
+     DURAGAS
+  ===================================================== */
+
   setText(
     'inventoryDuragasTotal',
     String(
-      inventory
-        .duragas
-        .controlled
+      duragas.controlled
     )
   );
 
@@ -2687,7 +3314,7 @@ export function renderInventory() {
   setText(
     'inventoryDuragasFull',
     String(
-      inventory.duragas.full
+      duragas.full
     )
   );
 
@@ -2695,7 +3322,7 @@ export function renderInventory() {
   setText(
     'inventoryDuragasEmpty',
     String(
-      inventory.duragas.empty
+      duragas.empty
     )
   );
 
@@ -2703,9 +3330,25 @@ export function renderInventory() {
   setText(
     'inventoryDuragasReserved',
     String(
-      inventory
-        .duragas
-        .reserved
+      duragas.reserved
+    )
+  );
+
+
+  setText(
+    'inventoryDuragasRouteReserved',
+    String(
+      duragas.routeReserved ??
+      0
+    )
+  );
+
+
+  setText(
+    'inventoryDuragasRoute',
+    String(
+      duragas.route ??
+      0
     )
   );
 
@@ -2713,9 +3356,15 @@ export function renderInventory() {
   setText(
     'inventoryDuragasLoaned',
     String(
-      inventory
-        .duragas
-        .loaned
+      duragas.loaned
+    )
+  );
+
+
+  setText(
+    'inventoryDuragasPhysical',
+    String(
+      duragas.physical
     )
   );
 
@@ -2723,19 +3372,19 @@ export function renderInventory() {
   setText(
     'inventoryDuragasControlled',
     String(
-      inventory
-        .duragas
-        .controlled
+      duragas.controlled
     )
   );
 
 
+  /* =====================================================
+     KING GAS
+  ===================================================== */
+
   setText(
     'inventoryKingGasTotal',
     String(
-      inventory
-        .kinggas
-        .controlled
+      kinggas.controlled
     )
   );
 
@@ -2743,7 +3392,7 @@ export function renderInventory() {
   setText(
     'inventoryKingGasFull',
     String(
-      inventory.kinggas.full
+      kinggas.full
     )
   );
 
@@ -2751,7 +3400,7 @@ export function renderInventory() {
   setText(
     'inventoryKingGasEmpty',
     String(
-      inventory.kinggas.empty
+      kinggas.empty
     )
   );
 
@@ -2759,9 +3408,25 @@ export function renderInventory() {
   setText(
     'inventoryKingGasReserved',
     String(
-      inventory
-        .kinggas
-        .reserved
+      kinggas.reserved
+    )
+  );
+
+
+  setText(
+    'inventoryKingGasRouteReserved',
+    String(
+      kinggas.routeReserved ??
+      0
+    )
+  );
+
+
+  setText(
+    'inventoryKingGasRoute',
+    String(
+      kinggas.route ??
+      0
     )
   );
 
@@ -2769,9 +3434,15 @@ export function renderInventory() {
   setText(
     'inventoryKingGasLoaned',
     String(
-      inventory
-        .kinggas
-        .loaned
+      kinggas.loaned
+    )
+  );
+
+
+  setText(
+    'inventoryKingGasPhysical',
+    String(
+      kinggas.physical
     )
   );
 
@@ -2779,17 +3450,61 @@ export function renderInventory() {
   setText(
     'inventoryKingGasControlled',
     String(
-      inventory
-        .kinggas
-        .controlled
+      kinggas.controlled
     )
   );
+
+
+  /* =====================================================
+     TOTALES
+  ===================================================== */
+
+  const routeReservedTotal =
+
+    toNonNegativeInteger(
+      duragas.routeReserved
+    )
+
+    +
+
+    toNonNegativeInteger(
+      kinggas.routeReserved
+    );
+
+
+  const routeTotal =
+
+    toNonNegativeInteger(
+      duragas.route
+    )
+
+    +
+
+    toNonNegativeInteger(
+      kinggas.route
+    );
 
 
   setText(
     'inventoryPhysicalTotal',
     String(
       inventory.totals.physical
+    )
+  );
+
+
+  setText(
+    'inventoryRouteReservedTotal',
+    String(
+      routeReservedTotal
+    )
+  );
+
+
+  setText(
+    'inventoryRouteTotal',
+    String(
+      routeTotal
     )
   );
 
@@ -2835,40 +3550,64 @@ function renderInventoryMovements() {
   }
 
 
-  const allowedTypes =
+  const normalInventoryTypes =
     new Set([
 
       'sale',
-
       'tank_return',
-
       'pickup',
-
       'replenishment',
-
       'adjustment',
-
       'loan',
-
       'loan_return',
-
       'opening',
 
     ]);
 
 
+  /*
+    Todos los movimientos de vendedor
+    empiezan con route_.
+
+    Así también aparecerán aquí sin tener
+    que mantener otra lista manual.
+  */
+
   const movements =
     sortNewestFirst(
+
       getState()
         .movements
         .filter(
-          item =>
-            allowedTypes.has(
-              item.type
-            )
+          item => {
+
+            const type =
+              String(
+                item.type ??
+                ''
+              );
+
+
+            return (
+
+              normalInventoryTypes.has(
+                type
+              )
+
+              ||
+
+              type.startsWith(
+                'route_'
+              )
+
+            );
+
+          }
         ),
+
       item =>
         item.createdAt
+
     )
     .slice(
       0,
@@ -2907,6 +3646,7 @@ function renderInventoryMovements() {
             )}
           </td>
 
+
           <td>
             ${escapeHtml(
               MOVEMENT_LABELS[
@@ -2916,16 +3656,22 @@ function renderInventoryMovements() {
             )}
           </td>
 
+
           <td>
             ${escapeHtml(
               movement.gasId
-                ? GAS_TYPES[
+
+                ? (
+                    GAS_TYPES[
+                      movement.gasId
+                    ]?.name ??
                     movement.gasId
-                  ]?.name ??
-                  movement.gasId
+                  )
+
                 : '—'
             )}
           </td>
+
 
           <td>
             ${escapeHtml(
@@ -2933,6 +3679,7 @@ function renderInventoryMovements() {
               ''
             )}
           </td>
+
 
           <td>
             ${escapeHtml(
@@ -2944,6 +3691,570 @@ function renderInventoryMovements() {
         </tr>
       `
     ).join('');
+
+}
+
+
+
+/* =========================================================
+   VENDEDOR / RUTAS
+========================================================= */
+
+function renderRouteAccounts() {
+
+  const summaries =
+    searchRouteAccountSummaries();
+
+
+  const state =
+    getState();
+
+
+  /* =====================================================
+     TOTALES GENERALES
+  ===================================================== */
+
+  const totals =
+    summaries.reduce(
+      (
+        result,
+        item
+      ) => {
+
+        result.moneyDue =
+          roundMoney(
+            result.moneyDue +
+            (
+              Number(
+                item.moneyDue
+              ) ||
+              0
+            )
+          );
+
+
+        result.tanksDue +=
+          toNonNegativeInteger(
+            item.tanksDueTotal
+          );
+
+
+        result.route +=
+          toNonNegativeInteger(
+            item.routeTotal
+          );
+
+
+        result.reserved +=
+          toNonNegativeInteger(
+            item.reservedTotal
+          );
+
+
+        result.openTrips +=
+          toNonNegativeInteger(
+            item.openTrips
+          );
+
+
+        return result;
+
+      },
+      {
+        moneyDue: 0,
+        tanksDue: 0,
+        route: 0,
+        reserved: 0,
+        openTrips: 0,
+      }
+    );
+
+
+  setHtml(
+    'routeAccountsSummary',
+    `
+      <div class="inventory-control-summary">
+
+        <div>
+          <span>Cuentas vendedor</span>
+          <strong>
+            ${summaries.length}
+          </strong>
+        </div>
+
+
+        <div>
+          <span>Apartados en bodega</span>
+          <strong>
+            ${totals.reserved}
+          </strong>
+        </div>
+
+
+        <div>
+          <span>En ruta</span>
+          <strong>
+            ${totals.route}
+          </strong>
+        </div>
+
+
+        <div>
+          <span>Viajes abiertos</span>
+          <strong>
+            ${totals.openTrips}
+          </strong>
+        </div>
+
+
+        <div>
+          <span>Dinero pendiente</span>
+          <strong>
+            ${formatMoney(
+              totals.moneyDue
+            )}
+          </strong>
+        </div>
+
+
+        <div>
+          <span>Vacíos pendientes</span>
+          <strong>
+            ${totals.tanksDue}
+          </strong>
+        </div>
+
+      </div>
+    `
+  );
+
+
+  /* =====================================================
+     TARJETAS DE CUENTAS
+  ===================================================== */
+
+  const container =
+    byId(
+      'routeAccountsList'
+    );
+
+
+  if (container) {
+
+    if (
+      summaries.length === 0
+    ) {
+
+      container.innerHTML = `
+        <div class="empty-state">
+          Todavía no existen cuentas de vendedor.
+        </div>
+      `;
+
+    }
+    else {
+
+      container.innerHTML =
+        summaries.map(
+          item => {
+
+            const account =
+              item.account ??
+              {};
+
+
+            return `
+              <article class="pending-card">
+
+                <div class="pending-card-head">
+
+                  <div>
+
+                    <h3>
+                      ${escapeHtml(
+                        account.name ??
+                        'Vendedor'
+                      )}
+                    </h3>
+
+                    <small>
+                      ${escapeHtml(
+                        account.reference ??
+                        ''
+                      )}
+                    </small>
+
+                  </div>
+
+
+                  <span class="badge">
+                    ${
+                      item.hasPending
+                        ? 'Con movimientos'
+                        : 'Al día'
+                    }
+                  </span>
+
+                </div>
+
+
+                <div class="pending-values">
+
+                  <div>
+                    <span>Apartados Duragas</span>
+                    <strong>
+                      ${
+                        item.reserved
+                          ?.[GAS_IDS.DURAGAS] ??
+                        0
+                      }
+                    </strong>
+                  </div>
+
+
+                  <div>
+                    <span>Apartados King Gas</span>
+                    <strong>
+                      ${
+                        item.reserved
+                          ?.[GAS_IDS.KING_GAS] ??
+                        0
+                      }
+                    </strong>
+                  </div>
+
+
+                  <div>
+                    <span>En ruta Duragas</span>
+                    <strong>
+                      ${
+                        item.route
+                          ?.[GAS_IDS.DURAGAS] ??
+                        0
+                      }
+                    </strong>
+                  </div>
+
+
+                  <div>
+                    <span>En ruta King Gas</span>
+                    <strong>
+                      ${
+                        item.route
+                          ?.[GAS_IDS.KING_GAS] ??
+                        0
+                      }
+                    </strong>
+                  </div>
+
+
+                  <div>
+                    <span>Debe dinero</span>
+                    <strong>
+                      ${formatMoney(
+                        item.moneyDue ??
+                        0
+                      )}
+                    </strong>
+                  </div>
+
+
+                  <div>
+                    <span>Debe vacíos</span>
+                    <strong>
+                      ${item.tanksDueTotal ?? 0}
+                    </strong>
+                  </div>
+
+
+                  <div>
+                    <span>Viajes abiertos</span>
+                    <strong>
+                      ${item.openTrips ?? 0}
+                    </strong>
+                  </div>
+
+                </div>
+
+              </article>
+            `;
+
+          }
+        ).join('');
+
+    }
+
+  }
+
+
+  /* =====================================================
+     OPCIONES DE SELECT
+  ===================================================== */
+
+  function fillSelect(
+    id,
+    options,
+    placeholder
+  ) {
+
+    const select =
+      byId(id);
+
+
+    if (!select) {
+
+      return;
+
+    }
+
+
+    const previousValue =
+      select.value;
+
+
+    select.innerHTML = `
+
+      <option value="">
+        ${escapeHtml(
+          placeholder
+        )}
+      </option>
+
+      ${options.map(
+        option => `
+          <option
+            value="${escapeHtml(
+              option.value
+            )}"
+          >
+            ${escapeHtml(
+              option.label
+            )}
+          </option>
+        `
+      ).join('')}
+
+    `;
+
+
+    const stillExists =
+      Array.from(
+        select.options
+      ).some(
+        option =>
+          option.value ===
+          previousValue
+      );
+
+
+    if (
+      stillExists
+    ) {
+
+      select.value =
+        previousValue;
+
+    }
+
+  }
+
+
+  /* =====================================================
+     CUENTAS
+  ===================================================== */
+
+  const accountOptions =
+    summaries.map(
+      item => ({
+
+        value:
+          item.account.id,
+
+        label:
+          item.account.reference
+
+            ? `${item.account.name} · ${item.account.reference}`
+
+            : item.account.name,
+
+      })
+    );
+
+
+  [
+    'routeReserveAccountId',
+    'routeStartAccountId',
+    'routePaymentAccountId',
+  ].forEach(
+    id => {
+
+      fillSelect(
+        id,
+        accountOptions,
+        'Selecciona vendedor'
+      );
+
+    }
+  );
+
+
+  /* =====================================================
+     RESERVAS ACTIVAS
+  ===================================================== */
+
+  const accountNameById =
+    new Map(
+      summaries.map(
+        item => [
+
+          item.account.id,
+
+          item.account.name,
+
+        ]
+      )
+    );
+
+
+  const reservationOptions =
+    (
+      state.routeReservations ??
+      []
+    )
+      .filter(
+        reservation => {
+
+          if (
+            reservation.active ===
+            false
+          ) {
+
+            return false;
+
+          }
+
+
+          const remaining =
+            reservation.remaining ??
+            {};
+
+
+          return (
+
+            toNonNegativeInteger(
+              remaining[
+                GAS_IDS.DURAGAS
+              ]
+            )
+
+            +
+
+            toNonNegativeInteger(
+              remaining[
+                GAS_IDS.KING_GAS
+              ]
+            )
+
+          ) > 0;
+
+        }
+      )
+      .map(
+        reservation => {
+
+          const remaining =
+            reservation.remaining ??
+            {};
+
+
+          const duragas =
+            toNonNegativeInteger(
+              remaining[
+                GAS_IDS.DURAGAS
+              ]
+            );
+
+
+          const kinggas =
+            toNonNegativeInteger(
+              remaining[
+                GAS_IDS.KING_GAS
+              ]
+            );
+
+
+          return {
+
+            value:
+              reservation.id,
+
+            label:
+              `${
+                accountNameById.get(
+                  reservation.accountId
+                ) ??
+                'Vendedor'
+              } · D ${duragas} · K ${kinggas}`,
+
+          };
+
+        }
+      );
+
+
+  [
+    'routePickupReservationId',
+    'routeReleaseReservationId',
+  ].forEach(
+    id => {
+
+      fillSelect(
+        id,
+        reservationOptions,
+        'Selecciona apartado'
+      );
+
+    }
+  );
+
+
+  /* =====================================================
+     VIAJES ABIERTOS
+  ===================================================== */
+
+  const tripOptions =
+    (
+      state.routeTrips ??
+      []
+    )
+      .filter(
+        trip =>
+          trip.active !==
+          false
+      )
+      .map(
+        trip => ({
+
+          value:
+            trip.id,
+
+          label:
+            `${
+              accountNameById.get(
+                trip.accountId
+              ) ??
+              'Vendedor'
+            } · viaje ${trip.id}`,
+
+        })
+      );
+
+
+  fillSelect(
+    'routeSettleTripId',
+    tripOptions,
+    'Selecciona viaje'
+  );
 
 }
 
@@ -2966,19 +4277,40 @@ export function renderAccounts() {
 
         <div>
           <span>Cuentas abiertas</span>
-          <strong>${summary.openAccounts}</strong>
+          <strong>
+            ${summary.openAccounts}
+          </strong>
         </div>
+
 
         <div>
           <span>Dinero por cobrar</span>
-          <strong>${formatMoney(
-            summary.moneyDue
-          )}</strong>
+          <strong>
+            ${formatMoney(
+              summary.moneyDue
+            )}
+          </strong>
         </div>
+
 
         <div>
           <span>Tanques por recibir</span>
-          <strong>${summary.tanksDue.total}</strong>
+          <strong>
+            ${summary.tanksDue.total}
+          </strong>
+        </div>
+
+
+        <div>
+          <span>Pagados por retirar</span>
+          <strong>
+            ${
+              summary
+                .pickupDue
+                ?.total ??
+              0
+            }
+          </strong>
         </div>
 
       </div>
@@ -2986,8 +4318,18 @@ export function renderAccounts() {
   );
 
 
+  /*
+    La cuenta especial del vendedor
+    se pinta aparte de los clientes normales.
+  */
+
+  renderRouteAccounts();
+
+
   const container =
-    byId('accountsCards');
+    byId(
+      'accountsCards'
+    );
 
 
   if (!container) {
@@ -3026,9 +4368,6 @@ export function renderAccounts() {
     ).join('');
 
 }
-
-
-
 /* =========================================================
    TARJETA DE PENDIENTE
 ========================================================= */
@@ -3706,7 +5045,6 @@ export function renderAdjustmentsHistory() {
 /* =========================================================
    CIERRE - DATOS GENERALES
 ========================================================= */
-
 export function renderClosing() {
 
   const data =
@@ -3730,6 +5068,8 @@ export function renderClosing() {
     );
 
 
+    renderSupplierPendingPayments();
+
     return;
 
   }
@@ -3739,10 +5079,53 @@ export function renderClosing() {
     data.finance;
 
 
+  const wallets =
+    data.wallets;
+
+
+  const isGeneral =
+    Boolean(
+      wallets
+        ?.general
+        ?.active
+    );
+
+
+  /* =====================================================
+     MODO FINANCIERO
+  ===================================================== */
+
+  setText(
+    'closingFinancialMode',
+    isGeneral
+      ? 'Bolsa General'
+      : 'Bolsas exactas'
+  );
+
+
+  setVisible(
+    'closingGeneralWalletBlock',
+    isGeneral
+  );
+
+
+  setVisible(
+    'closingExactWalletsBlock',
+    !isGeneral
+  );
+
+
+  /* =====================================================
+     VENTAS Y CAJA
+  ===================================================== */
+
   setText(
     'closingSalesRevenue',
     formatMoney(
-      finance.sales.revenue
+      finance
+        ?.sales
+        ?.revenue ??
+      0
     )
   );
 
@@ -3750,7 +5133,10 @@ export function renderClosing() {
   setText(
     'closingCollected',
     formatMoney(
-      finance.collection.total
+      finance
+        ?.collection
+        ?.total ??
+      0
     )
   );
 
@@ -3758,7 +5144,10 @@ export function renderClosing() {
   setText(
     'closingCashGenerated',
     formatMoney(
-      finance.collection.cash
+      finance
+        ?.collection
+        ?.cash ??
+      0
     )
   );
 
@@ -3766,7 +5155,10 @@ export function renderClosing() {
   setText(
     'closingTransfers',
     formatMoney(
-      finance.collection.transfers
+      finance
+        ?.collection
+        ?.transfers ??
+      0
     )
   );
 
@@ -3774,7 +5166,10 @@ export function renderClosing() {
   setText(
     'closingOpeningCashFund',
     formatMoney(
-      finance.cash.openingFund
+      finance
+        ?.cash
+        ?.openingFund ??
+      0
     )
   );
 
@@ -3782,58 +5177,109 @@ export function renderClosing() {
   setText(
     'closingCashExpenses',
     formatMoney(
-      finance.cash.expenses
+      finance
+        ?.cash
+        ?.expenses ??
+      0
     )
   );
 
 
-  const wallets =
-    data.wallets;
+  setText(
+    'closingExpectedCash',
+    formatMoney(
+      finance
+        ?.cash
+        ?.expected ??
+      0
+    )
+  );
+
+
+  /* =====================================================
+     BOLSA GENERAL
+  ===================================================== */
+
+  setText(
+    'closingGeneralWallet',
+    formatMoney(
+      wallets
+        ?.general
+        ?.balance ??
+      0
+    )
+  );
+
+
+  setText(
+    'closingGeneralReservePerUnit',
+    formatMoney(
+      wallets
+        ?.general
+        ?.reservePerUnit ??
+      0
+    )
+  );
+
+
+  /* =====================================================
+     BOLSAS EXACTAS
+  ===================================================== */
+
+  const duragasWallet =
+    wallets?.[
+      GAS_IDS.DURAGAS
+    ] ?? {};
+
+
+  const kingGasWallet =
+    wallets?.[
+      GAS_IDS.KING_GAS
+    ] ?? {};
 
 
   setText(
     'closingDuragasWallet',
     formatMoney(
-      wallets[
-        GAS_IDS.DURAGAS
-      ].balance
+      duragasWallet.balance ??
+      0
     )
   );
 
 
   setText(
     'closingDuragasWalletEquivalent',
-    `${wallets[
-      GAS_IDS.DURAGAS
-    ].equivalentUnits} tanque(s)`
+    `${duragasWallet.equivalentUnits ?? 0} tanque(s)`
   );
 
 
   setText(
     'closingKingGasWallet',
     formatMoney(
-      wallets[
-        GAS_IDS.KING_GAS
-      ].balance
+      kingGasWallet.balance ??
+      0
     )
   );
 
 
   setText(
     'closingKingGasWalletEquivalent',
-    `${wallets[
-      GAS_IDS.KING_GAS
-    ].equivalentUnits} tanque(s)`
+    `${kingGasWallet.equivalentUnits ?? 0} tanque(s)`
   );
 
+
+  /* =====================================================
+     GANANCIA
+  ===================================================== */
 
   setText(
     'closingDuragasProfit',
     formatMoney(
       finance
-        .byGas[
-          GAS_IDS.DURAGAS
-        ].availableProfit
+        ?.byGas
+        ?.[GAS_IDS.DURAGAS]
+        ?.availableProfit ??
+      0
     )
   );
 
@@ -3842,9 +5288,10 @@ export function renderClosing() {
     'closingKingGasProfit',
     formatMoney(
       finance
-        .byGas[
-          GAS_IDS.KING_GAS
-        ].availableProfit
+        ?.byGas
+        ?.[GAS_IDS.KING_GAS]
+        ?.availableProfit ??
+      0
     )
   );
 
@@ -3852,18 +5299,31 @@ export function renderClosing() {
   setText(
     'closingTotalProfit',
     formatMoney(
-      finance.profit.available
+      finance
+        ?.profit
+        ?.available ??
+      0
     )
   );
+
+
+  /* =====================================================
+     REPOSICIONES DURAGAS
+  ===================================================== */
+
+  const duragasReplenishment =
+    finance
+      ?.replenishments
+      ?.[GAS_IDS.DURAGAS] ??
+    {};
 
 
   setText(
     'closingDuragasReplenished',
     String(
-      finance
-        .replenishments[
-          GAS_IDS.DURAGAS
-        ].quantity
+      duragasReplenishment
+        .quantity ??
+      0
     )
   );
 
@@ -3871,10 +5331,9 @@ export function renderClosing() {
   setText(
     'closingDuragasReplenishmentPaid',
     formatMoney(
-      finance
-        .replenishments[
-          GAS_IDS.DURAGAS
-        ].gasPaid
+      duragasReplenishment
+        .gasPaid ??
+      0
     )
   );
 
@@ -3882,21 +5341,30 @@ export function renderClosing() {
   setText(
     'closingDuragasExtraCosts',
     formatMoney(
-      finance
-        .replenishments[
-          GAS_IDS.DURAGAS
-        ].additionalCosts
+      duragasReplenishment
+        .additionalCosts ??
+      0
     )
   );
+
+
+  /* =====================================================
+     REPOSICIONES KING GAS
+  ===================================================== */
+
+  const kingReplenishment =
+    finance
+      ?.replenishments
+      ?.[GAS_IDS.KING_GAS] ??
+    {};
 
 
   setText(
     'closingKingGasReplenished',
     String(
-      finance
-        .replenishments[
-          GAS_IDS.KING_GAS
-        ].quantity
+      kingReplenishment
+        .quantity ??
+      0
     )
   );
 
@@ -3904,10 +5372,9 @@ export function renderClosing() {
   setText(
     'closingKingGasReplenishmentPaid',
     formatMoney(
-      finance
-        .replenishments[
-          GAS_IDS.KING_GAS
-        ].gasPaid
+      kingReplenishment
+        .gasPaid ??
+      0
     )
   );
 
@@ -3915,34 +5382,41 @@ export function renderClosing() {
   setText(
     'closingKingGasExtraCosts',
     formatMoney(
-      finance
-        .replenishments[
-          GAS_IDS.KING_GAS
-        ].additionalCosts
+      kingReplenishment
+        .additionalCosts ??
+      0
     )
   );
 
 
-  setText(
-    'closingExpectedCash',
-    formatMoney(
-      finance.cash.expected
-    )
-  );
-
+  /* =====================================================
+     INVENTARIO ESPERADO
+  ===================================================== */
 
   renderExpectedClosingInventory();
+
+
+  /* =====================================================
+     PENDIENTES CLIENTES
+  ===================================================== */
 
   renderClosingPending(
     data.pending
   );
+
+
+  /* =====================================================
+     PENDIENTES PROVEEDOR
+  ===================================================== */
+
+  renderSupplierPendingPayments();
 
 }
 
 
 
 /* =========================================================
-   RELLENAR INVENTARIO ESPERADO EN CIERRE
+   INVENTARIO ESPERADO DEL CIERRE
 ========================================================= */
 
 export function renderExpectedClosingInventory(
@@ -3977,55 +5451,147 @@ export function renderExpectedClosingInventory(
     ) => {
 
       const gas =
-        counts[gasId];
+        counts?.[gasId] ??
+        {};
 
+
+      const full =
+        toNonNegativeInteger(
+          gas.full
+        );
+
+
+      const empty =
+        toNonNegativeInteger(
+          gas.empty
+        );
+
+
+      const reserved =
+        toNonNegativeInteger(
+          gas.reserved
+        );
+
+
+      const routeReserved =
+        toNonNegativeInteger(
+          gas.routeReserved
+        );
+
+
+      const route =
+        toNonNegativeInteger(
+          gas.route
+        );
+
+
+      const loaned =
+        toNonNegativeInteger(
+          gas.loaned
+        );
+
+
+      /*
+        FÍSICO EN BODEGA
+
+        Sí se cuentan:
+        - llenos
+        - vacíos
+        - reservados normales
+        - apartados para vendedor
+      */
+
+      const physicalTotal =
+
+        full +
+        empty +
+        reserved +
+        routeReserved;
+
+
+      /*
+        TOTAL CONTROLADO
+
+        Además incluye:
+        - ruta
+        - prestados
+      */
+
+      const controlledTotal =
+
+        physicalTotal +
+        route +
+        loaned;
+
+
+      /* ===================================================
+         VALORES ESPERADOS
+      =================================================== */
 
       setText(
         `closingExpected${prefix}Full`,
-        String(gas.full)
+        String(full)
       );
 
 
       setText(
         `closingExpected${prefix}Empty`,
-        String(gas.empty)
+        String(empty)
       );
 
 
       setText(
         `closingExpected${prefix}Reserved`,
-        String(gas.reserved)
+        String(reserved)
+      );
+
+
+      setText(
+        `closingExpected${prefix}RouteReserved`,
+        String(routeReserved)
+      );
+
+
+      setText(
+        `closingExpected${prefix}Route`,
+        String(route)
       );
 
 
       setText(
         `closingExpected${prefix}Loaned`,
-        String(gas.loaned)
-      );
-
-
-      const total =
-
-        gas.full +
-        gas.empty +
-        gas.reserved +
-        gas.loaned;
-
-
-      setText(
-        `closing${prefix}ExpectedTotal`,
-        String(total)
+        String(loaned)
       );
 
 
       /*
-        Prestados son solo informativos.
-        Siempre mostramos el valor lógico.
+        El total principal del cierre
+        es el total FÍSICO que debe encontrarse.
       */
+
+      setText(
+        `closing${prefix}ExpectedTotal`,
+        String(
+          physicalTotal
+        )
+      );
+
+
+      setText(
+        `closing${prefix}ExpectedControlledTotal`,
+        String(
+          controlledTotal
+        )
+      );
+
+
+      /* ===================================================
+         CAMPOS INFORMATIVOS
+      =================================================== */
 
       setValue(
         `closing${prefix}Loaned`,
-        gas.loaned
+        loaned
       );
 
 
@@ -4035,9 +5601,7 @@ export function renderExpectedClosingInventory(
         );
 
 
-      if (
-        loanedInput
-      ) {
+      if (loanedInput) {
 
         loanedInput.readOnly =
           true;
@@ -4045,28 +5609,60 @@ export function renderExpectedClosingInventory(
       }
 
 
-      /*
-        Llenos, vacíos y reservados sí son
-        los que la persona confirma físicamente.
-      */
+      setValue(
+        `closing${prefix}Route`,
+        route
+      );
 
-      if (setInputs) {
+
+      const routeInput =
+        byId(
+          `closing${prefix}Route`
+        );
+
+
+      if (routeInput) {
+
+        routeInput.readOnly =
+          true;
+
+      }
+
+
+      /* ===================================================
+         CAMPOS FÍSICOS
+      =================================================== */
+
+      if (
+        setInputs
+      ) {
 
         setValue(
           `closing${prefix}Full`,
-          gas.full
+          full
         );
 
 
         setValue(
           `closing${prefix}Empty`,
-          gas.empty
+          empty
         );
 
 
         setValue(
           `closing${prefix}Reserved`,
-          gas.reserved
+          reserved
+        );
+
+
+        /*
+          routeReserved también debe ser
+          confirmado físicamente.
+        */
+
+        setValue(
+          `closing${prefix}RouteReserved`,
+          routeReserved
         );
 
       }
@@ -4077,40 +5673,346 @@ export function renderExpectedClosingInventory(
 }
 
 
+
 /* =========================================================
-   PENDIENTES EN CIERRE
+   PENDIENTES DE CLIENTES EN CIERRE
 ========================================================= */
 
 function renderClosingPending(
   pending
 ) {
 
+  const safePending =
+    pending ?? {};
+
+
   setHtml(
     'closingPendingSummary',
     `
       <div>
         <span>Cuentas abiertas</span>
-        <strong>${pending.openAccounts}</strong>
+        <strong>
+          ${safePending.openAccounts ?? 0}
+        </strong>
       </div>
 
       <div>
         <span>Dinero pendiente</span>
-        <strong>${formatMoney(
-          pending.moneyDue
-        )}</strong>
+        <strong>
+          ${formatMoney(
+            safePending.moneyDue ??
+            0
+          )}
+        </strong>
       </div>
 
       <div>
         <span>Tanques pendientes</span>
-        <strong>${pending.tanksDue.total}</strong>
+        <strong>
+          ${
+            safePending
+              .tanksDue
+              ?.total ??
+            0
+          }
+        </strong>
       </div>
 
       <div>
         <span>Pagados por retirar</span>
-        <strong>${pending.pickupDue.total}</strong>
+        <strong>
+          ${
+            safePending
+              .pickupDue
+              ?.total ??
+            0
+          }
+        </strong>
       </div>
     `
   );
+
+}
+
+
+
+/* =========================================================
+   OBLIGACIONES PENDIENTES DEL PROVEEDOR
+========================================================= */
+
+function getSupplierPendingSnapshot() {
+
+  const items =
+    (
+      getState()
+        .supplierPayments ??
+      []
+    ).filter(
+      payment =>
+        payment.status ===
+        'pending'
+    );
+
+
+  const amount =
+    roundMoney(
+      items.reduce(
+        (
+          total,
+          payment
+        ) =>
+          total +
+          (
+            Number(
+              payment.amount
+            ) ||
+            0
+          ),
+        0
+      )
+    );
+
+
+  return {
+
+    count:
+      items.length,
+
+    amount,
+
+    items,
+
+  };
+
+}
+
+
+
+function renderSupplierPendingPayments(
+  snapshot = null
+) {
+
+  const data =
+    snapshot ??
+    getSupplierPendingSnapshot();
+
+
+  const items =
+    Array.isArray(
+      data?.items
+    )
+
+      ? data.items
+
+      : [];
+
+
+  const count =
+    data?.count ??
+    items.length;
+
+
+  const amount =
+    roundMoney(
+      data?.amount ??
+      items.reduce(
+        (
+          total,
+          payment
+        ) =>
+          total +
+          (
+            Number(
+              payment.amount
+            ) ||
+            0
+          ),
+        0
+      )
+    );
+
+
+  /* =====================================================
+     RESUMEN EN CIERRE
+  ===================================================== */
+
+  setHtml(
+    'closingSupplierPendingSummary',
+    `
+      <div>
+        <span>Facturas pendientes</span>
+
+        <strong>
+          ${count}
+        </strong>
+      </div>
+
+      <div>
+        <span>Valor comprometido</span>
+
+        <strong>
+          ${formatMoney(
+            amount
+          )}
+        </strong>
+      </div>
+    `
+  );
+
+
+  /* =====================================================
+     MÉTRICAS GENERALES
+  ===================================================== */
+
+  setText(
+    'supplierPendingCount',
+    String(count)
+  );
+
+
+  setText(
+    'supplierPendingAmount',
+    formatMoney(
+      amount
+    )
+  );
+
+
+  /* =====================================================
+     LISTA PARA PAGAR
+  ===================================================== */
+
+  const container =
+    byId(
+      'supplierPaymentsList'
+    );
+
+
+  if (!container) {
+
+    return;
+
+  }
+
+
+  if (
+    items.length === 0
+  ) {
+
+    container.innerHTML = `
+      <div class="empty-state">
+        No existen pagos pendientes al proveedor.
+      </div>
+    `;
+
+
+    return;
+
+  }
+
+
+  container.innerHTML =
+    items.map(
+      payment => {
+
+        const gasName =
+
+          GAS_TYPES[
+            payment.gasId
+          ]?.name
+
+          ??
+
+          payment.gasId
+
+          ??
+
+          'Proveedor';
+
+
+        return `
+          <article class="pending-card money">
+
+            <div class="pending-card-head">
+
+              <div>
+
+                <h3>
+                  ${escapeHtml(
+                    gasName
+                  )}
+                </h3>
+
+                <small>
+                  ${escapeHtml(
+                    formatDateTime(
+                      payment.createdAt
+                    )
+                  )}
+                </small>
+
+              </div>
+
+              <span class="badge">
+                Pendiente
+              </span>
+
+            </div>
+
+
+            <div class="inventory-control-summary">
+
+              <div>
+                <span>Cantidad</span>
+                <strong>
+                  ${
+                    toNonNegativeInteger(
+                      payment.quantity
+                    )
+                  }
+                </strong>
+              </div>
+
+
+              <div>
+                <span>Costo unitario</span>
+                <strong>
+                  ${formatMoney(
+                    payment.unitCost ??
+                    0
+                  )}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>Total</span>
+                <strong>
+                  ${formatMoney(
+                    payment.amount ??
+                    0
+                  )}
+                </strong>
+              </div>
+
+            </div>
+
+
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-supplier-payment-id="${escapeHtml(
+                payment.id
+              )}"
+            >
+              Pagar proveedor
+            </button>
+
+          </article>
+        `;
+
+      }
+    ).join('');
 
 }
 
@@ -4131,10 +6033,16 @@ export function renderClosingPreview(
   }
 
 
+  /* =====================================================
+     CAJA
+  ===================================================== */
+
   setText(
     'closingExpectedCash',
     formatMoney(
-      preview.cash.expected
+      preview
+        .cash
+        .expected
     )
   );
 
@@ -4142,14 +6050,18 @@ export function renderClosingPreview(
   setText(
     'closingCashDifference',
     formatMoney(
-      preview.cash.difference
+      preview
+        .cash
+        .difference
     )
   );
 
 
   setText(
     'closingCashDifferenceText',
-    preview.cash.text
+    preview
+      .cash
+      .text
   );
 
 
@@ -4187,6 +6099,10 @@ export function renderClosingPreview(
   }
 
 
+  /* =====================================================
+     DIFERENCIA FÍSICA POR MARCA
+  ===================================================== */
+
   const duragas =
     preview
       .inventory
@@ -4206,7 +6122,9 @@ export function renderClosingPreview(
   setText(
     'closingDuragasDifference',
     String(
-      duragas.controlledDifference
+      duragas
+        ?.warehouseDifference ??
+      0
     )
   );
 
@@ -4214,17 +6132,25 @@ export function renderClosingPreview(
   setText(
     'closingKingGasDifference',
     String(
-      kinggas.controlledDifference
+      kinggas
+        ?.warehouseDifference ??
+      0
     )
   );
 
+
+  /* =====================================================
+     ESTADO
+  ===================================================== */
 
   setOperationStatus(
     'closingStatus',
 
     preview.hasAnyDifference
+
       ? 'Hay diferencias. Puedes cerrar, pero quedarán registradas.'
-      : 'Caja e inventario coinciden con el sistema.',
+
+      : 'Caja e inventario físico coinciden con el sistema.',
 
     preview.hasAnyDifference
       ? 'warn'
@@ -4232,6 +6158,30 @@ export function renderClosingPreview(
   );
 
 
+  /* =====================================================
+     MODO FINANCIERO
+  ===================================================== */
+
+  const isGeneral =
+    Boolean(
+      preview
+        .wallets
+        ?.general
+        ?.active
+    );
+
+
+  setText(
+    'closingFinancialMode',
+    isGeneral
+      ? 'Bolsa General'
+      : 'Bolsas exactas'
+  );
+
+
+  /* =====================================================
+     RESUMEN
+  ===================================================== */
 
   setHtml(
     'closingSummary',
@@ -4250,6 +6200,7 @@ export function renderClosingPreview(
           </strong>
         </div>
 
+
         <div>
           <span>Cobrado</span>
           <strong>
@@ -4261,6 +6212,7 @@ export function renderClosingPreview(
             )}
           </strong>
         </div>
+
 
         <div>
           <span>Ganancia disponible</span>
@@ -4274,29 +6226,93 @@ export function renderClosingPreview(
           </strong>
         </div>
 
+
         <div>
           <span>Caja esperada</span>
           <strong>
             ${formatMoney(
-              preview.cash.expected
+              preview
+                .cash
+                .expected
             )}
           </strong>
         </div>
+
 
         <div>
           <span>Caja contada</span>
           <strong>
             ${formatMoney(
-              preview.cash.counted
+              preview
+                .cash
+                .counted
             )}
           </strong>
         </div>
 
+
         <div>
-          <span>Diferencia</span>
+          <span>Diferencia caja</span>
           <strong>
             ${formatMoney(
-              preview.cash.difference
+              preview
+                .cash
+                .difference
+            )}
+          </strong>
+        </div>
+
+
+        <div>
+          <span>Físico esperado</span>
+          <strong>
+            ${
+              preview
+                .inventory
+                .warehouse
+                ?.expected ??
+              0
+            }
+          </strong>
+        </div>
+
+
+        <div>
+          <span>Físico contado</span>
+          <strong>
+            ${
+              preview
+                .inventory
+                .warehouse
+                ?.counted ??
+              0
+            }
+          </strong>
+        </div>
+
+
+        <div>
+          <span>Diferencia física</span>
+          <strong>
+            ${
+              preview
+                .inventory
+                .warehouse
+                ?.difference ??
+              0
+            }
+          </strong>
+        </div>
+
+
+        <div>
+          <span>Proveedor pendiente</span>
+          <strong>
+            ${formatMoney(
+              preview
+                .supplierPending
+                ?.amount ??
+              0
             )}
           </strong>
         </div>
@@ -4305,10 +6321,17 @@ export function renderClosingPreview(
     `
   );
 
+
+  renderClosingPending(
+    preview.pending
+  );
+
+
+  renderSupplierPendingPayments(
+    preview.supplierPending
+  );
+
 }
-
-
-
 /* =========================================================
    HISTORIAL DE DÍAS
 ========================================================= */
@@ -4959,7 +6982,6 @@ export function readReplenishmentHistoryFilters() {
 /* =========================================================
    DETALLE DE DÍA
 ========================================================= */
-
 export function openDayDetail(
   dayId
 ) {
@@ -4977,17 +6999,52 @@ export function openDayDetail(
       'bad'
     );
 
-
     return;
 
   }
 
+
+  const closing =
+    detail.closing;
+
+
+  const wallets =
+    detail.wallets;
+
+
+  const isGeneral =
+
+    wallets
+      ?.financialMode ===
+      'general'
+
+    ||
+
+    wallets
+      ?.general
+      ?.active ===
+      true
+
+    ||
+
+    closing
+      ?.financialMode ===
+      'general';
+
+
+  /* =====================================================
+     TÍTULO
+  ===================================================== */
 
   setText(
     'dayDetailTitle',
     `Detalle · ${detail.day.date}`
   );
 
+
+  /* =====================================================
+     MÉTRICAS
+  ===================================================== */
 
   setHtml(
     'dayDetailMetrics',
@@ -5026,27 +7083,100 @@ export function openDayDetail(
           detail.metrics.profit
         )
       )}
+
+      ${metricCard(
+        'Modo financiero',
+        isGeneral
+          ? 'Bolsa General'
+          : 'Bolsas exactas'
+      )}
     `
   );
 
 
-
-  /* =======================================================
+  /* =====================================================
      BOLSAS DEL CIERRE
-  ======================================================= */
+  ===================================================== */
 
-  if (
-    detail.wallets
+  if (!wallets) {
+
+    setHtml(
+      'dayDetailWallets',
+      '<p>Sin información de bolsas.</p>'
+    );
+
+  }
+  else if (
+    isGeneral
   ) {
 
+    const generalBalance =
+
+      wallets
+        ?.general
+        ?.balance
+
+      ??
+
+      closing
+        ?.finance
+        ?.wallets
+        ?.general
+
+      ??
+
+      0;
+
+
+    setHtml(
+      'dayDetailWallets',
+      `
+        <div class="reserve-wallet-grid">
+
+          <div class="reserve-wallet">
+
+            <span>
+              💰 Bolsa General
+            </span>
+
+            <strong class="wallet-money">
+              ${formatMoney(
+                generalBalance
+              )}
+            </strong>
+
+            <small>
+              Fondo común utilizado por
+              Duragas y King Gas.
+            </small>
+
+          </div>
+
+        </div>
+      `
+    );
+
+  }
+  else {
+
+    /*
+      COMPATIBILIDAD HISTÓRICA
+
+      Registros nuevos:
+        wallet.balance
+
+      Registros antiguos:
+        wallet directamente numérico
+    */
+
     const duragas =
-      detail.wallets[
+      wallets?.[
         GAS_IDS.DURAGAS
       ];
 
 
     const kinggas =
-      detail.wallets[
+      wallets?.[
         GAS_IDS.KING_GAS
       ];
 
@@ -5072,6 +7202,7 @@ export function openDayDetail(
 
           </div>
 
+
           <div class="reserve-wallet kinggas">
 
             <span>
@@ -5093,20 +7224,11 @@ export function openDayDetail(
     );
 
   }
-  else {
-
-    setHtml(
-      'dayDetailWallets',
-      '<p>Sin información de bolsas.</p>'
-    );
-
-  }
 
 
-
-  /* =======================================================
+  /* =====================================================
      VENTAS
-  ======================================================= */
+  ===================================================== */
 
   const salesBody =
     byId(
@@ -5140,6 +7262,7 @@ export function openDayDetail(
                   )}
                 </td>
 
+
                 <td>
                   ${escapeHtml(
                     sale.customer ||
@@ -5147,11 +7270,13 @@ export function openDayDetail(
                   )}
                 </td>
 
+
                 <td>
                   ${escapeHtml(
                     sale.products
                   )}
                 </td>
+
 
                 <td>
                   ${formatMoney(
@@ -5160,11 +7285,13 @@ export function openDayDetail(
                   )}
                 </td>
 
+
                 <td>
                   ${formatMoney(
                     sale.total
                   )}
                 </td>
+
 
                 <td>
                   ${escapeHtml(
@@ -5179,10 +7306,9 @@ export function openDayDetail(
   }
 
 
-
-  /* =======================================================
+  /* =====================================================
      REPOSICIONES
-  ======================================================= */
+  ===================================================== */
 
   const replenishmentsBody =
     byId(
@@ -5205,57 +7331,105 @@ export function openDayDetail(
         `
 
         : detail.replenishments.map(
-            item => `
-              <tr>
+            item => {
 
-                <td>
-                  ${escapeHtml(
-                    formatShortTime(
-                      item.createdAt
-                    )
-                  )}
-                </td>
+              const supplier =
+                item.supplierPayment ??
+                {};
 
-                <td>
-                  ${escapeHtml(
-                    GAS_TYPES[
+
+              const paidNow =
+                roundMoney(
+                  supplier.paidNow ??
+                  item.walletPayment ??
+                  item.gasCost ??
+                  0
+                );
+
+
+              const pending =
+                roundMoney(
+                  supplier.pending ??
+                  0
+                );
+
+
+              return `
+                <tr>
+
+                  <td>
+                    ${escapeHtml(
+                      formatShortTime(
+                        item.createdAt
+                      )
+                    )}
+                  </td>
+
+
+                  <td>
+                    ${escapeHtml(
+                      GAS_TYPES[
+                        item.gasId
+                      ]?.name ??
                       item.gasId
-                    ]?.name ??
-                    item.gasId
-                  )}
-                </td>
+                    )}
+                  </td>
 
-                <td>
-                  ${item.quantity}
-                </td>
 
-                <td>
-                  ${item.emptyOut}
-                </td>
+                  <td>
+                    ${item.quantity}
+                  </td>
 
-                <td>
-                  ${formatMoney(
-                    item.gasCost
-                  )}
-                </td>
 
-                <td>
-                  ${formatMoney(
-                    item.totalPaid
-                  )}
-                </td>
+                  <td>
+                    ${item.emptyOut}
+                  </td>
 
-              </tr>
-            `
+
+                  <td>
+                    ${formatMoney(
+                      item.gasCost
+                    )}
+                  </td>
+
+
+                  <td>
+
+                    <strong>
+                      ${formatMoney(
+                        item.totalPaid
+                      )}
+                    </strong>
+
+                    <small>
+                      Pagado proveedor:
+                      ${formatMoney(
+                        paidNow
+                      )}
+
+                      ${
+                        pending > 0
+                          ? ` · pendiente ${formatMoney(
+                              pending
+                            )}`
+                          : ''
+                      }
+                    </small>
+
+                  </td>
+
+                </tr>
+              `;
+
+            }
           ).join('');
 
   }
 
 
-
-  /* =======================================================
+  /* =====================================================
      MOVIMIENTOS
-  ======================================================= */
+  ===================================================== */
 
   const movementsBody =
     byId(
@@ -5289,6 +7463,7 @@ export function openDayDetail(
                   )}
                 </td>
 
+
                 <td>
                   ${escapeHtml(
                     MOVEMENT_LABELS[
@@ -5298,6 +7473,7 @@ export function openDayDetail(
                   )}
                 </td>
 
+
                 <td>
                   ${escapeHtml(
                     movement.reference ??
@@ -5305,12 +7481,14 @@ export function openDayDetail(
                   )}
                 </td>
 
+
                 <td>
                   ${escapeHtml(
                     movement.detail ??
                     ''
                   )}
                 </td>
+
 
                 <td>
                   ${
@@ -5329,82 +7507,220 @@ export function openDayDetail(
   }
 
 
-
-  /* =======================================================
+  /* =====================================================
      CIERRE
-  ======================================================= */
+  ===================================================== */
 
-  const closing =
-    detail.closing;
+  if (!closing) {
+
+    setHtml(
+      'dayDetailClosing',
+      'No existe cierre guardado.'
+    );
+
+  }
+  else {
+
+    /*
+      NUEVOS CIERRES:
+      warehouse = físico en bodega.
+
+      CIERRES ANTIGUOS:
+      puede existir solamente controlled.
+
+      Usamos controlled únicamente como
+      respaldo histórico.
+    */
+
+    const physicalDifference =
+
+      closing
+        .inventory
+        ?.warehouse
+        ?.difference
+
+      ??
+
+      closing
+        .inventory
+        ?.controlled
+        ?.difference
+
+      ??
+
+      0;
 
 
-  setHtml(
-    'dayDetailClosing',
+    const physicalExpected =
 
-    !closing
+      closing
+        .inventory
+        ?.warehouse
+        ?.expected
 
-      ? 'No existe cierre guardado.'
+      ??
 
-      : `
+      0;
+
+
+    const physicalCounted =
+
+      closing
+        .inventory
+        ?.warehouse
+        ?.counted
+
+      ??
+
+      0;
+
+
+    const supplierPendingAmount =
+      roundMoney(
+        closing
+          .supplierPending
+          ?.amount ??
+        0
+      );
+
+
+    const supplierPendingCount =
+      toNonNegativeInteger(
+        closing
+          .supplierPending
+          ?.count ??
+        closing
+          .supplierPending
+          ?.items
+          ?.length ??
+        0
+      );
+
+
+    setHtml(
+      'dayDetailClosing',
+      `
         <div class="closing-result-grid">
+
+          <div>
+            <span>Modo financiero</span>
+            <strong>
+              ${
+                isGeneral
+                  ? 'Bolsa General'
+                  : 'Bolsas exactas'
+              }
+            </strong>
+          </div>
+
 
           <div>
             <span>Caja esperada</span>
             <strong>
               ${formatMoney(
-                closing.cash?.expected ??
+                closing
+                  .cash
+                  ?.expected ??
                 0
               )}
             </strong>
           </div>
+
 
           <div>
             <span>Caja contada</span>
             <strong>
               ${formatMoney(
-                closing.cash?.counted ??
+                closing
+                  .cash
+                  ?.counted ??
                 0
               )}
             </strong>
           </div>
+
 
           <div>
             <span>Diferencia caja</span>
             <strong>
               ${formatMoney(
-                closing.cash?.difference ??
+                closing
+                  .cash
+                  ?.difference ??
                 0
               )}
             </strong>
           </div>
 
+
           <div>
-            <span>Diferencia inventario</span>
+            <span>Físico esperado</span>
             <strong>
-              ${closing
-                .inventory
-                ?.controlled
-                ?.difference ?? 0}
+              ${physicalExpected}
+            </strong>
+          </div>
+
+
+          <div>
+            <span>Físico contado</span>
+            <strong>
+              ${physicalCounted}
+            </strong>
+          </div>
+
+
+          <div>
+            <span>Diferencia física</span>
+            <strong>
+              ${physicalDifference}
+            </strong>
+          </div>
+
+
+          <div>
+            <span>Facturas proveedor</span>
+            <strong>
+              ${supplierPendingCount}
+            </strong>
+          </div>
+
+
+          <div>
+            <span>Proveedor pendiente</span>
+            <strong>
+              ${formatMoney(
+                supplierPendingAmount
+              )}
             </strong>
           </div>
 
         </div>
 
+
         ${
           closing.note
+
             ? `
               <p>
                 <strong>Nota:</strong>
+
                 ${escapeHtml(
                   closing.note
                 )}
               </p>
             `
+
             : ''
         }
       `
-  );
+    );
 
+  }
+
+
+  /* =====================================================
+     ABRIR DIÁLOGO
+  ===================================================== */
 
   const dialog =
     byId(
@@ -5423,9 +7739,6 @@ export function openDayDetail(
   }
 
 }
-
-
-
 /* =========================================================
    CERRAR DETALLE DE DÍA
 ========================================================= */
