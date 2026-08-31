@@ -4729,7 +4729,10 @@ export function getDayFinanceSummary(
       0
     );
 
-
+const totalProfitDistributed =
+  getProfitDistributed(
+    dayId
+  );
 
   /* =======================================================
      CAJA ESPERADA
@@ -4747,26 +4750,28 @@ export function getDayFinanceSummary(
     Caja esperada              $27.00
   */
 
-  const expectedCash =
-    roundMoney(
+const expectedCash =
+  roundMoney(
 
-      openingCashFund
+    openingCashFund
 
-      +
+    +
 
-      cashCollected
+    cashCollected
 
-      -
+    -
 
-      cashToWallets
+    cashToWallets
 
-      -
+    -
 
-      cashExpenses
+    cashExpenses
 
-    );
+    -
 
+    totalProfitDistributed
 
+  );
 
   /* =======================================================
      GANANCIAS
@@ -4851,24 +4856,24 @@ export function getDayFinanceSummary(
     }
   );
 
+const availableProfit =
+  roundMoney(
 
-  const availableProfit =
-    roundMoney(
+    collectedProfit
 
-      collectedProfit
+    -
 
-      -
+    totalExpenses
 
-      totalExpenses
+    -
 
-      -
+    totalProfitReinvested
 
-      totalProfitReinvested
+    -
 
-    );
+    totalProfitDistributed
 
-
-
+  );
   /* =======================================================
      REPOSICIONES DEL DÍA
   ======================================================= */
