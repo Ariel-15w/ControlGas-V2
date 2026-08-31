@@ -67,8 +67,8 @@ import {
 } from './inventory.js';
 
 import {
-  getGasWalletBalance,
   getFinancialMode,
+  getAvailableReplacementWalletBalance,
   calculateReplacementCost,
   calculateSupplierPaymentPlan,
   calculateReplenishmentFunding,
@@ -1269,226 +1269,291 @@ else {
     );
 
 }
+const walletAfterInfo =
+  getAvailableReplacementWalletBalance({
+
+    gasId,
+
+    dayId:
+      day.id,
+
+  });
+
+
+/*
+  Después de una reposición pueden existir
+  tres valores diferentes:
+
+  balance   = dinero físico que queda
+  committed = dinero reservado para facturas pendientes
+  available = dinero realmente libre para otra reposición
+*/
+
 const walletAfter =
   roundMoney(
-    walletPayment
-      ?.balanceAfter ??
-    0
+    walletAfterInfo.available
   );
-    /* =====================================================
-       4. REGISTRAR TRANSPORTE
-    ===================================================== */
-
-    let transportExpense =
-      null;
 
 
-    if (
-      preview.transportCost > 0
-    ) {
-
-      transportExpense =
-        registerExpense({
-
-          amount:
-            preview.transportCost,
-
-          gasId,
-
-          category:
-            'replenishment_transport',
-
-          paymentMethod:
-            additionalCostPaymentMethod,
-
-          dayId:
-            day.id,
-
-          referenceId:
-            replenishmentId,
-
-          note:
-            `Transporte de reposición ${getGasName(gasId)}`,
-
-          createdAt,
-
-        });
-
-    }
+const walletBalanceAfter =
+  roundMoney(
+    walletAfterInfo.balance
+  );
 
 
-
-    /* =====================================================
-       5. REGISTRAR OTROS COSTOS
-    ===================================================== */
-
-    let otherExpense =
-      null;
+const walletCommittedAfter =
+  roundMoney(
+    walletAfterInfo.committed
+  );
 
 
-    if (
-      preview.otherCost > 0
-    ) {
+/* =====================================================
+   4. REGISTRAR TRANSPORTE
+===================================================== */
 
-      otherExpense =
-        registerExpense({
-
-          amount:
-            preview.otherCost,
-
-          gasId,
-
-          category:
-            'replenishment_other',
-
-          paymentMethod:
-            additionalCostPaymentMethod,
-
-          dayId:
-            day.id,
-
-          referenceId:
-            replenishmentId,
-
-          note:
-            `Costo adicional de reposición ${getGasName(gasId)}`,
-
-          createdAt,
-
-        });
-
-    }
+let transportExpense =
+  null;
 
 
+if (
+  preview.transportCost > 0
+) {
 
-    /* =====================================================
-       6. CREAR REGISTRO DE REPOSICIÓN
-    ===================================================== */
+  transportExpense =
+    registerExpense({
 
-    const replenishment = {
-
-      id:
-        replenishmentId,
-
-      dayId:
-  day.id,
-
-financialMode:
-  getFinancialMode(
-    day.id
-  ),
-
-createdAt,
-
-gasId,
-
-      gasName:
-        getGasName(
-          gasId
-        ),
-
-      quantity:
-        preview.quantity,
-
-      emptyOut:
-        preview.emptyOut,
-
-
-      /*
-        Guardamos el costo unitario utilizado
-        en esta operación.
-
-        Aunque el costo cambie en el futuro,
-        esta reposición conservará su valor histórico.
-      */
-
-      unitCost:
-        preview.unitCost,
-
-      gasCost:
-        preview.gasCost,
-
-      transportCost:
+      amount:
         preview.transportCost,
 
-      otherCost:
+      gasId,
+
+      category:
+        'replenishment_transport',
+
+      paymentMethod:
+        additionalCostPaymentMethod,
+
+      dayId:
+        day.id,
+
+      referenceId:
+        replenishmentId,
+
+      note:
+        `Transporte de reposición ${getGasName(gasId)}`,
+
+      createdAt,
+
+    });
+
+}
+
+
+/* =====================================================
+   5. REGISTRAR OTROS COSTOS
+===================================================== */
+
+let otherExpense =
+  null;
+
+
+if (
+  preview.otherCost > 0
+) {
+
+  otherExpense =
+    registerExpense({
+
+      amount:
         preview.otherCost,
 
-      additionalCosts:
-        preview.additionalCosts,
+      gasId,
 
-      /*
-        Total económico de la operación.
-      */
+      category:
+        'replenishment_other',
 
-      totalPaid:
-        preview.totalPaid,
+      paymentMethod:
+        additionalCostPaymentMethod,
+
+      dayId:
+        day.id,
+
+      referenceId:
+        replenishmentId,
+
+      note:
+        `Costo adicional de reposición ${getGasName(gasId)}`,
+
+      createdAt,
+
+    });
+
+}
 
 
-      /*
-        Dinero de la bolsa utilizado
-        exclusivamente para comprar el gas.
-      */
+/* =====================================================
+   6. CREAR REGISTRO DE REPOSICIÓN
+===================================================== */
 
-     walletPayment:
-  roundMoney(
-    supplierPlan
-      .paidNow
-      .amount
-  ),
+const replenishment = {
 
-supplierPayment: {
+  id:
+    replenishmentId,
 
-  paidNow:
+  dayId:
+    day.id,
+
+  financialMode:
+    getFinancialMode(
+      day.id
+    ),
+
+  createdAt,
+
+  gasId,
+
+  gasName:
+    getGasName(
+      gasId
+    ),
+
+  quantity:
+    preview.quantity,
+
+  emptyOut:
+    preview.emptyOut,
+
+
+  /*
+    Costo histórico de reposición.
+  */
+
+  unitCost:
+    preview.unitCost,
+
+  gasCost:
+    preview.gasCost,
+
+  transportCost:
+    preview.transportCost,
+
+  otherCost:
+    preview.otherCost,
+
+  additionalCosts:
+    preview.additionalCosts,
+
+
+  /*
+    Costo económico total de la operación.
+
+    En Duragas esto puede incluir una parte
+    que todavía está pendiente de pago.
+  */
+
+  totalPaid:
+    preview.totalPaid,
+
+
+  /*
+    Dinero que realmente salió de la bolsa
+    al proveedor en este momento.
+  */
+
+  walletPayment:
     roundMoney(
       supplierPlan
         .paidNow
         .amount
     ),
 
-  pending:
+
+  /*
+    Estado inicial del pago al proveedor.
+  */
+
+  supplierPayment: {
+
+    paidNow:
+      roundMoney(
+        supplierPlan
+          .paidNow
+          .amount
+      ),
+
+    pending:
+      roundMoney(
+        supplierPlan
+          .pending
+          .amount
+      ),
+
+    committed:
+      roundMoney(
+        supplierPlan
+          .committedAmount
+      ),
+
+  },
+
+
+  /*
+    Dinero disponible antes de iniciar
+    esta reposición.
+
+    Ya excluye compromisos anteriores.
+  */
+
+  walletBefore:
+    preview.walletBefore,
+
+
+  extraContribution:
+    preview.extraContribution,
+
+  extraContributionSource:
+    preview.extraContribution > 0
+
+      ? extraContributionSource
+
+      : null,
+
+
+  /*
+    Disponible después de agregar,
+    si existió, el aporte adicional.
+  */
+
+  walletAvailableBeforePayment:
     roundMoney(
-      supplierPlan
-        .pending
-        .amount
+
+      preview.walletBefore
+
+      +
+
+      preview.extraContribution
+
     ),
 
-  committed:
-    roundMoney(
-      supplierPlan
-        .committedAmount
-    ),
 
-},
+  /*
+    ESTADO DE LA BOLSA DESPUÉS DE LA REPOSICIÓN
 
-      walletBefore:
-        preview.walletBefore,
+    walletAfter:
+      dinero realmente libre.
 
-      extraContribution:
-        preview.extraContribution,
+    walletBalanceAfter:
+      saldo físico total.
 
-      extraContributionSource:
-        preview.extraContribution > 0
+    walletCommittedAfter:
+      dinero protegido por obligaciones pendientes.
+  */
 
-          ? extraContributionSource
+  walletAfter,
 
-          : null,
+  walletBalanceAfter,
 
-      walletAvailableBeforePayment:
-        roundMoney(
-
-          preview.walletBefore
-
-          +
-
-          preview.extraContribution
-
-        ),
-walletAfter:
-  roundMoney(
-    walletAfter
-  ),
-
+  walletCommittedAfter,
 
 /*
   ORIGEN REAL DEL DINERO USADO.
@@ -1971,9 +2036,13 @@ supplierPending: 0,
 
       emptyOut: 0,
 
-      gasCost: 0,
+     gasCost: 0,
 
-      transportCost: 0,
+supplierPaidNow: 0,
+
+supplierPending: 0,
+
+transportCost: 0,
 
       otherCost: 0,
 
