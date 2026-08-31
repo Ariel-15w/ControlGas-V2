@@ -58,7 +58,9 @@ import {
   getGeneralWalletBalance,
   getSaleById,
   getSaleLines,
+  getSupplierPaymentById,
   createMovementBase,
+  createProfitDistributionRecord,
   touchState,
 } from './state.js';
 
@@ -5398,6 +5400,7 @@ export function calculateReplenishmentFunding({
     null,
 
 }) {
+
   assertGasType(
     gasId
   );
@@ -5415,19 +5418,107 @@ export function calculateReplenishmentFunding({
       qty
     );
 
-const financialMode =
-  getFinancialMode(
-    dayId
-  );
+
+  const financialMode =
+    getFinancialMode(
+      dayId
+    );
 
 
-if (
-  financialMode ===
-  FINANCIAL_MODES.GENERAL
-) {
+  /* =======================================================
+     BOLSA GENERAL
+  ======================================================= */
+
+  if (
+    financialMode ===
+    FINANCIAL_MODES.GENERAL
+  ) {
+
+    const walletInfo =
+      getAvailableReplacementWalletBalance({
+        dayId,
+      });
+
+
+    const walletBefore =
+      walletInfo.available;
+
+
+    const walletUsed =
+      roundMoney(
+        Math.min(
+          walletBefore,
+          gasCost
+        )
+      );
+
+
+    const extraNeeded =
+      roundMoney(
+        Math.max(
+          0,
+          gasCost -
+          walletBefore
+        )
+      );
+
+
+    const walletRemainingWithoutExtra =
+      roundMoney(
+        Math.max(
+          0,
+          walletBefore -
+          gasCost
+        )
+      );
+
+
+    return {
+
+      gasId,
+
+      quantity:
+        qty,
+
+      gasCost,
+
+      financialMode:
+        FINANCIAL_MODES.GENERAL,
+
+      walletBefore,
+
+      extraNeeded,
+
+      walletRemainingWithoutExtra,
+
+      fundingBreakdown: {
+
+        generalAvailable:
+          walletBefore,
+
+        fromGeneralWallet:
+          walletUsed,
+
+        fromExtraContribution:
+          extraNeeded,
+
+        generalAfter:
+          walletRemainingWithoutExtra,
+
+      },
+
+    };
+
+  }
+
+
+  /* =======================================================
+     BOLSAS EXACTAS POR MARCA
+  ======================================================= */
 
   const walletInfo =
     getAvailableReplacementWalletBalance({
+      gasId,
       dayId,
     });
 
@@ -5436,12 +5527,96 @@ if (
     walletInfo.available;
 
 
-  const walletUsed =
+  const breakdown =
+    getWalletDayBreakdown(
+      gasId,
+      dayId
+    );
+
+
+  let remainingWalletTarget =
     roundMoney(
       Math.min(
-        walletBefore,
-        gasCost
+        gasCost,
+        walletBefore
       )
+    );
+
+
+  /* =======================================================
+     1. SALDO ANTERIOR
+  ======================================================= */
+
+  const fromPrevious =
+    roundMoney(
+      Math.min(
+        breakdown.previousRemaining,
+        remainingWalletTarget
+      )
+    );
+
+
+  remainingWalletTarget =
+    roundMoney(
+      Math.max(
+        0,
+        remainingWalletTarget -
+        fromPrevious
+      )
+    );
+
+
+  /* =======================================================
+     2. APORTES ADICIONALES
+  ======================================================= */
+
+  const fromContributions =
+    roundMoney(
+      Math.min(
+        breakdown.contributionsRemaining,
+        remainingWalletTarget
+      )
+    );
+
+
+  remainingWalletTarget =
+    roundMoney(
+      Math.max(
+        0,
+        remainingWalletTarget -
+        fromContributions
+      )
+    );
+
+
+  /* =======================================================
+     3. RESERVA GENERADA HOY
+  ======================================================= */
+
+  const fromToday =
+    roundMoney(
+      Math.min(
+        breakdown.todayReserveRemaining,
+        remainingWalletTarget
+      )
+    );
+
+
+  remainingWalletTarget =
+    roundMoney(
+      Math.max(
+        0,
+        remainingWalletTarget -
+        fromToday
+      )
+    );
+
+
+  const walletUsed =
+    roundMoney(
+      fromPrevious +
+      fromContributions +
+      fromToday
     );
 
 
@@ -5450,7 +5625,7 @@ if (
       Math.max(
         0,
         gasCost -
-        walletBefore
+        walletUsed
       )
     );
 
@@ -5460,346 +5635,10 @@ if (
       Math.max(
         0,
         walletBefore -
-        gasCost
+        walletUsed
       )
     );
 
-
-  return {
-
-    gasId,
-
-    quantity:
-      qty,
-
-    gasCost,
-
-    financialMode:
-      FINANCIAL_MODES.GENERAL,
-
-    walletBefore,
-
-    extraNeeded,
-
-    walletRemainingWithoutExtra,
-
-    fundingBreakdown: {
-
-      generalAvailable:
-        walletBefore,
-
-      fromGeneralWallet:
-        walletUsed,
-
-      fromExtraContribution:
-        extraNeeded,
-
-      generalAfter:
-        walletRemainingWithoutExtra,
-
-    },
-
-  };
-
-}
-const walletBefore =
-  walletInfo.available;
-
-
-/*
-  Obtenemos cómo está compuesta
-  la bolsa EN ESTE MOMENTO.
-*/
-const breakdown =
-  getWalletDayBreakdown(
-    gasId,
-    dayId
-  );
-
-
-/*
-  Solo podemos utilizar como máximo
-  el dinero realmente libre.
-*/
-let remainingWalletTarget =
-  roundMoney(
-    Math.min(
-      gasCost,
-      walletBefore
-    )
-  );
-
-
-/* =======================================================
-   1. USAR PRIMERO SALDO ANTERIOR
-======================================================= */
-
-const fromPrevious =
-  roundMoney(
-    Math.min(
-      breakdown.previousRemaining,
-      remainingWalletTarget
-    )
-  );
-
-
-remainingWalletTarget =
-  roundMoney(
-    Math.max(
-      0,
-      remainingWalletTarget -
-      fromPrevious
-    )
-  );
-
-
-/* =======================================================
-   2. DESPUÉS USAR APORTES ADICIONALES
-======================================================= */
-
-const fromContributions =
-  roundMoney(
-    Math.min(
-      breakdown.contributionsRemaining,
-      remainingWalletTarget
-    )
-  );
-
-
-remainingWalletTarget =
-  roundMoney(
-    Math.max(
-      0,
-      remainingWalletTarget -
-      fromContributions
-    )
-  );
-
-
-/* =======================================================
-   3. FINALMENTE USAR LO GENERADO HOY
-======================================================= */
-
-const fromToday =
-  roundMoney(
-    Math.min(
-      breakdown.todayReserveRemaining,
-      remainingWalletTarget
-    )
-  );
-
-
-remainingWalletTarget =
-  roundMoney(
-    Math.max(
-      0,
-      remainingWalletTarget -
-      fromToday
-    )
-  );
-
-
-const walletUsed =
-  roundMoney(
-    fromPrevious +
-    fromContributions +
-    fromToday
-  );
-
-
-/* =======================================================
-   4. SI TODAVÍA FALTA DINERO
-======================================================= */
-
-const extraNeeded =
-  roundMoney(
-    Math.max(
-      0,
-      gasCost -
-      walletUsed
-    )
-  );
-
-
-const walletRemainingWithoutExtra =
-  roundMoney(
-    Math.max(
-      0,
-      walletBefore -
-      walletUsed
-    )
-  );
-  return {
-
-    gasId,
-
-    quantity:
-      qty,
-
-    gasCost,
-
-    financialMode:
-      FINANCIAL_MODES.GENERAL,
-
-    walletBefore,
-
-    extraNeeded,
-
-    walletRemainingWithoutExtra,
-
-    fundingBreakdown: {
-
-      generalAvailable:
-        walletBefore,
-
-      fromGeneralWallet:
-        walletUsed,
-
-      fromExtraContribution:
-        extraNeeded,
-
-      generalAfter:
-        walletRemainingWithoutExtra,
-
-    },
-
-  };
-
-}
-const walletInfo =
-  getAvailableReplacementWalletBalance({
-    gasId,
-    dayId,
-  });
-
-
-const walletBefore =
-  walletInfo.available;
-
-
-/*
-  Obtenemos cómo está compuesta
-  la bolsa EN ESTE MOMENTO.
-*/
-const breakdown =
-  getWalletDayBreakdown(
-    gasId,
-    dayId
-  );
-
-
-let remainingWalletTarget =
-  roundMoney(
-    Math.min(
-      gasCost,
-      walletBefore
-    )
-  );
-
-
-/* =======================================================
-   1. USAR PRIMERO SALDO ANTERIOR
-======================================================= */
-
-const fromPrevious =
-  roundMoney(
-    Math.min(
-      breakdown.previousRemaining,
-      remainingWalletTarget
-    )
-  );
-
-
-remainingWalletTarget =
-  roundMoney(
-    Math.max(
-      0,
-      remainingWalletTarget -
-      fromPrevious
-    )
-  );
-
-
-/* =======================================================
-   2. DESPUÉS USAR APORTES ADICIONALES
-======================================================= */
-
-const fromContributions =
-  roundMoney(
-    Math.min(
-      breakdown.contributionsRemaining,
-      remainingWalletTarget
-    )
-  );
-
-
-remainingWalletTarget =
-  roundMoney(
-    Math.max(
-      0,
-      remainingWalletTarget -
-      fromContributions
-    )
-  );
-
-
-/* =======================================================
-   3. FINALMENTE USAR LO GENERADO HOY
-======================================================= */
-
-const fromToday =
-  roundMoney(
-    Math.min(
-      breakdown.todayReserveRemaining,
-      remainingWalletTarget
-    )
-  );
-
-
-remainingWalletTarget =
-  roundMoney(
-    Math.max(
-      0,
-      remainingWalletTarget -
-      fromToday
-    )
-  );
-
-
-const walletUsed =
-  roundMoney(
-    fromPrevious +
-    fromContributions +
-    fromToday
-  );
-
-
-/* =======================================================
-   4. SI TODAVÍA FALTA DINERO
-======================================================= */
-
-const extraNeeded =
-  roundMoney(
-    Math.max(
-      0,
-      gasCost -
-      walletUsed
-    )
-  );
-
-
-const walletRemainingWithoutExtra =
-  roundMoney(
-    Math.max(
-      0,
-      walletBefore -
-      walletUsed
-    )
-  );
-
-  /* =======================================================
-     SALDOS QUE QUEDARÍAN
-  ======================================================= */
 
   const previousAfter =
     roundMoney(
@@ -5831,7 +5670,6 @@ const walletRemainingWithoutExtra =
     );
 
 
-
   return {
 
     gasId,
@@ -5841,22 +5679,11 @@ const walletRemainingWithoutExtra =
 
     gasCost,
 
-    /*
-      Conservamos estos campos porque ya pueden
-      estar siendo utilizados por replenishments.js.
-    */
-
     walletBefore,
 
     extraNeeded,
 
     walletRemainingWithoutExtra,
-
-
-    /*
-      NUEVO:
-      desglose exacto del origen del dinero.
-    */
 
     fundingBreakdown: {
 
@@ -5869,7 +5696,6 @@ const walletRemainingWithoutExtra =
       contributionsAvailable:
         breakdown.contributionsRemaining,
 
-
       fromPrevious,
 
       fromToday,
@@ -5878,7 +5704,6 @@ const walletRemainingWithoutExtra =
 
       fromExtraContribution:
         extraNeeded,
-
 
       previousAfter,
 
@@ -5891,7 +5716,6 @@ const walletRemainingWithoutExtra =
   };
 
 }
-
 
 /* =========================================================
    SALDO INICIAL DE UNA BOLSA
@@ -6058,5 +5882,1151 @@ export function setOpeningWalletBalance({
     createdAt,
 
   });
+
+}
+/* =========================================================
+   SALDO INICIAL DE LA BOLSA GENERAL
+========================================================= */
+
+export function setOpeningGeneralWalletBalance({
+
+  amount,
+
+  dayId,
+
+  createdAt =
+    nowIso(),
+
+}) {
+
+  const value =
+    roundMoney(
+      toNonNegativeNumber(
+        amount
+      )
+    );
+
+
+  const state =
+    getState();
+
+
+  const existing =
+    state.walletMovements.find(
+      movement =>
+
+        movement.dayId === dayId &&
+
+        movement.generalWallet === true &&
+
+        movement.type ===
+          WALLET_MOVEMENT_TYPES
+            .OPENING_BALANCE
+    );
+
+
+  if (existing) {
+
+    const previousAmount =
+      roundMoney(
+        existing.amount
+      );
+
+
+    const difference =
+      roundMoney(
+        value -
+        previousAmount
+      );
+
+
+    state.generalWallet =
+      roundMoney(
+        Math.max(
+          0,
+          getGeneralWalletBalance() +
+          difference
+        )
+      );
+
+
+    existing.amount =
+      value;
+
+    existing.balanceBefore =
+      0;
+
+    existing.balanceAfter =
+      value;
+
+    existing.note =
+      'Saldo inicial de Bolsa General';
+
+
+    const generalMovement =
+      state.movements.find(
+        movement =>
+          movement.metadata
+            ?.walletMovementId ===
+          existing.id
+      );
+
+
+    if (generalMovement) {
+
+      generalMovement.value =
+        value;
+
+      generalMovement.detail =
+        'Saldo inicial de Bolsa General';
+
+      generalMovement.metadata
+        .balanceBefore =
+        0;
+
+      generalMovement.metadata
+        .balanceAfter =
+        value;
+
+    }
+
+
+    touchState();
+
+    return existing;
+
+  }
+
+
+  if (
+    value <= 0
+  ) {
+
+    state.generalWallet =
+      0;
+
+    touchState();
+
+    return null;
+
+  }
+
+
+  return addMoneyToGeneralWallet({
+
+    amount:
+      value,
+
+    type:
+      WALLET_MOVEMENT_TYPES
+        .OPENING_BALANCE,
+
+    dayId,
+
+    note:
+      'Saldo inicial de Bolsa General',
+
+    source:
+      'opening_balance',
+
+    impactsCash:
+      false,
+
+    metadata: {
+
+      initialSystemBalance:
+        true,
+
+      financialMode:
+        FINANCIAL_MODES.GENERAL,
+
+    },
+
+    createdAt,
+
+  });
+
+}
+/* =========================================================
+   GANANCIA YA REPARTIDA EN UNA JORNADA
+========================================================= */
+
+export function getProfitDistributed(
+
+  dayId =
+    getActiveDay()?.id ??
+    null
+
+) {
+
+  if (!dayId) {
+
+    return 0;
+
+  }
+
+
+  const distributions =
+    (
+      getState()
+        .profitDistributions ??
+      []
+    ).filter(
+      distribution =>
+        distribution.dayId ===
+        dayId
+    );
+
+
+  return roundMoney(
+    sumBy(
+      distributions,
+      distribution =>
+        toNonNegativeNumber(
+          distribution.distributedAmount
+        )
+    )
+  );
+
+}
+/* =========================================================
+   GANANCIA REALMENTE DISPONIBLE PARA REPARTIR
+========================================================= */
+
+export function getAvailableProfitForDistribution(
+
+  dayId =
+    getActiveDay()?.id ??
+    null
+
+) {
+
+  if (!dayId) {
+
+    return 0;
+
+  }
+
+
+  const summary =
+    getDayFinanceSummary(
+      dayId
+    );
+
+
+  const profitBeforeDistribution =
+    roundMoney(
+      toNonNegativeNumber(
+        summary?.profit?.available
+      )
+    );
+
+
+  const alreadyDistributed =
+    getProfitDistributed(
+      dayId
+    );
+
+
+  return roundMoney(
+    Math.max(
+      0,
+      profitBeforeDistribution -
+      alreadyDistributed
+    )
+  );
+
+}
+/* =========================================================
+   CALCULAR PLAN DE REPARTO DE GANANCIA
+========================================================= */
+
+export function calculateProfitDistributionPlan({
+
+  distributionMode,
+
+  employeeAmount = 0,
+
+  dayId =
+    getActiveDay()?.id ??
+    null,
+
+} = {}) {
+
+  const availableProfit =
+    getAvailableProfitForDistribution(
+      dayId
+    );
+
+
+  if (
+    availableProfit <= 0
+  ) {
+
+    return {
+
+      distributionMode,
+
+      availableProfitBefore:
+        0,
+
+      personOneAmount:
+        0,
+
+      personTwoAmount:
+        0,
+
+      employeeAmount:
+        0,
+
+      ownerAmount:
+        0,
+
+      distributedAmount:
+        0,
+
+      remainingProfit:
+        0,
+
+    };
+
+  }
+
+
+  /* =======================================================
+     MITAD Y MITAD
+
+     Se trabaja en múltiplos de $0.05.
+     Si queda un níquel impar, la segunda persona
+     recibe los $0.05 restantes.
+  ======================================================= */
+
+if (
+  distributionMode ===
+  'half'
+) {
+
+  /*
+    Solo repartimos una cantidad que pueda
+    expresarse exactamente en monedas de $0.05.
+
+    Cualquier centavo sobrante queda como
+    ganancia disponible.
+  */
+  const distributableAmount =
+    roundMoney(
+      Math.floor(
+        (
+          availableProfit +
+          0.0001
+        ) / 0.05
+      ) * 0.05
+    );
+
+
+  const remainingProfit =
+    roundMoney(
+      Math.max(
+        0,
+        availableProfit -
+        distributableAmount
+      )
+    );
+
+
+  const totalNickels =
+    Math.round(
+      distributableAmount /
+      0.05
+    );
+
+
+  const personOneNickels =
+    Math.floor(
+      totalNickels /
+      2
+    );
+
+
+  const personOneAmount =
+    roundMoney(
+      personOneNickels *
+      0.05
+    );
+
+
+  const personTwoAmount =
+    roundMoney(
+      distributableAmount -
+      personOneAmount
+    );
+
+
+  return {
+
+    distributionMode:
+      'half',
+
+    availableProfitBefore:
+      availableProfit,
+
+    personOneAmount,
+
+    personTwoAmount,
+
+    employeeAmount:
+      0,
+
+    ownerAmount:
+      0,
+
+    distributedAmount:
+      distributableAmount,
+
+    remainingProfit,
+
+  };
+
+}
+
+  /* =======================================================
+     EMPLEADO + PROPIETARIO
+  ======================================================= */
+
+  if (
+    distributionMode ===
+    'employee'
+  ) {
+
+    const employee =
+      roundMoney(
+        toNonNegativeNumber(
+          employeeAmount
+        )
+      );
+
+
+    if (
+      employee >
+      availableProfit + 0.005
+    ) {
+
+      throw new Error(
+        `El empleado no puede recibir $${employee.toFixed(2)} porque solo hay $${availableProfit.toFixed(2)} de ganancia disponible.`
+      );
+
+    }
+
+
+    const owner =
+      roundMoney(
+        Math.max(
+          0,
+          availableProfit -
+          employee
+        )
+      );
+
+
+    return {
+
+      distributionMode:
+        'employee',
+
+      availableProfitBefore:
+        availableProfit,
+
+      personOneAmount:
+        0,
+
+      personTwoAmount:
+        0,
+
+      employeeAmount:
+        employee,
+
+      ownerAmount:
+        owner,
+
+      distributedAmount:
+        availableProfit,
+
+      remainingProfit:
+        0,
+
+    };
+
+  }
+
+
+  /*
+    Sin reparto.
+    La ganancia permanece disponible.
+  */
+
+  return {
+
+    distributionMode:
+      null,
+
+    availableProfitBefore:
+      availableProfit,
+
+    personOneAmount:
+      0,
+
+    personTwoAmount:
+      0,
+
+    employeeAmount:
+      0,
+
+    ownerAmount:
+      0,
+
+    distributedAmount:
+      0,
+
+    remainingProfit:
+      availableProfit,
+
+  };
+
+}
+/* =========================================================
+   REGISTRAR REPARTO DE GANANCIA
+========================================================= */
+
+export function registerProfitDistribution({
+
+  distributionMode,
+
+  employeeAmount = 0,
+
+  note = '',
+
+  dayId =
+    getActiveDay()?.id ??
+    null,
+
+  createdAt =
+    nowIso(),
+
+} = {}) {
+
+  if (!dayId) {
+
+    throw new Error(
+      'No hay una jornada activa para registrar el reparto.'
+    );
+
+  }
+
+
+  if (
+    distributionMode !== 'half' &&
+    distributionMode !== 'employee'
+  ) {
+
+    throw new Error(
+      'Selecciona una forma válida de repartir la ganancia.'
+    );
+
+  }
+
+
+  const plan =
+    calculateProfitDistributionPlan({
+
+      distributionMode,
+
+      employeeAmount,
+
+      dayId,
+
+    });
+
+
+  if (
+    plan.distributedAmount <= 0
+  ) {
+
+    throw new Error(
+      'No hay ganancia disponible para repartir.'
+    );
+
+  }
+
+
+  const record =
+    createProfitDistributionRecord({
+
+      id:
+        uid(
+          'profit_distribution'
+        ),
+
+      dayId,
+
+      createdAt,
+
+      financialMode:
+        getFinancialMode(
+          dayId
+        ),
+
+      distributionMode:
+        plan.distributionMode,
+
+      availableProfitBefore:
+        plan.availableProfitBefore,
+
+      personOneAmount:
+        plan.personOneAmount,
+
+      personTwoAmount:
+        plan.personTwoAmount,
+
+      employeeAmount:
+        plan.employeeAmount,
+
+      ownerAmount:
+        plan.ownerAmount,
+
+      distributedAmount:
+        plan.distributedAmount,
+
+      remainingProfit:
+        plan.remainingProfit,
+
+      note,
+
+    });
+
+
+  const state =
+    getState();
+
+
+  state.profitDistributions.push(
+    record
+  );
+
+
+  touchState();
+
+
+  return {
+
+    record,
+
+    plan,
+
+  };
+
+}
+/* =========================================================
+   CORRECCIÓN MANUAL DE BOLSA
+========================================================= */
+
+export function registerWalletCorrection({
+
+  gasId = null,
+
+  direction,
+
+  amount,
+
+  reason,
+
+  note = '',
+
+  dayId =
+    getActiveDay()?.id ??
+    null,
+
+  createdAt =
+    nowIso(),
+
+} = {}) {
+
+  if (!dayId) {
+
+    throw new Error(
+      'No hay una jornada activa para registrar la corrección.'
+    );
+
+  }
+
+
+  const value =
+    roundMoney(
+      toNonNegativeNumber(
+        amount
+      )
+    );
+
+
+  if (
+    value <= 0
+  ) {
+
+    throw new Error(
+      'El valor de la corrección debe ser mayor que cero.'
+    );
+
+  }
+
+
+  const cleanReason =
+    String(
+      reason ?? ''
+    ).trim();
+
+
+  if (!cleanReason) {
+
+    throw new Error(
+      'Debes indicar el motivo de la corrección.'
+    );
+
+  }
+
+
+  if (
+    direction !== 'increase' &&
+    direction !== 'decrease'
+  ) {
+
+    throw new Error(
+      'La corrección debe indicar si aumenta o disminuye la bolsa.'
+    );
+
+  }
+
+
+  const cleanNote =
+    String(
+      note ?? ''
+    ).trim();
+
+
+  const detail =
+    cleanNote
+      ? `${cleanReason}: ${cleanNote}`
+      : cleanReason;
+
+
+  const financialMode =
+    getFinancialMode(
+      dayId
+    );
+
+
+  const metadata = {
+
+    correction:
+      true,
+
+    correctionDirection:
+      direction,
+
+    correctionReason:
+      cleanReason,
+
+    financialMode,
+
+  };
+
+
+  /* =======================================================
+     BOLSA GENERAL
+  ======================================================= */
+
+  if (
+    financialMode ===
+    FINANCIAL_MODES.GENERAL
+  ) {
+
+    if (
+      direction ===
+      'increase'
+    ) {
+
+      return addMoneyToGeneralWallet({
+
+        amount:
+          value,
+
+        type:
+          WALLET_MOVEMENT_TYPES
+            .MANUAL_CORRECTION,
+
+        dayId,
+
+        note:
+          detail,
+
+        source:
+          'manual_correction',
+
+        impactsCash:
+          false,
+
+        metadata,
+
+        createdAt,
+
+      });
+
+    }
+
+
+    return spendGeneralWalletMoney({
+
+      amount:
+        value,
+
+      type:
+        WALLET_MOVEMENT_TYPES
+          .MANUAL_CORRECTION,
+
+      dayId,
+
+      note:
+        detail,
+
+      metadata,
+
+      /*
+        Una corrección debe poder reflejar
+        el dinero físico real aunque parte
+        del saldo estuviera comprometido.
+      */
+      allowCommitted:
+        true,
+
+      createdAt,
+
+    });
+
+  }
+
+
+  /* =======================================================
+     BOLSA EXACTA POR MARCA
+  ======================================================= */
+
+  assertGasType(
+    gasId
+  );
+
+
+  metadata.gasId =
+    gasId;
+
+
+  if (
+    direction ===
+    'increase'
+  ) {
+
+    return addMoneyToWallet({
+
+      gasId,
+
+      amount:
+        value,
+
+      type:
+        WALLET_MOVEMENT_TYPES
+          .MANUAL_CORRECTION,
+
+      dayId,
+
+      note:
+        detail,
+
+      source:
+        'manual_correction',
+
+      impactsCash:
+        false,
+
+      metadata,
+
+      createdAt,
+
+    });
+
+  }
+
+
+  return spendWalletMoney({
+
+    gasId,
+
+    amount:
+      value,
+
+    type:
+      WALLET_MOVEMENT_TYPES
+        .MANUAL_CORRECTION,
+
+    dayId,
+
+    note:
+      detail,
+
+    metadata,
+
+    allowCommitted:
+      true,
+
+    createdAt,
+
+  });
+
+}
+/* =========================================================
+   PAGAR OBLIGACIÓN PENDIENTE DEL PROVEEDOR
+========================================================= */
+
+export function payPendingSupplierPayment({
+
+  paymentId,
+
+  dayId =
+    getActiveDay()?.id ??
+    null,
+
+  createdAt =
+    nowIso(),
+
+} = {}) {
+
+  if (!paymentId) {
+
+    throw new Error(
+      'Debes indicar la obligación del proveedor que deseas pagar.'
+    );
+
+  }
+
+
+  if (!dayId) {
+
+    throw new Error(
+      'No hay una jornada activa para registrar el pago.'
+    );
+
+  }
+
+
+  const payment =
+    getSupplierPaymentById(
+      paymentId
+    );
+
+
+  if (!payment) {
+
+    throw new Error(
+      'No se encontró la obligación del proveedor.'
+    );
+
+  }
+
+
+  if (
+    payment.status !==
+    'pending'
+  ) {
+
+    throw new Error(
+      'Esta obligación del proveedor ya fue pagada.'
+    );
+
+  }
+
+
+  assertGasType(
+    payment.gasId
+  );
+
+
+  const amount =
+    roundMoney(
+      toNonNegativeNumber(
+        payment.amount
+      )
+    );
+
+
+  if (
+    amount <= 0
+  ) {
+
+    throw new Error(
+      'La obligación pendiente no tiene un valor válido.'
+    );
+
+  }
+
+
+  /*
+    IMPORTANTE:
+
+    La bolsa que debe pagar esta obligación
+    depende del modo financiero con el que
+    nació la deuda, no del modo del día actual.
+  */
+  const obligationFinancialMode =
+    getFinancialMode(
+      payment.dayId
+    );
+
+
+  let walletMovement;
+
+
+  /* =======================================================
+     OBLIGACIÓN DE BOLSA GENERAL
+  ======================================================= */
+
+  if (
+    obligationFinancialMode ===
+    FINANCIAL_MODES.GENERAL
+  ) {
+
+    walletMovement =
+      spendGeneralWalletMoney({
+
+        amount,
+
+        type:
+          WALLET_MOVEMENT_TYPES
+            .REPLENISHMENT_PAYMENT,
+
+        dayId,
+
+        referenceId:
+          payment.replenishmentId,
+
+        note:
+          `Pago de obligación pendiente ${getGasName(payment.gasId)}`,
+
+        metadata: {
+
+          supplierPaymentId:
+            payment.id,
+
+          replenishmentId:
+            payment.replenishmentId,
+
+          gasId:
+            payment.gasId,
+
+          supplierPaymentType:
+            payment.type,
+
+          obligationDayId:
+            payment.dayId,
+
+          financialMode:
+            FINANCIAL_MODES.GENERAL,
+
+        },
+
+        /*
+          Este dinero ya estaba comprometido
+          precisamente para esta obligación.
+        */
+        allowCommitted:
+          true,
+
+        createdAt,
+
+      });
+
+  }
+
+  /* =======================================================
+     OBLIGACIÓN DE BOLSA EXACTA
+  ======================================================= */
+
+  else {
+
+    walletMovement =
+      spendWalletMoney({
+
+        gasId:
+          payment.gasId,
+
+        amount,
+
+        type:
+          WALLET_MOVEMENT_TYPES
+            .REPLENISHMENT_PAYMENT,
+
+        dayId,
+
+        referenceId:
+          payment.replenishmentId,
+
+        note:
+          `Pago de obligación pendiente ${getGasName(payment.gasId)}`,
+
+        metadata: {
+
+          supplierPaymentId:
+            payment.id,
+
+          replenishmentId:
+            payment.replenishmentId,
+
+          supplierPaymentType:
+            payment.type,
+
+          obligationDayId:
+            payment.dayId,
+
+          financialMode:
+            FINANCIAL_MODES.EXACT,
+
+        },
+
+        allowCommitted:
+          true,
+
+        createdAt,
+
+      });
+
+  }
+
+
+  /*
+    Solo después de que el dinero salió
+    correctamente de la bolsa marcamos
+    LA MISMA obligación como pagada.
+  */
+  payment.status =
+    'paid';
+
+  payment.paidAt =
+    createdAt;
+
+
+  touchState();
+
+
+  return {
+
+    payment,
+
+    walletMovement,
+
+  };
 
 }
