@@ -258,153 +258,241 @@
       </div>
 
 
+<!-- =================================================
+     DINERO PARA REPOSICIÓN
+================================================== -->
 
-      <!-- =================================================
-           BOLSAS DE REPOSICIÓN
-      ================================================== -->
+<section class="card">
 
-      <section class="card">
+  <div class="card-header">
 
-        <div class="card-header">
+    <div>
+
+      <p class="eyebrow">
+        DINERO APARTADO
+      </p>
+
+      <h3>
+        Fondo para reposición
+      </h3>
+
+      <p>
+        Este dinero está reservado para comprar nuevamente
+        los cilindros vendidos y no se considera ganancia.
+      </p>
+
+    </div>
+
+
+    <div>
+
+      <span>
+        Modo financiero:
+      </span>
+
+      <strong id="dashboardFinancialMode">
+        Bolsas exactas
+      </strong>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ===============================================
+       BOLSA GENERAL
+  ================================================ -->
+
+  <div
+    id="dashboardGeneralWalletBlock"
+    class="reserve-wallet-grid"
+    hidden
+  >
+
+    <article class="reserve-wallet">
+
+      <div class="wallet-head">
+
+        <div class="gas-title">
+
+          <span>
+            💰
+          </span>
 
           <div>
 
-            <p class="eyebrow">
-              DINERO APARTADO
-            </p>
+            <strong>
+              Bolsa General
+            </strong>
 
-            <h3>
-              Bolsas para reposición
-            </h3>
-
-            <p>
-              Este dinero existe, pero no se considera ganancia disponible.
-            </p>
+            <small>
+              Fondo común para Duragas y King Gas
+            </small>
 
           </div>
 
         </div>
 
-
-        <div class="reserve-wallet-grid">
-
-
-          <!-- DURAGAS -->
-
-          <article class="reserve-wallet duragas">
-
-            <div class="wallet-head">
-
-              <div class="gas-title">
-
-                <span class="gas-dot duragas-dot">
-                </span>
-
-                <div>
-
-                  <strong>
-                    Bolsa Duragas
-                  </strong>
-
-                  <small>
-                    Reposición amarilla
-                  </small>
-
-                </div>
-
-              </div>
-
-            </div>
+      </div>
 
 
-            <strong
-              id="dashboardDuragasWallet"
-              class="wallet-money"
-            >
-              $0.00
+      <strong
+        id="dashboardGeneralWallet"
+        class="wallet-money"
+      >
+        $0.00
+      </strong>
+
+
+      <div class="wallet-details">
+
+        <span>
+          Reserva por cilindro vendido
+        </span>
+
+        <strong id="dashboardGeneralReservePerUnit">
+          $1.70
+        </strong>
+
+
+        <small id="dashboardGeneralWalletFormula">
+          Bolsa común para ambas marcas
+        </small>
+
+      </div>
+
+    </article>
+
+  </div>
+
+
+
+  <!-- ===============================================
+       BOLSAS EXACTAS
+  ================================================ -->
+
+  <div
+    id="dashboardExactWalletsBlock"
+    class="reserve-wallet-grid"
+  >
+
+
+    <!-- DURAGAS -->
+
+    <article class="reserve-wallet duragas">
+
+      <div class="wallet-head">
+
+        <div class="gas-title">
+
+          <span class="gas-dot duragas-dot">
+          </span>
+
+          <div>
+
+            <strong>
+              Bolsa Duragas
             </strong>
 
+            <small>
+              Reposición amarilla
+            </small>
 
-            <div class="wallet-details">
-
-              <span>
-                Equivale aproximadamente a
-              </span>
-
-              <strong id="dashboardDuragasEquivalent">
-                0 tanques
-              </strong>
-
-              <small id="dashboardDuragasWalletFormula">
-                $0,00 / $1,70
-              </small>
-
-            </div>
-
-          </article>
-
-
-
-          <!-- KING GAS -->
-
-          <article class="reserve-wallet kinggas">
-
-            <div class="wallet-head">
-
-              <div class="gas-title">
-
-                <span class="gas-dot kinggas-dot">
-                </span>
-
-                <div>
-
-                  <strong>
-                    Bolsa King Gas
-                  </strong>
-
-                  <small>
-                    Reposición rosada
-                  </small>
-
-                </div>
-
-              </div>
-
-            </div>
-
-
-            <strong
-              id="dashboardKingGasWallet"
-              class="wallet-money"
-            >
-              $0.00
-            </strong>
-
-
-            <div class="wallet-details">
-
-              <span>
-                Equivale aproximadamente a
-              </span>
-
-              <strong id="dashboardKingGasEquivalent">
-                0 tanques
-              </strong>
-
-              <small id="dashboardKingGasWalletFormula">
-                $0,00 / $1,48
-              </small>
-
-            </div>
-
-          </article>
+          </div>
 
         </div>
 
-      </section>
+      </div>
+
+
+      <strong
+        id="dashboardDuragasWallet"
+        class="wallet-money"
+      >
+        $0.00
+      </strong>
+
+
+      <div class="wallet-details">
+
+        <span>
+          Equivale aproximadamente a
+        </span>
+
+        <strong id="dashboardDuragasEquivalent">
+          0 tanques
+        </strong>
+
+
+        <small id="dashboardDuragasWalletFormula">
+          Anterior $0.00 + hoy $0.00 + aportes $0.00
+        </small>
+
+      </div>
+
+    </article>
 
 
 
+    <!-- KING GAS -->
+
+    <article class="reserve-wallet kinggas">
+
+      <div class="wallet-head">
+
+        <div class="gas-title">
+
+          <span class="gas-dot kinggas-dot">
+          </span>
+
+          <div>
+
+            <strong>
+              Bolsa King Gas
+            </strong>
+
+            <small>
+              Reposición rosada
+            </small>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <strong
+        id="dashboardKingGasWallet"
+        class="wallet-money"
+      >
+        $0.00
+      </strong>
+
+
+      <div class="wallet-details">
+
+        <span>
+          Equivale aproximadamente a
+        </span>
+
+        <strong id="dashboardKingGasEquivalent">
+          0 tanques
+        </strong>
+
+
+        <small id="dashboardKingGasWalletFormula">
+          Anterior $0.00 + hoy $0.00 + aportes $0.00
+        </small>
+
+      </div>
+
+    </article>
+
+  </div>
+
+</section>
       <!-- =================================================
            GANANCIAS
       ================================================== -->
@@ -1005,151 +1093,353 @@
         </div>
 
 
+<!-- =================================================
+     MODO FINANCIERO
+================================================== -->
 
-        <section
-          id="openingInitialWalletsBlock"
-          class="card opening-initial-wallets"
+<section class="card">
+
+  <div class="card-header">
+
+    <div>
+
+      <p class="eyebrow">
+        REPOSICIÓN
+      </p>
+
+      <h3>
+        Modo financiero
+      </h3>
+
+      <p>
+        Elige cómo se administrará el dinero reservado
+        para volver a comprar los cilindros vendidos.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <div class="form-grid two">
+
+    <label>
+
+      Manejo del dinero de reposición
+
+      <select id="openingFinancialMode">
+
+        <option value="exact">
+          Bolsas exactas por marca
+        </option>
+
+        <option value="general">
+          Bolsa General
+        </option>
+
+      </select>
+
+      <small>
+        Después de registrar actividad en la jornada
+        este modo quedará bloqueado.
+      </small>
+
+    </label>
+
+
+    <div class="field-block">
+
+      <span class="field-label">
+        Modo actual
+      </span>
+
+      <div class="big-inline-result">
+
+        <strong id="openingFinancialModeText">
+          Bolsas exactas
+        </strong>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+
+<!-- =================================================
+     PRIMERA CONFIGURACIÓN - BOLSAS EXACTAS
+================================================== -->
+
+<div id="openingExactWalletsBlock">
+
+  <section
+    id="openingInitialWalletsBlock"
+    class="card opening-initial-wallets"
+  >
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>
+          💰 Dinero de reposición existente
+        </h3>
+
+        <p>
+          Solo se configura la primera vez que se usa ControlGas.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="reserve-wallet-grid">
+
+
+      <label class="reserve-wallet duragas">
+
+        <span>
+          🟡 Bolsa Duragas actual
+        </span>
+
+        <small>
+          Dinero que ya estaba apartado antes de comenzar
+          a utilizar el sistema.
+        </small>
+
+        <input
+          type="number"
+          id="openingInitialDuragasWallet"
+          min="0"
+          step="0.01"
+          value="0"
+          inputmode="decimal"
         >
 
-          <div class="card-header">
-
-            <div>
-
-              <h3>💰 Dinero de reposición existente</h3>
-
-              <p>
-                Solo se configura la primera vez que se usa ControlGas.
-              </p>
-
-            </div>
-
-          </div>
+      </label>
 
 
-          <div class="reserve-wallet-grid">
+      <label class="reserve-wallet kinggas">
 
-            <label class="reserve-wallet duragas">
+        <span>
+          🌸 Bolsa King Gas actual
+        </span>
 
-              <span>
-                🟡 Bolsa Duragas actual
-              </span>
+        <small>
+          Dinero que ya estaba apartado antes de comenzar
+          a utilizar el sistema.
+        </small>
 
-              <small>
-                Dinero que ya estaba apartado antes de usar el sistema.
-              </small>
+        <input
+          type="number"
+          id="openingInitialKingGasWallet"
+          min="0"
+          step="0.01"
+          value="0"
+          inputmode="decimal"
+        >
 
-              <input
-                type="number"
-                id="openingInitialDuragasWallet"
-                min="0"
-                step="0.01"
-                value="0"
-                inputmode="decimal"
-              >
+      </label>
 
-            </label>
-
-
-            <label class="reserve-wallet kinggas">
-
-              <span>
-                🌸 Bolsa King Gas actual
-              </span>
-
-              <small>
-                Dinero que ya estaba apartado antes de usar el sistema.
-              </small>
-
-              <input
-                type="number"
-                id="openingInitialKingGasWallet"
-                min="0"
-                step="0.01"
-                value="0"
-                inputmode="decimal"
-              >
-
-            </label>
-
-          </div>
+    </div>
 
 
-          <div class="info-box">
+    <div class="info-box">
 
-            Estos valores no se consideran ventas ni ganancias.
-            Solamente indican cuánto dinero de reposición ya existía
-            cuando ControlGas comenzó a utilizarse.
+      Estos valores no se consideran ventas ni ganancias.
+      Solamente representan dinero de reposición
+      que ya existía antes de usar ControlGas.
 
-          </div>
+    </div>
 
-        </section>
+  </section>
 
-
-        <!-- =================================================
-             BOLSAS QUE VIENEN DEL DÍA ANTERIOR
-        ================================================== -->
-
-        <section class="opening-wallet-section">
-
-          <div class="subsection-heading">
-
-            <div>
-
-              <h3>
-                Dinero apartado para reposición
-              </h3>
-
-              <p>
-                Normalmente estos valores vienen automáticamente del día anterior.
-              </p>
-
-            </div>
-
-          </div>
-
-
-          <div class="reserve-wallet-grid">
-
-
-            <div class="opening-wallet duragas">
-
-              <span>
-                🟡 Bolsa Duragas
-              </span>
-
-              <strong id="openingDuragasWallet">
-                $0.00
-              </strong>
-
-              <small id="openingDuragasWalletEquivalent">
-                Aproximadamente 0 reposiciones
-              </small>
-
-            </div>
-
-
-            <div class="opening-wallet kinggas">
-
-              <span>
-                🌸 Bolsa King Gas
-              </span>
-
-              <strong id="openingKingGasWallet">
-                $0.00
-              </strong>
-
-              <small id="openingKingGasWalletEquivalent">
-                Aproximadamente 0 reposiciones
-              </small>
-
-            </div>
-
-          </div>
-
-        </section>
+</div>
 
 
 
+<!-- =================================================
+     PRIMERA CONFIGURACIÓN - BOLSA GENERAL
+================================================== -->
+
+<div
+  id="openingGeneralWalletBlock"
+  hidden
+>
+
+  <section
+    id="openingInitialGeneralWalletBlock"
+    class="card opening-initial-wallets"
+    hidden
+  >
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>
+          💰 Bolsa General existente
+        </h3>
+
+        <p>
+          Solo se configura durante la primera apertura
+          si trabajarás con una bolsa común.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="reserve-wallet-grid">
+
+      <label class="reserve-wallet">
+
+        <span>
+          💰 Saldo actual de Bolsa General
+        </span>
+
+        <small>
+          Dinero de reposición que ya existía
+          para Duragas y King Gas.
+        </small>
+
+        <input
+          type="number"
+          id="openingInitialGeneralWallet"
+          min="0"
+          step="0.01"
+          value="0"
+          inputmode="decimal"
+        >
+
+      </label>
+
+    </div>
+
+
+    <div class="info-box">
+
+      Este dinero tampoco es una venta ni una ganancia.
+      Es únicamente el fondo inicial de reposición
+      que ya existía antes de usar el sistema.
+
+    </div>
+
+  </section>
+
+</div>
+
+
+
+<!-- =================================================
+     DINERO ACTUAL DE REPOSICIÓN
+================================================== -->
+
+<section class="opening-wallet-section">
+
+  <div class="subsection-heading">
+
+    <div>
+
+      <h3>
+        Dinero apartado para reposición
+      </h3>
+
+      <p>
+        Estos saldos se conservan automáticamente
+        entre jornadas.
+      </p>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ===============================================
+       BOLSA GENERAL ACTUAL
+  ================================================ -->
+
+  <div
+    id="openingCurrentGeneralWalletBlock"
+    class="reserve-wallet-grid"
+    hidden
+  >
+
+    <div class="opening-wallet">
+
+      <span>
+        💰 Bolsa General
+      </span>
+
+      <strong id="openingGeneralWallet">
+        $0.00
+      </strong>
+
+      <small>
+        Reserva por cilindro:
+        <strong id="openingGeneralReservePerUnit">
+          $1.70
+        </strong>
+      </small>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ===============================================
+       BOLSAS EXACTAS ACTUALES
+  ================================================ -->
+
+  <div
+    id="openingCurrentExactWalletsBlock"
+    class="reserve-wallet-grid"
+  >
+
+
+    <div class="opening-wallet duragas">
+
+      <span>
+        🟡 Bolsa Duragas
+      </span>
+
+      <strong id="openingDuragasWallet">
+        $0.00
+      </strong>
+
+      <small id="openingDuragasWalletEquivalent">
+        Aproximadamente 0 reposiciones
+      </small>
+
+    </div>
+
+
+    <div class="opening-wallet kinggas">
+
+      <span>
+        🌸 Bolsa King Gas
+      </span>
+
+      <strong id="openingKingGasWallet">
+        $0.00
+      </strong>
+
+      <small id="openingKingGasWalletEquivalent">
+        Aproximadamente 0 reposiciones
+      </small>
+
+    </div>
+
+  </div>
+
+</section>
         <!-- =================================================
              FONDO DE CAJA
         ================================================== -->
