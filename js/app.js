@@ -1268,8 +1268,11 @@ function loadCurrentInventoryIntoOpeningForm() {
 /* =========================================================
    PREPARAR MODO DE APERTURA
 ========================================================= */
+function prepareOpeningMode({
 
-function prepareOpeningMode() {
+  preserveFinancialSelection = false,
+
+} = {}) {
 
   const activeDay =
     getActiveDay();
@@ -1323,8 +1326,18 @@ function prepareOpeningMode() {
     modeInput
   ) {
 
+    /*
+      Al cargar o refrescar la vista,
+      sincronizamos con el modo guardado.
+
+      Pero si el usuario acaba de cambiar
+      manualmente el selector, NO debemos
+      sobrescribir su elección.
+    */
+
     if (
-      !hasActivity
+      hasActivity ||
+      !preserveFinancialSelection
     ) {
 
       setValue(
@@ -1356,9 +1369,6 @@ function prepareOpeningMode() {
 
   /*
     PRIMERA CONFIGURACIÓN
-
-    Solo en la primera apertura se permite
-    ingresar dinero histórico inicial.
   */
 
   setVisible(
@@ -1374,11 +1384,6 @@ function prepareOpeningMode() {
     isGeneral
   );
 
-
-  /*
-    Compatibilidad con los nombres que
-    utilizaremos después en index.html.
-  */
 
   setVisible(
     'openingExactWalletsBlock',
@@ -1396,11 +1401,6 @@ function prepareOpeningMode() {
 
   /*
     INVENTARIO
-
-    Mientras la jornada todavía no tenga
-    movimientos se puede corregir.
-
-    Después queda bloqueado.
   */
 
   if (
@@ -1495,10 +1495,7 @@ function prepareOpeningMode() {
 
 
   /*
-    Primera configuración sin actividad:
-
-    mostramos los saldos reales actualmente
-    guardados en el sistema.
+    Primera configuración sin actividad
   */
 
   if (
@@ -1632,8 +1629,6 @@ function prepareOpeningMode() {
   renderOpeningTotals();
 
 }
-
-
 
 /* =========================================================
    REGISTRAR / ACTUALIZAR APERTURA
