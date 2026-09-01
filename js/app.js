@@ -2267,19 +2267,22 @@ function bindOpeningForm() {
     cambiar Exacta / General actualizará
     inmediatamente los campos visibles.
   */
+byId(
+  'openingFinancialMode'
+)?.addEventListener(
+  'change',
+  () => {
 
-  byId(
-    'openingFinancialMode'
-  )?.addEventListener(
-    'change',
-    () => {
+    prepareOpeningMode({
 
-      prepareOpeningMode();
+      preserveFinancialSelection:
+        true,
 
-    }
-  );
+    });
 
-
+  }
+);
+   
   form.addEventListener(
     'submit',
     event => {
